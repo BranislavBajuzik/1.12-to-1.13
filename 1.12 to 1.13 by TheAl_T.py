@@ -1362,7 +1362,7 @@ if __name__ == "__main__":
                 if ret:
                     failedFiles.append(ret)
                 else:
-                    tmpFiles.append("{}.TheAl_T".format(fileName))
+                    tmpFiles.append(u"{}.TheAl_T".format(fileName))
         else:
             choice = raw_input("No filenames on the command line, entering menu:\n1 - Convert all files in this folder\n2 - Convert all files in this folder recursively\n3 - Do Data Pack stuff\n4 - Remove .TheAl_T files\nelse - Convert one command here\n\n")
             if choice.strip() in ('1', '2', '3', '4'):
@@ -1441,9 +1441,7 @@ if __name__ == "__main__":
                     exit(0)
             else:
                 manual = True
-                a = raw_input("Input your command here:\n")
-                b = decide(a)
-                print u"\n{}\n".format(b)
+                print u"\n{}\n".format(decide(raw_input("Input your command here:\n")))
     except SyntaxError, e:
         print u"\n{}\n".format(e)
 
