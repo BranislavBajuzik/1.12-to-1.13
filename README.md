@@ -1,7 +1,8 @@
 # 1.12 to 1.13 Comand Converter
 
-Made by **TheAl_T**: planetminecraft.com/member/theal_t
-Block data value -> block state database by: **Onnowhere**: youtube.com/onnowhere2
+Made by **TheAl_T**: [planetminecraft.com/member/theal_t](https://www.planetminecraft.com/member/theal_t)
+
+Block data value -> block state database by: **Onnowhere**: [youtube.com/onnowhere2](https://www.youtube.com/onnowhere2)
 
 # Syntax explanation:
 
