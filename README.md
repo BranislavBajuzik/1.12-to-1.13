@@ -13,7 +13,7 @@ Pass filenames to convert as arguments or pass none for menu
 First character:
 - < - required token
 - [ - optional token
-- 
+
 Second character:
 - @ - player name or entity selector
 - ( - one of the literal values separated by '|'
