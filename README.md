@@ -4,6 +4,8 @@ Made by **TheAl_T**: [planetminecraft.com/member/theal_t](https://www.planetmine
 
 Block data value -> block state database by: **Onnowhere**: [youtube.com/onnowhere2](https://www.youtube.com/onnowhere2)
 
+[Reddit](https://www.reddit.com/r/MinecraftCommands/comments/6prh1h/112_113_convert_script/)
+
 # Usage
 
 Pass filenames to convert as arguments or pass none for menu
