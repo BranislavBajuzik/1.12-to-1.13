@@ -27,6 +27,14 @@ statTags = ("AffectedBlocks", "AffectedEntities", "AffectedItems", "QueryResult"
 
 def perform(level, box, options):
     def validate(what, label):
+        if "CommandStats" in e:
+            s = ""
+            tmp = {entry.name: entry.value for entry in e["CommandStats"].value}
+            for stat in statTags:
+                if stat+"Name" in tmp:
+                    s += "execute store {} {} {} ".format("success" if stat == "SuccessCount" else "result", tmp[stat+"Name"], tmp[stat+"Objective"])
+            what = s + what
+
         if len(what) > 32500:
             print "The command at [{}, {}, {}] is too long ({}) after conversion\n(more than 32 500 characters)\n".format(x, y, z, len(what))
             if options["Errors"]:
@@ -36,14 +44,6 @@ def perform(level, box, options):
             print "A command at [{}, {}, {}] was commented out because it has to be converted manually\n".format(x, y, z)
             if options["Warnings"]:
                 raise AssertionError("A command at [{}, {}, {}] has to be converted manually".format(x, y, z))
-
-        if "CommandStats" in e:
-            s = ""
-            tmp = {entry.name: entry.value for entry in e["CommandStats"].value}
-            for stat in statTags:
-                if stat+"Name" in tmp:
-                    s += "execute store {} {} {} ".format("success" if stat == "SuccessCount" else "result", tmp[stat+"Name"], tmp[stat+"Objective"])
-            what = s + what
 
         e[label] = TAG_String(what)
         chunk.dirty = True
