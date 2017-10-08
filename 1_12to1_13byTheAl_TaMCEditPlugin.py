@@ -13,7 +13,8 @@ inputs = (
     ("Convert to 1.12 to 1.13:", "label"),
     ("", "label"),
     ("Important: Run this filter only once. If you run it on already converted commands, it wil fail, because 1.13 syntax is different than 1.12 (Because of the very reason you are using this filter)", "label"),
-    ("The way this filter is intended to be used: Turn off Errors, filter, undo, look at the console and fix all errors and then filter and save.", "label"),
+    ("The way this filter is intended to be used: Turn off Errors, filter, undo, look at the console, fix all errors, filter again and save.", "label"),
+    ("", "label"),
     ("", "label"),
     ("Warnings will be printed to the console. They will NOT stop the execution of this script. If you want to do so, tick the next box.", "label"),
     ("Warnings", False),
@@ -31,7 +32,7 @@ def perform(level, box, options):
             if options["Errors"]:
                 raise AssertionError("The command at [{}, {}, {}] is too long ({}) after conversion\n(more than 32 500 characters)".format(x, y, z, len(what)))
 
-        if converter.commentedOut:
+        if converter.Globals.commentedOut:
             print "A command at [{}, {}, {}] was commented out because it has to be converted manually\n".format(x, y, z)
             if options["Warnings"]:
                 raise AssertionError("A command at [{}, {}, {}] has to be converted manually".format(x, y, z))
@@ -47,19 +48,17 @@ def perform(level, box, options):
         e[label] = TAG_String(what)
         chunk.dirty = True
 
-
     def fixCommand():
         command = e["Command"].value.strip()
         if command:
             try:
-                converter.commentedOut = {}
+                converter.Globals.commentedOut = False
                 command = unicode(converter.decide(command))
             except SyntaxError, ex:
                 print u"Error in block at [{}, {}, {}]:\n{}".format(x, y, z, ex)
                 if options["Errors"]:
                     raise SyntaxError(u"Error in block at [{}, {}, {}]:\n{}".format(x, y, z, ex.message))
             validate(command, "Command")
-
 
     for (chunk, _, _) in level.getChunkSlices(box):
         for e in chunk.Entities:
@@ -76,7 +75,7 @@ def perform(level, box, options):
                 if e["id"].value == "minecraft:sign":
                     for label in ("Text1", "Text2", "Text3", "Text4"):
                         try:
-                            converter.commentedOut = {}
+                            converter.Globals.commentedOut = False
                             s = json.JSONDecoder().decode(e[label].value.strip())
                             converter.walk(s)
                             s = json.JSONEncoder(separators=(',', ':')).encode(s)
