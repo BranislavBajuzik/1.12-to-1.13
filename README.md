@@ -12,7 +12,7 @@ Main file:
 - Pass filenames to convert as arguments or pass none for menu
 
 MCEdit filter:
-- Copy *both* files into your filters directory
+- Copy **both** files into your filters directory
 
 # Syntax explanation:
 
