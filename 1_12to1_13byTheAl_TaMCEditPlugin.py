@@ -5,7 +5,10 @@
 
 import json
 from pymclevel import TAG_String
-converter = __import__("1_12to1_13byTheAl_T")
+try:
+    converter = __import__("1_12to1_13byTheAl_T")
+except ImportError:
+    converter = False
 
 displayName = "1.12 to 1.13 by TheAl_T"
 
@@ -26,6 +29,9 @@ statTags = ("AffectedBlocks", "AffectedEntities", "AffectedItems", "QueryResult"
 
 
 def perform(level, box, options):
+    if not converter:
+        raise ImportError("Unable to import main library (1_12to1_13byTheAl_T.py). Please make sure this file is in the same directory as this filter")
+
     def validate(what, label):
         if "CommandStats" in e:
             s = ""
