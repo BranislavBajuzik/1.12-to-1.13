@@ -1046,7 +1046,7 @@ class scoreboard(Master):
 
     def __unicode__(self):
         if "[{dataTag" in self.data and "<@entity" in self.data:
-            selectorCopy = Selector(unicode(self.data["<@entity"]))
+            selectorCopy = Selector(self.data["<@entity"].raw)
             selectorCopy.data["nbt"] = u"\"{}\"".format(escape(unicode(self.data["[{dataTag"])))
             s = u"scoreboard"
             for key in self.syntax[:-1]:
@@ -1181,7 +1181,7 @@ class testfor(Master):
 
     def __unicode__(self):
         if "[{dataTag" in self.data:
-            selectorCopy = Selector(unicode(self.data["<@player"]))
+            selectorCopy = Selector(self.data["<@player"].raw)
             selectorCopy.data["nbt"] = u"\"{}\"".format(escape(unicode(self.data["[{dataTag"])))
 
         return u"execute if entity {}".format(selectorCopy if "[{dataTag" in self.data else self.data["<@player"])
