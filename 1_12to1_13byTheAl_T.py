@@ -1037,7 +1037,7 @@ class scoreboard(Master):
                     ("<(teams", "<(option", "<.team", "<(color", "<(black|dark_blue|dark_green|dark_aqua|dark_red|dark_purple|gold|gray|dark_gray|blue|green|aqua|red|light_purple|yellow|white|reset"),
                     ("<(teams", "<(option", "<.team", "<(friendlyfire|seeFriendlyInvisibles", "<(true|false"),
                     ("<(teams", "<(option", "<.team", "<(nametagVisibility|deathMessageVisibility", "<(never|hideForOtherTeams|hideForOwnTeam|always"),
-                    ("<(teams", "<(option", "<.team", "<(collisionRule", "<always|never|pushOwnTeam|pushOtherTeams"))
+                    ("<(teams", "<(option", "<.team", "<(collisionRule", "<(always|never|pushOwnTeam|pushOtherTeams"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.at, self.ass = False, False
         for word in self.syntax:
