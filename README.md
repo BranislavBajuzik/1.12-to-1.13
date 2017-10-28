@@ -8,6 +8,8 @@ Block data value -> block state database by: **Onnowhere**: [youtube.com/onnowhe
 
 # Usage
 
+Use python 2.7
+
 Main file:
 - Pass filenames to convert as arguments or pass none for menu
 

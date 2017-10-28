@@ -211,7 +211,7 @@ def item(data, nameLabel, damageLabel=None, nbtLabel=None):
     if nbtLabel in data:
         if damageLabel in data and data[damageLabel] != '0':
             data[nbtLabel].data["Damage"] = data[damageLabel]
-        return u"{}{}".format(s, data[nbtLabel])
+        return u"{}{}".format(s, data[nbtLabel] if data[nbtLabel].data != NBTCompound().data else "")
     else:
         if damageLabel in data and data[damageLabel] != '0':
             return u"{}{{Damage:{}}}".format(s, data[damageLabel])
@@ -333,7 +333,7 @@ def lex(caller, syntaxes, tokens):
                         syntax = syntax[:i]
                         break
                 else:
-                    raise AssertionError(u"A Syntax '{}' is defined badly at Word '{}'.".format(synt(caller, syntax), word))
+                    raise AssertionError(u"A Syntax '{}' is defined badly at Word '{}'.\nThis means that I messed up, please send this message to me".format(synt(caller, syntax), word))
 
                 if word[1] == '@':
                     workTokens[i] = Selector(workTokens[i])
@@ -608,6 +608,8 @@ class clear(Master):
             self.at, self.ass = self.data["<@player"].at, True
 
     def __unicode__(self):
+        if "<@player" not in self.data:
+            return u"clear"
         s = u"clear {}".format(self.data["<@player"])
         if "[.item" in self.data:
             s += u" {}".format(item(self.data, "[.item", "[0data", "[{dataTag"))
@@ -627,7 +629,7 @@ class clone(Master):
     def __unicode__(self):
         s = u"clone {} {} {} {} {} {} {} {} {}".format(self.data["<~x1"], self.data["<~y1"], self.data["<~z1"], self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], self.data["<~x"], self.data["<~y"], self.data["<~z"])
         if "<(filtered" in self.data:
-            s += u" {} {}".format(block(self.data, False, "<.tileName", "[=dataValue"), self.data["<(force|move|normal"])
+            s += u" filtered {} {}".format(block(self.data, False, "<.tileName", "[=dataValue"), self.data["<(force|move|normal"])
         else:
             for key in self.syntax[9:]:
                 s += u" {}".format(self.data[key])
@@ -1433,7 +1435,7 @@ if __name__ == "__main__":
                     exit(0)
             else:
                 manual = True
-                print u"\n{}\n".format(decide(raw_input("Input your command here:\n")))
+                print u"\nOutput:\n{}\n".format(decide(raw_input("Input your command here:\n")))
     except SyntaxError, e:
         print u"\n{}\n".format(e)
 
