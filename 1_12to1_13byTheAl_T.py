@@ -815,7 +815,7 @@ class function(Master):
         self.at, self.ass = True, True
 
     def __unicode__(self):
-        if not "<(if|unless" in self.data:
+        if "<(if|unless" not in self.data:
             return u"function {}".format(self.data["<.function"])
         return u"execute {} entity {} then function {}".format(self.data["<(if|unless"], self.data["<@selector"], self.data["<.function"])
 
