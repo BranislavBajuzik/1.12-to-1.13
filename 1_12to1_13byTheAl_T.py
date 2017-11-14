@@ -40,8 +40,9 @@ Globals.selectorArgsNew = (('x', 'x', 'x'), ('y', 'y', 'y'), ('z', 'z', 'z'), ("
 Globals.gamerules = ('announceAdvancements', 'commandBlockOutput', 'disableElytraMovementCheck', 'doDaylightCycle', 'doEntityDrops', 'doFireTick', 'doLimitedCrafting', 'doMobLoot', 'doMobSpawning', 'doTileDrops', 'doWeatherCycle', 'drowningdamage', 'falldamage', 'firedamage', 'gameLoopFunction', 'keepInventory', 'logAdminCommands', 'maxCommandChainLength', 'maxEntityCramming', 'mobGriefing', 'naturalRegeneration', 'pvp', 'randomTickSpeed', 'reducedDebugInfo', 'sendCommandFeedback', 'showDeathMessages', 'spawnRadius', 'spectatorsGenerateChunks')
 Globals.commands = ["advancement", "ban", "ban-ip", "blockdata", "clear", "clone", "debug", "defaultgamemode", "deop", "difficulty", "effect", "enchant", "entitydata", "execute", "fill", "function", "gamemode", "gamerule", "give", "help", "?", "kick", "kill", "list", "locate", "me", "msg", "op", "pardon", "pardon-ip", "particle", "playsound", "publish", "recipe", "reload", "replaceitem", "save-all", "save-off", "save-on", "say", "scoreboard", "seed", "setblock", "setidletimeout", "setworldspawn", "spawnpoint", "spreadplayers", "stats", "stop", "stopsound", "summon", "teleport", "tell", "tellraw", "testfor", "testforblock", "testforblocks", "time", "title", "toggledownfall", "tp", "trigger", "w", "weather", "whitelist", "worldborder", "xp"]
 Globals.summons = ("item", "xp_orb", "area_effect_cloud", "leash_knot", "painting", "item_frame", "armor_stand", "evocation_fangs", "ender_crystal", "egg", "arrow", "snowball", "fireball", "small_fireball", "ender_pearl", "eye_of_ender_signal", "potion", "xp_bottle", "wither_skull", "fireworks_rocket", "spectral_arrow", "shulker_bullet", "dragon_fireball", "llama_spit", "tnt", "falling_block", "commandblock_minecart", "boat", "minecart", "chest_minecart", "furnace_minecart", "tnt_minecart", "hopper_minecart", "spawner_minecart", "elder_guardian", "wither_skeleton", "stray", "husk", "zombie_villager", "evocation_illager", "vex", "vindication_illager", "illusion_illager", "creeper", "skeleton", "spider", "giant", "zombie", "slime", "ghast", "zombie_pigman", "enderman", "cave_spider", "silverfish", "blaze", "magma_cube", "ender_dragon", "wither", "witch", "endermite", "guardian", "shulker", "skeleton_horse", "zombie_horse", "donkey", "mule", "bat", "pig", "sheep", "cow", "chicken", "squid", "wolf", "mooshroom", "snowman", "ocelot", "villager_golem", "horse", "rabbit", "polar_bear", "llama", "parrot", "villager", "lightning_bolt")
+Globals.particles = ("angryVillager", "barrier", "blockcrack", "blockdust", "bubble", "cloud", "crit", "damageIndicator", "depthsuspend", "dragonbreath", "dripLava", "dripWater", "droplet", "enchantmenttable", "endRod", "explode", "fallingdust", "fireworksSpark", "flame", "footstep", "happyVillager", "heart", "hugeexplosion", "iconcrack", "instantSpell", "largeexplode", "largesmoke", "lava", "magicCrit", "mobappearance", "mobSpell", "mobSpellAmbient", "note", "portal", "reddust", "slime", "smoke", "snowballpoof", "snowshovel", "spell", "spit", "splash", "suspended", "sweepAttack", "take", "totem", "townaura", "wake", "witchMagic")
 Globals.blockStates = {"brewing_stand":{0:"has_bottle_0=false,has_bottle_1=false,has_bottle_2=false",1:"has_bottle_0=true,has_bottle_1=false,has_bottle_2=false",2:"has_bottle_0=false,has_bottle_1=true,has_bottle_2=false",3:"has_bottle_0=true,has_bottle_1=true,has_bottle_2=false",4:"has_bottle_0=false,has_bottle_1=false,has_bottle_2=true",5:"has_bottle_0=true,has_bottle_1=false,has_bottle_2=true",6:"has_bottle_0=false,has_bottle_1=true,has_bottle_2=true",7:"has_bottle_0=true,has_bottle_1=true,has_bottle_2=true",8:"has_bottle_0=false,has_bottle_1=false,has_bottle_2=false",9:"has_bottle_0=true,has_bottle_1=false,has_bottle_2=false",10:"has_bottle_0=false,has_bottle_1=true,has_bottle_2=false",11:"has_bottle_0=true,has_bottle_1=true,has_bottle_2=false",12:"has_bottle_0=false,has_bottle_1=false,has_bottle_2=true",13:"has_bottle_0=true,has_bottle_1=false,has_bottle_2=true",14:"has_bottle_0=false,has_bottle_1=true,has_bottle_2=true",15:"has_bottle_0=true,has_bottle_1=true,has_bottle_2=true"},"dark_oak_door":{0:"facing=east,half=lower,hinge=left,open=false,powered=false",1:"facing=south,half=lower,hinge=left,open=false,powered=false",2:"facing=west,half=lower,hinge=left,open=false,powered=false",3:"facing=north,half=lower,hinge=left,open=false,powered=false",4:"facing=east,half=lower,hinge=left,open=true,powered=false",5:"facing=south,half=lower,hinge=left,open=true,powered=false",6:"facing=west,half=lower,hinge=left,open=true,powered=false",7:"facing=north,half=lower,hinge=left,open=true,powered=false",8:"half=upper,hinge=left,powered=false",9:"half=upper,hinge=right,powered=false",10:"half=upper,hinge=left,powered=true",11:"half=upper,hinge=right,powered=true",12:"half=upper,hinge=left,powered=false",13:"half=upper,hinge=right,powered=false",14:"half=upper,hinge=left,powered=true",15:"half=upper,hinge=right,powered=true"},"acacia_door":{0:"facing=east,half=lower,hinge=left,open=false,powered=false",1:"facing=south,half=lower,hinge=left,open=false,powered=false",2:"facing=west,half=lower,hinge=left,open=false,powered=false",3:"facing=north,half=lower,hinge=left,open=false,powered=false",4:"facing=east,half=lower,hinge=left,open=true,powered=false",5:"facing=south,half=lower,hinge=left,open=true,powered=false",6:"facing=west,half=lower,hinge=left,open=true,powered=false",7:"facing=north,half=lower,hinge=left,open=true,powered=false",8:"half=upper,hinge=left,powered=false",9:"half=upper,hinge=right,powered=false",10:"half=upper,hinge=left,powered=true",11:"half=upper,hinge=right,powered=true",12:"half=upper,hinge=left,powered=false",13:"half=upper,hinge=right,powered=false",14:"half=upper,hinge=left,powered=true",15:"half=upper,hinge=right,powered=true"},"jungle_door":{0:"facing=east,half=lower,hinge=left,open=false,powered=false",1:"facing=south,half=lower,hinge=left,open=false,powered=false",2:"facing=west,half=lower,hinge=left,open=false,powered=false",3:"facing=north,half=lower,hinge=left,open=false,powered=false",4:"facing=east,half=lower,hinge=left,open=true,powered=false",5:"facing=south,half=lower,hinge=left,open=true,powered=false",6:"facing=west,half=lower,hinge=left,open=true,powered=false",7:"facing=north,half=lower,hinge=left,open=true,powered=false",8:"half=upper,hinge=left,powered=false",9:"half=upper,hinge=right,powered=false",10:"half=upper,hinge=left,powered=true",11:"half=upper,hinge=right,powered=true",12:"half=upper,hinge=left,powered=false",13:"half=upper,hinge=right,powered=false",14:"half=upper,hinge=left,powered=true",15:"half=upper,hinge=right,powered=true"},"spruce_door":{0:"facing=east,half=lower,hinge=left,open=false,powered=false",1:"facing=south,half=lower,hinge=left,open=false,powered=false",2:"facing=west,half=lower,hinge=left,open=false,powered=false",3:"facing=north,half=lower,hinge=left,open=false,powered=false",4:"facing=east,half=lower,hinge=left,open=true,powered=false",5:"facing=south,half=lower,hinge=left,open=true,powered=false",6:"facing=west,half=lower,hinge=left,open=true,powered=false",7:"facing=north,half=lower,hinge=left,open=true,powered=false",8:"half=upper,hinge=left,powered=false",9:"half=upper,hinge=right,powered=false",10:"half=upper,hinge=left,powered=true",11:"half=upper,hinge=right,powered=true",12:"half=upper,hinge=left,powered=false",13:"half=upper,hinge=right,powered=false",14:"half=upper,hinge=left,powered=true",15:"half=upper,hinge=right,powered=true"},"wooden_door":{0:"facing=east,half=lower,hinge=left,open=false,powered=false",1:"facing=south,half=lower,hinge=left,open=false,powered=false",2:"facing=west,half=lower,hinge=left,open=false,powered=false",3:"facing=north,half=lower,hinge=left,open=false,powered=false",4:"facing=east,half=lower,hinge=left,open=true,powered=false",5:"facing=south,half=lower,hinge=left,open=true,powered=false",6:"facing=west,half=lower,hinge=left,open=true,powered=false",7:"facing=north,half=lower,hinge=left,open=true,powered=false",8:"half=upper,hinge=left,powered=false",9:"half=upper,hinge=right,powered=false",10:"half=upper,hinge=left,powered=true",11:"half=upper,hinge=right,powered=true",12:"half=upper,hinge=left,powered=false",13:"half=upper,hinge=right,powered=false",14:"half=upper,hinge=left,powered=true",15:"half=upper,hinge=right,powered=true"},"birch_door":{0:"facing=east,half=lower,hinge=left,open=false,powered=false",1:"facing=south,half=lower,hinge=left,open=false,powered=false",2:"facing=west,half=lower,hinge=left,open=false,powered=false",3:"facing=north,half=lower,hinge=left,open=false,powered=false",4:"facing=east,half=lower,hinge=left,open=true,powered=false",5:"facing=south,half=lower,hinge=left,open=true,powered=false",6:"facing=west,half=lower,hinge=left,open=true,powered=false",7:"facing=north,half=lower,hinge=left,open=true,powered=false",8:"half=upper,hinge=left,powered=false",9:"half=upper,hinge=right,powered=false",10:"half=upper,hinge=left,powered=true",11:"half=upper,hinge=right,powered=true",12:"half=upper,hinge=left,powered=false",13:"half=upper,hinge=right,powered=false",14:"half=upper,hinge=left,powered=true",15:"half=upper,hinge=right,powered=true"},"iron_door":{0:"facing=east,half=lower,hinge=left,open=false,powered=false",1:"facing=south,half=lower,hinge=left,open=false,powered=false",2:"facing=west,half=lower,hinge=left,open=false,powered=false",3:"facing=north,half=lower,hinge=left,open=false,powered=false",4:"facing=east,half=lower,hinge=left,open=true,powered=false",5:"facing=south,half=lower,hinge=left,open=true,powered=false",6:"facing=west,half=lower,hinge=left,open=true,powered=false",7:"facing=north,half=lower,hinge=left,open=true,powered=false",8:"half=upper,hinge=left,powered=false",9:"half=upper,hinge=right,powered=false",10:"half=upper,hinge=left,powered=true",11:"half=upper,hinge=right,powered=true",12:"half=upper,hinge=left,powered=false",13:"half=upper,hinge=right,powered=false",14:"half=upper,hinge=left,powered=true",15:"half=upper,hinge=right,powered=true"},"leaves":{0:"check_decay=false,decayable=true,variant=oak",1:"check_decay=false,decayable=true,variant=spruce",2:"check_decay=false,decayable=true,variant=birch",3:"check_decay=false,decayable=true,variant=jungle",4:"check_decay=false,decayable=false,variant=oak",5:"check_decay=false,decayable=false,variant=spruce",6:"check_decay=false,decayable=false,variant=birch",7:"check_decay=false,decayable=false,variant=jungle",8:"check_decay=true,decayable=true,variant=oak",9:"check_decay=true,decayable=true,variant=spruce",10:"check_decay=true,decayable=true,variant=birch",11:"check_decay=true,decayable=true,variant=jungle",12:"check_decay=true,decayable=false,variant=oak",13:"check_decay=true,decayable=false,variant=spruce",14:"check_decay=true,decayable=false,variant=birch",15:"check_decay=true,decayable=false,variant=jungle"},"vine":{0:"east=false,north=false,south=false,west=false",1:"east=false,north=false,south=true,west=false",2:"east=false,north=false,south=true,west=true",3:"east=false,north=true,south=false,west=false",4:"east=false,north=true,south=true,west=false",5:"east=false,north=true,south=false,west=true",6:"east=false,north=true,south=true,west=true",7:"east=true,north=false,south=false,west=false",8:"east=true,north=false,south=false,west=false",9:"east=true,north=false,south=true,west=false",10:"east=true,north=false,south=false,west=true",11:"east=true,north=false,south=true,west=true",12:"east=true,north=true,south=false,west=false",13:"east=true,north=true,south=true,west=false",14:"east=true,north=true,south=false,west=true",15:"east=true,north=true,south=true,west=true"},"tripwire":{0:"attached=false,disarmed=false,powered=false",1:"attached=false,disarmed=false,powered=true",2:"attached=false,disarmed=false,powered=false",3:"attached=false,disarmed=false,powered=true",4:"attached=true,disarmed=false,powered=false",5:"attached=true,disarmed=false,powered=true",6:"attached=true,disarmed=false,powered=false",7:"attached=true,disarmed=false,powered=true",8:"attached=false,disarmed=true,powered=false",9:"attached=false,disarmed=true,powered=true",10:"attached=false,disarmed=true,powered=false",11:"attached=false,disarmed=true,powered=true",12:"attached=true,disarmed=true,powered=false",13:"attached=true,disarmed=true,powered=true",14:"attached=true,disarmed=true,powered=false",15:"attached=true,disarmed=true,powered=true"},"tripwire_hook":{0:"attached=false,facing=south,powered=false",1:"attached=false,facing=west,powered=false",2:"attached=false,facing=north,powered=false",3:"attached=false,facing=east,powered=false",4:"attached=true,facing=south,powered=false",5:"attached=true,facing=west,powered=false",6:"attached=true,facing=north,powered=false",7:"attached=true,facing=east,powered=false",8:"attached=false,facing=south,powered=true",9:"attached=false,facing=west,powered=true",10:"attached=false,facing=north,powered=true",11:"attached=false,facing=east,powered=true",12:"attached=true,facing=south,powered=true",13:"attached=true,facing=west,powered=true",14:"attached=true,facing=north,powered=true",15:"attached=true,facing=east,powered=true"},"unpowered_comparator":{0:"facing=south,mode=compare,powered=false",1:"facing=west,mode=compare,powered=false",2:"facing=north,mode=compare,powered=false",3:"facing=east,mode=compare,powered=false",4:"facing=south,mode=subtract,powered=false",5:"facing=west,mode=subtract,powered=false",6:"facing=north,mode=subtract,powered=false",7:"facing=east,mode=subtract,powered=false",8:"facing=south,mode=compare,powered=true",9:"facing=west,mode=compare,powered=true",10:"facing=north,mode=compare,powered=true",11:"facing=east,mode=compare,powered=true",12:"facing=south,mode=subtract,powered=true",13:"facing=west,mode=subtract,powered=true",14:"facing=north,mode=subtract,powered=true",15:"facing=east,mode=subtract,powered=true"},"powered_comparator":{0:"facing=south,mode=compare,powered=false",1:"facing=west,mode=compare,powered=false",2:"facing=north,mode=compare,powered=false",3:"facing=east,mode=compare,powered=false",4:"facing=south,mode=subtract,powered=false",5:"facing=west,mode=subtract,powered=false",6:"facing=north,mode=subtract,powered=false",7:"facing=east,mode=subtract,powered=false",8:"facing=south,mode=compare,powered=true",9:"facing=west,mode=compare,powered=true",10:"facing=north,mode=compare,powered=true",11:"facing=east,mode=compare,powered=true",12:"facing=south,mode=subtract,powered=true",13:"facing=west,mode=subtract,powered=true",14:"facing=north,mode=subtract,powered=true",15:"facing=east,mode=subtract,powered=true"},"dark_oak_fence_gate":{0:"facing=south,open=false,powered=false",1:"facing=west,open=false,powered=false",2:"facing=north,open=false,powered=false",3:"facing=east,open=false,powered=false",4:"facing=south,open=true,powered=false",5:"facing=west,open=true,powered=false",6:"facing=north,open=true,powered=false",7:"facing=east,open=true,powered=false",8:"facing=south,open=false,powered=true",9:"facing=west,open=false,powered=true",10:"facing=north,open=false,powered=true",11:"facing=east,open=false,powered=true",12:"facing=south,open=true,powered=true",13:"facing=west,open=true,powered=true",14:"facing=north,open=true,powered=true",15:"facing=east,open=true,powered=true"},"double_stone_slab2":{0:"seamless=false,variant=red_sandstone",1:"seamless=false,variant=red_sandstone",2:"seamless=false,variant=red_sandstone",3:"seamless=false,variant=red_sandstone",4:"seamless=false,variant=red_sandstone",5:"seamless=false,variant=red_sandstone",6:"seamless=false,variant=red_sandstone",7:"seamless=false,variant=red_sandstone",8:"seamless=true,variant=red_sandstone",9:"seamless=true,variant=red_sandstone",10:"seamless=true,variant=red_sandstone",11:"seamless=true,variant=red_sandstone",12:"seamless=true,variant=red_sandstone",13:"seamless=true,variant=red_sandstone",14:"seamless=true,variant=red_sandstone",15:"seamless=true,variant=red_sandstone"},"acacia_fence_gate":{0:"facing=south,open=false,powered=false",1:"facing=west,open=false,powered=false",2:"facing=north,open=false,powered=false",3:"facing=east,open=false,powered=false",4:"facing=south,open=true,powered=false",5:"facing=west,open=true,powered=false",6:"facing=north,open=true,powered=false",7:"facing=east,open=true,powered=false",8:"facing=south,open=false,powered=true",9:"facing=west,open=false,powered=true",10:"facing=north,open=false,powered=true",11:"facing=east,open=false,powered=true",12:"facing=south,open=true,powered=true",13:"facing=west,open=true,powered=true",14:"facing=north,open=true,powered=true",15:"facing=east,open=true,powered=true"},"jungle_fence_gate":{0:"facing=south,open=false,powered=false",1:"facing=west,open=false,powered=false",2:"facing=north,open=false,powered=false",3:"facing=east,open=false,powered=false",4:"facing=south,open=true,powered=false",5:"facing=west,open=true,powered=false",6:"facing=north,open=true,powered=false",7:"facing=east,open=true,powered=false",8:"facing=south,open=false,powered=true",9:"facing=west,open=false,powered=true",10:"facing=north,open=false,powered=true",11:"facing=east,open=false,powered=true",12:"facing=south,open=true,powered=true",13:"facing=west,open=true,powered=true",14:"facing=north,open=true,powered=true",15:"facing=east,open=true,powered=true"},"spruce_fence_gate":{0:"facing=south,open=false,powered=false",1:"facing=west,open=false,powered=false",2:"facing=north,open=false,powered=false",3:"facing=east,open=false,powered=false",4:"facing=south,open=true,powered=false",5:"facing=west,open=true,powered=false",6:"facing=north,open=true,powered=false",7:"facing=east,open=true,powered=false",8:"facing=south,open=false,powered=true",9:"facing=west,open=false,powered=true",10:"facing=north,open=false,powered=true",11:"facing=east,open=false,powered=true",12:"facing=south,open=true,powered=true",13:"facing=west,open=true,powered=true",14:"facing=north,open=true,powered=true",15:"facing=east,open=true,powered=true"},"birch_fence_gate":{0:"facing=south,open=false,powered=false",1:"facing=west,open=false,powered=false",2:"facing=north,open=false,powered=false",3:"facing=east,open=false,powered=false",4:"facing=south,open=true,powered=false",5:"facing=west,open=true,powered=false",6:"facing=north,open=true,powered=false",7:"facing=east,open=true,powered=false",8:"facing=south,open=false,powered=true",9:"facing=west,open=false,powered=true",10:"facing=north,open=false,powered=true",11:"facing=east,open=false,powered=true",12:"facing=south,open=true,powered=true",13:"facing=west,open=true,powered=true",14:"facing=north,open=true,powered=true",15:"facing=east,open=true,powered=true"},"fence_gate":{0:"facing=south,open=false,powered=false",1:"facing=west,open=false,powered=false",2:"facing=north,open=false,powered=false",3:"facing=east,open=false,powered=false",4:"facing=south,open=true,powered=false",5:"facing=west,open=true,powered=false",6:"facing=north,open=true,powered=false",7:"facing=east,open=true,powered=false",8:"facing=south,open=false,powered=true",9:"facing=west,open=false,powered=true",10:"facing=north,open=false,powered=true",11:"facing=east,open=false,powered=true",12:"facing=south,open=true,powered=true",13:"facing=west,open=true,powered=true",14:"facing=north,open=true,powered=true",15:"facing=east,open=true,powered=true"},"iron_trapdoor":{0:"facing=north,half=bottom,open=false",1:"facing=south,half=bottom,open=false",2:"facing=west,half=bottom,open=false",3:"facing=east,half=bottom,open=false",4:"facing=north,half=bottom,open=true",5:"facing=south,half=bottom,open=true",6:"facing=west,half=bottom,open=true",7:"facing=east,half=bottom,open=true",8:"facing=north,half=bottom,open=false",9:"facing=south,half=top,open=false",10:"facing=west,half=top,open=false",11:"facing=east,half=top,open=false",12:"facing=north,half=top,open=true",13:"facing=south,half=top,open=true",14:"facing=west,half=top,open=true",15:"facing=east,half=top,open=true"},"trapdoor":{0:"facing=north,half=bottom,open=false",1:"facing=south,half=bottom,open=false",2:"facing=west,half=bottom,open=false",3:"facing=east,half=bottom,open=false",4:"facing=north,half=bottom,open=true",5:"facing=south,half=bottom,open=true",6:"facing=west,half=bottom,open=true",7:"facing=east,half=bottom,open=true",8:"facing=north,half=bottom,open=false",9:"facing=south,half=top,open=false",10:"facing=west,half=top,open=false",11:"facing=east,half=top,open=false",12:"facing=north,half=top,open=true",13:"facing=south,half=top,open=true",14:"facing=west,half=top,open=true",15:"facing=east,half=top,open=true"},"double_plant":{0:"facing=north,half=lower,variant=sunflower",1:"facing=north,half=lower,variant=syringa",2:"facing=north,half=lower,variant=double_grass",3:"facing=north,half=lower,variant=double_fern",4:"facing=north,half=lower,variant=double_rose",5:"facing=north,half=lower,variant=paeonia",6:"facing=north,half=lower,variant=sunflower",7:"facing=north,half=lower,variant=sunflower",8:"facing=north,half=upper",9:"facing=north,half=upper",10:"facing=north,half=upper",11:"facing=north,half=upper",12:"facing=north,half=upper",13:"facing=north,half=upper",14:"facing=north,half=upper",15:"facing=north,half=upper"},"stone_slab2":{0:"half=bottom,variant=red_sandstone",1:"half=bottom,variant=red_sandstone",2:"half=bottom,variant=red_sandstone",3:"half=bottom,variant=red_sandstone",4:"half=bottom,variant=red_sandstone",5:"half=bottom,variant=red_sandstone",6:"half=bottom,variant=red_sandstone",7:"half=bottom,variant=red_sandstone",8:"half=top,variant=red_sandstone",9:"half=top,variant=red_sandstone",10:"half=top,variant=red_sandstone",11:"half=top,variant=red_sandstone",12:"half=top,variant=red_sandstone",13:"half=top,variant=red_sandstone",14:"half=top,variant=red_sandstone",15:"half=top,variant=red_sandstone"},"double_stone_slab":{0:"seamless=false,variant=stone",1:"seamless=false,variant=sandstone",2:"seamless=false,variant=wood_old",3:"seamless=false,variant=cobblestone",4:"seamless=false,variant=brick",5:"seamless=false,variant=stone_brick",6:"seamless=false,variant=nether_brick",7:"seamless=false,variant=quartz",8:"seamless=true,variant=stone",9:"seamless=true,variant=sandstone",10:"seamless=true,variant=wood_old",11:"seamless=true,variant=cobblestone",12:"seamless=true,variant=brick",13:"seamless=true,variant=stone_brick",14:"seamless=true,variant=nether_brick",15:"seamless=true,variant=quartz"},"repeating_command_block":{0:"conditional=false,facing=down",1:"conditional=false,facing=up",2:"conditional=false,facing=north",3:"conditional=false,facing=south",4:"conditional=false,facing=west",5:"conditional=false,facing=east",6:"conditional=false,facing=down",7:"conditional=false,facing=up",8:"conditional=true,facing=down",9:"conditional=true,facing=up",10:"conditional=true,facing=north",11:"conditional=true,facing=south",12:"conditional=true,facing=west",13:"conditional=true,facing=east",14:"conditional=true,facing=down",15:"conditional=true,facing=up"},"chain_command_block":{0:"conditional=false,facing=down",1:"conditional=false,facing=up",2:"conditional=false,facing=north",3:"conditional=false,facing=south",4:"conditional=false,facing=west",5:"conditional=false,facing=east",6:"conditional=false,facing=down",7:"conditional=false,facing=up",8:"conditional=true,facing=down",9:"conditional=true,facing=up",10:"conditional=true,facing=north",11:"conditional=true,facing=south",12:"conditional=true,facing=west",13:"conditional=true,facing=east",14:"conditional=true,facing=down",15:"conditional=true,facing=up"},"command_block":{0:"conditional=false,facing=down",1:"conditional=false,facing=up",2:"conditional=false,facing=north",3:"conditional=false,facing=south",4:"conditional=false,facing=west",5:"conditional=false,facing=east",6:"conditional=false,facing=down",7:"conditional=false,facing=up",8:"conditional=true,facing=down",9:"conditional=true,facing=up",10:"conditional=true,facing=north",11:"conditional=true,facing=south",12:"conditional=true,facing=west",13:"conditional=true,facing=east",14:"conditional=true,facing=down",15:"conditional=true,facing=up"},"bed":{0:"facing=south,part=foot",1:"facing=west,part=foot",2:"facing=north,part=foot",3:"facing=east,part=foot",4:"facing=south,part=foot",5:"facing=west,part=foot",6:"facing=north,part=foot",7:"facing=east,part=foot",8:"facing=south,occupied=false,part=head",9:"facing=west,occupied=false,part=head",10:"facing=north,occupied=false,part=head",11:"facing=east,occupied=false,part=head",12:"facing=south,occupied=true,part=head",13:"facing=west,occupied=true,part=head",14:"facing=north,occupied=true,part=head",15:"facing=east,occupied=true,part=head"},"stone_slab":{0:"half=bottom,variant=stone",1:"half=bottom,variant=sandstone",2:"half=bottom,variant=wood_old",3:"half=bottom,variant=cobblestone",4:"half=bottom,variant=brick",5:"half=bottom,variant=stone_brick",6:"half=bottom,variant=nether_brick",7:"half=bottom,variant=quartz",8:"half=top,variant=stone",9:"half=top,variant=sandstone",10:"half=top,variant=wood_old",11:"half=top,variant=cobblestone",12:"half=top,variant=brick",13:"half=top,variant=stone_brick",14:"half=top,variant=nether_brick",15:"half=top,variant=stone"},"purpur_slab":{0:"half=bottom,variant=default",1:"half=bottom,variant=default",2:"half=bottom,variant=default",3:"half=bottom,variant=default",4:"half=bottom,variant=default",5:"half=bottom,variant=default",6:"half=bottom,variant=default",7:"half=bottom,variant=default",8:"half=top,variant=default",9:"half=top,variant=default",10:"half=top,variant=default",11:"half=top,variant=default",12:"half=top,variant=default",13:"half=top,variant=default",14:"half=top,variant=default",15:"half=top,variant=default"},"lever":{0:"facing=down_x,powered=false",1:"facing=east,powered=false",2:"facing=west,powered=false",3:"facing=south,powered=false",4:"facing=north,powered=false",5:"facing=up_z,powered=false",6:"facing=up_x,powered=false",7:"facing=down_z,powered=false",8:"facing=down_x,powered=true",9:"facing=east,powered=true",10:"facing=west,powered=true",11:"facing=south,powered=true",12:"facing=north,powered=true",13:"facing=up_z,powered=true",14:"facing=up_x,powered=true",15:"facing=down_z,powered=true"},"wooden_button":{0:"facing=down,powered=false",1:"facing=east,powered=false",2:"facing=west,powered=false",3:"facing=south,powered=false",4:"facing=north,powered=false",5:"facing=up,powered=false",6:"facing=up,powered=false",7:"facing=up,powered=false",8:"facing=down,powered=true",9:"facing=east,powered=true",10:"facing=west,powered=true",11:"facing=south,powered=true",12:"facing=north,powered=true",13:"facing=up,powered=true",14:"facing=up,powered=true",15:"facing=up,powered=true"},"stone_button":{0:"facing=down,powered=false",1:"facing=east,powered=false",2:"facing=west,powered=false",3:"facing=south,powered=false",4:"facing=north,powered=false",5:"facing=up,powered=false",6:"facing=up,powered=false",7:"facing=up,powered=false",8:"facing=down,powered=true",9:"facing=east,powered=true",10:"facing=west,powered=true",11:"facing=south,powered=true",12:"facing=north,powered=true",13:"facing=up,powered=true",14:"facing=up,powered=true",15:"facing=up,powered=true"},"wooden_slab":{0:"half=bottom,variant=oak",1:"half=bottom,variant=spruce",2:"half=bottom,variant=birch",3:"half=bottom,variant=jungle",4:"half=bottom,variant=acacia",5:"half=bottom,variant=dark_oak",6:"half=bottom,variant=oak",7:"half=bottom,variant=oak",8:"half=top,variant=oak",9:"half=top,variant=spruce",10:"half=top,variant=birch",11:"half=top,variant=jungle",12:"half=top,variant=acacia",13:"half=top,variant=dark_oak",14:"half=top,variant=oak",15:"half=top,variant=oak"},"activator_rail":{0:"powered=false,shape=north_south",1:"powered=false,shape=east_west",2:"powered=false,shape=ascending_east",3:"powered=false,shape=ascending_west",4:"powered=false,shape=ascending_north",5:"powered=false,shape=ascending_south",8:"powered=true,shape=north_south",9:"powered=true,shape=east_west",10:"powered=true,shape=ascending_east",11:"powered=true,shape=ascending_west",12:"powered=true,shape=ascending_north",13:"powered=true,shape=ascending_south"},"detector_rail":{0:"powered=false,shape=north_south",1:"powered=false,shape=east_west",2:"powered=false,shape=ascending_east",3:"powered=false,shape=ascending_west",4:"powered=false,shape=ascending_north",5:"powered=false,shape=ascending_south",8:"powered=true,shape=north_south",9:"powered=true,shape=east_west",10:"powered=true,shape=ascending_east",11:"powered=true,shape=ascending_west",12:"powered=true,shape=ascending_north",13:"powered=true,shape=ascending_south"},"golden_rail":{0:"powered=false,shape=north_south",1:"powered=false,shape=east_west",2:"powered=false,shape=ascending_east",3:"powered=false,shape=ascending_west",4:"powered=false,shape=ascending_north",5:"powered=false,shape=ascending_south",8:"powered=true,shape=north_south",9:"powered=true,shape=east_west",10:"powered=true,shape=ascending_east",11:"powered=true,shape=ascending_west",12:"powered=true,shape=ascending_north",13:"powered=true,shape=ascending_south"},"skull":{0:"facing=down,nodrop=false",1:"facing=up,nodrop=false",2:"facing=north,nodrop=false",3:"facing=south,nodrop=false",4:"facing=west,nodrop=false",5:"facing=east,nodrop=false",6:"facing=down,nodrop=false",7:"facing=up,nodrop=false",8:"facing=down,nodrop=true",9:"facing=up,nodrop=true",10:"facing=north,nodrop=true",11:"facing=south,nodrop=true",12:"facing=west,nodrop=true",13:"facing=east,nodrop=true",14:"facing=down,nodrop=true",15:"facing=up,nodrop=true"},"red_sandstone_stairs":{0:"facing=east,half=bottom",1:"facing=west,half=bottom",2:"facing=south,half=bottom",3:"facing=north,half=bottom",4:"facing=east,half=top",5:"facing=west,half=top",6:"facing=south,half=top",7:"facing=north,half=top",8:"facing=east,half=bottom",9:"facing=west,half=bottom",10:"facing=south,half=bottom",11:"facing=north,half=bottom",12:"facing=east,half=top",13:"facing=west,half=top",14:"facing=south,half=top",15:"facing=north,half=top"},"nether_brick_stairs":{0:"facing=east,half=bottom",1:"facing=west,half=bottom",2:"facing=south,half=bottom",3:"facing=north,half=bottom",4:"facing=east,half=top",5:"facing=west,half=top",6:"facing=south,half=top",7:"facing=north,half=top",8:"facing=east,half=bottom",9:"facing=west,half=bottom",10:"facing=south,half=bottom",11:"facing=north,half=bottom",12:"facing=east,half=top",13:"facing=west,half=top",14:"facing=south,half=top",15:"facing=north,half=top"},"stone_brick_stairs":{0:"facing=east,half=bottom",1:"facing=west,half=bottom",2:"facing=south,half=bottom",3:"facing=north,half=bottom",4:"facing=east,half=top",5:"facing=west,half=top",6:"facing=south,half=top",7:"facing=north,half=top",8:"facing=east,half=bottom",9:"facing=west,half=bottom",10:"facing=south,half=bottom",11:"facing=north,half=bottom",12:"facing=east,half=top",13:"facing=west,half=top",14:"facing=south,half=top",15:"facing=north,half=top"},"sandstone_stairs":{0:"facing=east,half=bottom",1:"facing=west,half=bottom",2:"facing=south,half=bottom",3:"facing=north,half=bottom",4:"facing=east,half=top",5:"facing=west,half=top",6:"facing=south,half=top",7:"facing=north,half=top",8:"facing=east,half=bottom",9:"facing=west,half=bottom",10:"facing=south,half=bottom",11:"facing=north,half=bottom",12:"facing=east,half=top",13:"facing=west,half=top",14:"facing=south,half=top",15:"facing=north,half=top"},"dark_oak_stairs":{0:"facing=east,half=bottom",1:"facing=west,half=bottom",2:"facing=south,half=bottom",3:"facing=north,half=bottom",4:"facing=east,half=top",5:"facing=west,half=top",6:"facing=south,half=top",7:"facing=north,half=top",8:"facing=east,half=bottom",9:"facing=west,half=bottom",10:"facing=south,half=bottom",11:"facing=north,half=bottom",12:"facing=east,half=top",13:"facing=west,half=top",14:"facing=south,half=top",15:"facing=north,half=top"},"acacia_stairs":{0:"facing=east,half=bottom",1:"facing=west,half=bottom",2:"facing=south,half=bottom",3:"facing=north,half=bottom",4:"facing=east,half=top",5:"facing=west,half=top",6:"facing=south,half=top",7:"facing=north,half=top",8:"facing=east,half=bottom",9:"facing=west,half=bottom",10:"facing=south,half=bottom",11:"facing=north,half=bottom",12:"facing=east,half=top",13:"facing=west,half=top",14:"facing=south,half=top",15:"facing=north,half=top"},"jungle_stairs":{0:"facing=east,half=bottom",1:"facing=west,half=bottom",2:"facing=south,half=bottom",3:"facing=north,half=bottom",4:"facing=east,half=top",5:"facing=west,half=top",6:"facing=south,half=top",7:"facing=north,half=top",8:"facing=east,half=bottom",9:"facing=west,half=bottom",10:"facing=south,half=bottom",11:"facing=north,half=bottom",12:"facing=east,half=top",13:"facing=west,half=top",14:"facing=south,half=top",15:"facing=north,half=top"},"purpur_stairs":{0:"facing=east,half=bottom",1:"facing=west,half=bottom",2:"facing=south,half=bottom",3:"facing=north,half=bottom",4:"facing=east,half=top",5:"facing=west,half=top",6:"facing=south,half=top",7:"facing=north,half=top",8:"facing=east,half=bottom",9:"facing=west,half=bottom",10:"facing=south,half=bottom",11:"facing=north,half=bottom",12:"facing=east,half=top",13:"facing=west,half=top",14:"facing=south,half=top",15:"facing=north,half=top"},"quartz_stairs":{0:"facing=east,half=bottom",1:"facing=west,half=bottom",2:"facing=south,half=bottom",3:"facing=north,half=bottom",4:"facing=east,half=top",5:"facing=west,half=top",6:"facing=south,half=top",7:"facing=north,half=top",8:"facing=east,half=bottom",9:"facing=west,half=bottom",10:"facing=south,half=bottom",11:"facing=north,half=bottom",12:"facing=east,half=top",13:"facing=west,half=top",14:"facing=south,half=top",15:"facing=north,half=top"},"spruce_stairs":{0:"facing=east,half=bottom",1:"facing=west,half=bottom",2:"facing=south,half=bottom",3:"facing=north,half=bottom",4:"facing=east,half=top",5:"facing=west,half=top",6:"facing=south,half=top",7:"facing=north,half=top",8:"facing=east,half=bottom",9:"facing=west,half=bottom",10:"facing=south,half=bottom",11:"facing=north,half=bottom",12:"facing=east,half=top",13:"facing=west,half=top",14:"facing=south,half=top",15:"facing=north,half=top"},"birch_stairs":{0:"facing=east,half=bottom",1:"facing=west,half=bottom",2:"facing=south,half=bottom",3:"facing=north,half=bottom",4:"facing=east,half=top",5:"facing=west,half=top",6:"facing=south,half=top",7:"facing=north,half=top",8:"facing=east,half=bottom",9:"facing=west,half=bottom",10:"facing=south,half=bottom",11:"facing=north,half=bottom",12:"facing=east,half=top",13:"facing=west,half=top",14:"facing=south,half=top",15:"facing=north,half=top"},"brick_stairs":{0:"facing=east,half=bottom",1:"facing=west,half=bottom",2:"facing=south,half=bottom",3:"facing=north,half=bottom",4:"facing=east,half=top",5:"facing=west,half=top",6:"facing=south,half=top",7:"facing=north,half=top",8:"facing=east,half=bottom",9:"facing=west,half=bottom",10:"facing=south,half=bottom",11:"facing=north,half=bottom",12:"facing=east,half=top",13:"facing=west,half=top",14:"facing=south,half=top",15:"facing=north,half=top"},"stone_stairs":{0:"facing=east,half=bottom",1:"facing=west,half=bottom",2:"facing=south,half=bottom",3:"facing=north,half=bottom",4:"facing=east,half=top",5:"facing=west,half=top",6:"facing=south,half=top",7:"facing=north,half=top",8:"facing=east,half=bottom",9:"facing=west,half=bottom",10:"facing=south,half=bottom",11:"facing=north,half=bottom",12:"facing=east,half=top",13:"facing=west,half=top",14:"facing=south,half=top",15:"facing=north,half=top"},"oak_stairs":{0:"facing=east,half=bottom",1:"facing=west,half=bottom",2:"facing=south,half=bottom",3:"facing=north,half=bottom",4:"facing=east,half=top",5:"facing=west,half=top",6:"facing=south,half=top",7:"facing=north,half=top",8:"facing=east,half=bottom",9:"facing=west,half=bottom",10:"facing=south,half=bottom",11:"facing=north,half=bottom",12:"facing=east,half=top",13:"facing=west,half=top",14:"facing=south,half=top",15:"facing=north,half=top"},"end_portal_frame":{0:"eye=false,facing=south",1:"eye=false,facing=west",2:"eye=false,facing=north",3:"eye=false,facing=east",4:"eye=true,facing=south",5:"eye=true,facing=west",6:"eye=true,facing=north",7:"eye=true,facing=east",8:"eye=false,facing=south",9:"eye=false,facing=west",10:"eye=false,facing=north",11:"eye=false,facing=east",12:"eye=true,facing=south",13:"eye=true,facing=west",14:"eye=true,facing=north",15:"eye=true,facing=east"},"leaves2":{0:"check_decay=false,decayable=true,variant=acacia",1:"check_decay=false,decayable=true,variant=dark_oak",4:"check_decay=false,decayable=false,variant=acacia",5:"check_decay=false,decayable=false,variant=dark_oak",8:"check_decay=true,decayable=true,variant=acacia",9:"check_decay=true,decayable=true,variant=dark_oak",12:"check_decay=true,decayable=false,variant=acacia",13:"check_decay=true,decayable=false,variant=dark_oak"},"log":{0:"axis=y,variant=oak",1:"axis=y,variant=spruce",2:"axis=y,variant=birch",3:"axis=y,variant=jungle",4:"axis=x,variant=oak",5:"axis=x,variant=spruce",6:"axis=x,variant=birch",7:"axis=x,variant=jungle",8:"axis=z,variant=oak",9:"axis=z,variant=spruce",10:"axis=z,variant=birch",11:"axis=z,variant=jungle",12:"axis=none,variant=oak",13:"axis=none,variant=spruce",14:"axis=none,variant=birch",15:"axis=none,variant=jungle"},"unpowered_repeater":{0:"delay=1,facing=south",1:"delay=1,facing=north",2:"delay=1,facing=west",3:"delay=1,facing=east",4:"delay=2,facing=south",5:"delay=2,facing=north",6:"delay=2,facing=west",7:"delay=2,facing=east",8:"delay=3,facing=south",9:"delay=3,facing=north",10:"delay=3,facing=west",11:"delay=3,facing=east",12:"delay=4,facing=south",13:"delay=4,facing=north",14:"delay=4,facing=west",15:"delay=4,facing=east"},"powered_repeater":{0:"delay=1,facing=south",1:"delay=1,facing=north",2:"delay=1,facing=west",3:"delay=1,facing=east",4:"delay=2,facing=south",5:"delay=2,facing=north",6:"delay=2,facing=west",7:"delay=2,facing=east",8:"delay=3,facing=south",9:"delay=3,facing=north",10:"delay=3,facing=west",11:"delay=3,facing=east",12:"delay=4,facing=south",13:"delay=4,facing=north",14:"delay=4,facing=west",15:"delay=4,facing=east"},"sticky_piston":{0:"extended=false,facing=down",1:"extended=false,facing=up",2:"extended=false,facing=north",3:"extended=false,facing=south",4:"extended=false,facing=west",5:"extended=false,facing=east",8:"extended=true,facing=down",9:"extended=true,facing=up",10:"extended=true,facing=north",11:"extended=true,facing=south",12:"extended=true,facing=west",13:"extended=true,facing=east"},"sapling":{0:"stage=0,type=oak",1:"stage=0,type=spruce",2:"stage=0,type=birch",3:"stage=0,type=jungle",4:"stage=0,type=acacia",5:"stage=0,type=dark_oak",6:"stage=0,type=oak",7:"stage=0,type=oak",8:"stage=1,type=oak",9:"stage=1,type=spruce",10:"stage=1,type=birch",11:"stage=1,type=jungle",12:"stage=1,type=acacia",13:"stage=1,type=dark_oak",14:"stage=1,type=oak",15:"stage=1,type=oak"},"piston":{0:"extended=false,facing=down",1:"extended=false,facing=up",2:"extended=false,facing=north",3:"extended=false,facing=south",4:"extended=false,facing=west",5:"extended=false,facing=east",8:"extended=true,facing=down",9:"extended=true,facing=up",10:"extended=true,facing=north",11:"extended=true,facing=south",12:"extended=true,facing=west",13:"extended=true,facing=east"},"brown_mushroom_block":{0:"variant=all_inside",1:"variant=north_west",2:"variant=north",3:"variant=north_east",4:"variant=west",5:"variant=center",6:"variant=east",7:"variant=south_west",8:"variant=south",9:"variant=south_east",10:"variant=stem",11:"variant=all_inside",12:"variant=all_inside",13:"variant=all_inside",14:"variant=all_outside",15:"variant=all_stem"},"red_mushroom_block":{0:"variant=all_inside",1:"variant=north_west",2:"variant=north",3:"variant=north_east",4:"variant=west",5:"variant=center",6:"variant=east",7:"variant=south_west",8:"variant=south",9:"variant=south_east",10:"variant=stem",11:"variant=all_inside",12:"variant=all_inside",13:"variant=all_inside",14:"variant=all_outside",15:"variant=all_stem"},"piston_extension":{0:"facing=down,type=normal",1:"facing=up,type=normal",2:"facing=north,type=normal",3:"facing=south,type=normal",4:"facing=west,type=normal",5:"facing=east,type=normal",8:"facing=down,type=sticky",9:"facing=up,type=sticky",10:"facing=north,type=sticky",11:"facing=south,type=sticky",12:"facing=west,type=sticky",13:"facing=east,type=sticky"},"piston_head":{0:"facing=down,type=normal",1:"facing=up,type=normal",2:"facing=north,type=normal",3:"facing=south,type=normal",4:"facing=west,type=normal",5:"facing=east,type=normal",8:"facing=down,type=sticky",9:"facing=up,type=sticky",10:"facing=north,type=sticky",11:"facing=south,type=sticky",12:"facing=west,type=sticky",13:"facing=east,type=sticky"},"quartz_block":{0:"variant=default",1:"variant=chiseled",2:"variant=lines_y",3:"variant=lines_x",4:"variant=lines_z",5:"variant=default",6:"variant=default",7:"variant=default",8:"variant=default",9:"variant=default",10:"variant=default",11:"variant=default",12:"variant=default",13:"variant=default",14:"variant=default",15:"variant=default"},"jukebox":{0:"has_record=false",1:"has_record=true",2:"has_record=true",3:"has_record=true",4:"has_record=true",5:"has_record=true",6:"has_record=true",7:"has_record=true",8:"has_record=true",9:"has_record=true",10:"has_record=true",11:"has_record=true",12:"has_record=true",13:"has_record=true",14:"has_record=true",15:"has_record=true"},"tallgrass":{0:"type=dead_bush",1:"type=tall_grass",2:"type=fern",3:"type=dead_bush",4:"type=dead_bush",5:"type=dead_bush",6:"type=dead_bush",7:"type=dead_bush",8:"type=dead_bush",9:"type=dead_bush",10:"type=dead_bush",11:"type=dead_bush",12:"type=dead_bush",13:"type=dead_bush",14:"type=dead_bush",15:"type=dead_bush"},"anvil":{0:"damage=0,facing=south",1:"damage=0,facing=west",2:"damage=0,facing=north",3:"damage=0,facing=east",4:"damage=1,facing=south",5:"damage=1,facing=west",6:"damage=1,facing=north",7:"damage=1,facing=east",8:"damage=2,facing=south",9:"damage=2,facing=west",10:"damage=2,facing=north",11:"damage=2,facing=east"},"double_wooden_slab":{0:"variant=oak",1:"variant=spruce",2:"variant=birch",3:"variant=jungle",4:"variant=acacia",5:"variant=dark_oak",6:"variant=oak",7:"variant=oak",8:"variant=oak",9:"variant=spruce",10:"variant=birch",11:"variant=jungle",12:"variant=acacia",13:"variant=dark_oak",14:"variant=oak",15:"variant=oak"},"tnt":{0:"explode=false",1:"explode=true",2:"explode=false",3:"explode=true",4:"explode=false",5:"explode=true",6:"explode=false",7:"explode=true",8:"explode=false",9:"explode=true",10:"explode=false",11:"explode=true",12:"explode=false",13:"explode=true",14:"explode=false",15:"explode=true"},"stained_hardened_clay":{0:"color=white",1:"color=orange",2:"color=magenta",3:"color=light_blue",4:"color=yellow",5:"color=lime",6:"color=pink",7:"color=gray",8:"color=silver",9:"color=cyan",10:"color=purple",11:"color=blue",12:"color=brown",13:"color=green",14:"color=red",15:"color=black"},"trapped_chest":{0:"facing=north",1:"facing=north",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=north",7:"facing=north",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=north",13:"facing=north",14:"facing=north",15:"facing=south"},"ender_chest":{0:"facing=north",1:"facing=north",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=north",7:"facing=north",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=north",13:"facing=north",14:"facing=north",15:"facing=south"},"lit_furnace":{0:"facing=north",1:"facing=north",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=north",7:"facing=north",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=north",13:"facing=north",14:"facing=north",15:"facing=south"},"wall_banner":{0:"facing=north",1:"facing=north",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=north",7:"facing=north",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=north",13:"facing=north",14:"facing=north",15:"facing=south"},"light_blue_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"planks":{0:"variant=oak",1:"variant=spruce",2:"variant=birch",3:"variant=jungle",4:"variant=acacia",5:"variant=dark_oak",6:"variant=oak",7:"variant=oak",8:"variant=oak",9:"variant=oak",10:"variant=oak",11:"variant=oak",12:"variant=oak",13:"variant=oak",14:"variant=oak",15:"variant=oak"},"stained_glass_pane":{0:"color=white",1:"color=orange",2:"color=magenta",3:"color=light_blue",4:"color=yellow",5:"color=lime",6:"color=pink",7:"color=gray",8:"color=silver",9:"color=cyan",10:"color=purple",11:"color=blue",12:"color=brown",13:"color=green",14:"color=red",15:"color=black"},"wall_sign":{0:"facing=north",1:"facing=north",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=north",7:"facing=north",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=north",13:"facing=north",14:"facing=north",15:"facing=south"},"furnace":{0:"facing=north",1:"facing=north",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=north",7:"facing=north",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=north",13:"facing=north",14:"facing=north",15:"facing=south"},"lit_pumpkin":{0:"facing=south",1:"facing=west",2:"facing=north",3:"facing=east",4:"facing=south",5:"facing=west",6:"facing=north",7:"facing=east",8:"facing=south",9:"facing=west",10:"facing=north",11:"facing=east",12:"facing=south",13:"facing=west",14:"facing=north",15:"facing=east"},"magenta_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"concrete_powder":{0:"color=white",1:"color=orange",2:"color=magenta",3:"color=light_blue",4:"color=yellow",5:"color=lime",6:"color=pink",7:"color=gray",8:"color=silver",9:"color=cyan",10:"color=purple",11:"color=blue",12:"color=brown",13:"color=green",14:"color=red",15:"color=black"},"ladder":{0:"facing=north",1:"facing=north",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=north",7:"facing=north",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=north",13:"facing=north",14:"facing=north",15:"facing=south"},"orange_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"purple_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"silver_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"yellow_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"black_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"brown_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"chest":{0:"facing=north",1:"facing=north",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=north",7:"facing=north",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=north",13:"facing=north",14:"facing=north",15:"facing=south"},"green_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"stained_glass":{0:"color=white",1:"color=orange",2:"color=magenta",3:"color=light_blue",4:"color=yellow",5:"color=lime",6:"color=pink",7:"color=gray",8:"color=silver",9:"color=cyan",10:"color=purple",11:"color=blue",12:"color=brown",13:"color=green",14:"color=red",15:"color=black"},"white_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"blue_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"cyan_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"gray_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"lime_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"pink_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"cocoa":{0:"age=0,facing=south",1:"age=0,facing=west",2:"age=0,facing=north",3:"age=0,facing=east",4:"age=1,facing=south",5:"age=1,facing=west",6:"age=1,facing=north",7:"age=1,facing=east",8:"age=2,facing=south",9:"age=2,facing=west",10:"age=2,facing=north",11:"age=2,facing=east"},"pumpkin":{0:"facing=south",1:"facing=west",2:"facing=north",3:"facing=east",4:"facing=south",5:"facing=west",6:"facing=north",7:"facing=east",8:"facing=south",9:"facing=west",10:"facing=north",11:"facing=east",12:"facing=south",13:"facing=west",14:"facing=north",15:"facing=east"},"red_shulker_box":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"concrete":{0:"color=white",1:"color=orange",2:"color=magenta",3:"color=light_blue",4:"color=yellow",5:"color=lime",6:"color=pink",7:"color=gray",8:"color=silver",9:"color=cyan",10:"color=purple",11:"color=blue",12:"color=brown",13:"color=green",14:"color=red",15:"color=black"},"carpet":{0:"color=white",1:"color=orange",2:"color=magenta",3:"color=light_blue",4:"color=yellow",5:"color=lime",6:"color=pink",7:"color=gray",8:"color=silver",9:"color=cyan",10:"color=purple",11:"color=blue",12:"color=brown",13:"color=green",14:"color=red",15:"color=black"},"observer":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"wool":{0:"color=white",1:"color=orange",2:"color=magenta",3:"color=light_blue",4:"color=yellow",5:"color=lime",6:"color=pink",7:"color=gray",8:"color=silver",9:"color=cyan",10:"color=purple",11:"color=blue",12:"color=brown",13:"color=green",14:"color=red",15:"color=black"},"end_rod":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=north",9:"facing=south",10:"facing=west",11:"facing=east",12:"facing=down",13:"facing=up",14:"facing=north",15:"facing=south"},"dispenser":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=down",9:"facing=up",10:"facing=north",11:"facing=south",12:"facing=west",13:"facing=east",14:"facing=down",15:"facing=up"},"standing_banner":{0:"rotation=0",1:"rotation=1",2:"rotation=2",3:"rotation=3",4:"rotation=4",5:"rotation=5",6:"rotation=6",7:"rotation=7",8:"rotation=8",9:"rotation=9",10:"rotation=10",11:"rotation=11",12:"rotation=12",13:"rotation=13",14:"rotation=14",15:"rotation=15"},"dropper":{0:"facing=down",1:"facing=up",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",7:"facing=up",8:"facing=down",9:"facing=up",10:"facing=north",11:"facing=south",12:"facing=west",13:"facing=east",14:"facing=down",15:"facing=up"},"standing_sign":{0:"rotation=0",1:"rotation=1",2:"rotation=2",3:"rotation=3",4:"rotation=4",5:"rotation=5",6:"rotation=6",7:"rotation=7",8:"rotation=8",9:"rotation=9",10:"rotation=10",11:"rotation=11",12:"rotation=12",13:"rotation=13",14:"rotation=14",15:"rotation=15"},"farmland":{0:"moisture=0",1:"moisture=1",2:"moisture=2",3:"moisture=3",4:"moisture=4",5:"moisture=5",6:"moisture=6",7:"moisture=7",8:"moisture=0",9:"moisture=1",10:"moisture=2",11:"moisture=3",12:"moisture=4",13:"moisture=5",14:"moisture=6",15:"moisture=7"},"heavy_weighted_pressure_plate":{0:"power=0",1:"power=1",2:"power=2",3:"power=3",4:"power=4",5:"power=5",6:"power=6",7:"power=7",8:"power=8",9:"power=9",10:"power=10",11:"power=11",12:"power=12",13:"power=13",14:"power=14",15:"power=15"},"light_weighted_pressure_plate":{0:"power=0",1:"power=1",2:"power=2",3:"power=3",4:"power=4",5:"power=5",6:"power=6",7:"power=7",8:"power=8",9:"power=9",10:"power=10",11:"power=11",12:"power=12",13:"power=13",14:"power=14",15:"power=15"},"rail":{0:"shape=north_south",1:"shape=east_west",2:"shape=ascending_east",3:"shape=ascending_west",4:"shape=ascending_north",5:"shape=ascending_south",6:"shape=south_east",7:"shape=south_west",8:"shape=north_west",9:"shape=north_east"},"daylight_detector_inverted":{0:"power=0",1:"power=1",2:"power=2",3:"power=3",4:"power=4",5:"power=5",6:"power=6",7:"power=7",8:"power=8",9:"power=9",10:"power=10",11:"power=11",12:"power=12",13:"power=13",14:"power=14",15:"power=15"},"structure_block":{0:"mode=data",1:"mode=data",2:"mode=data",3:"mode=data",4:"mode=data",5:"mode=data",6:"mode=data",7:"mode=data",8:"mode=data",9:"mode=data",10:"mode=data",12:"mode=data",13:"mode=data",14:"mode=data",15:"mode=data"},"log2":{0:"axis=y,variant=acacia",1:"axis=y,variant=dark_oak",4:"axis=x,variant=acacia",5:"axis=x,variant=dark_oak",8:"axis=z,variant=acacia",9:"axis=z,variant=dark_oak",12:"axis=none,variant=acacia",13:"axis=none,variant=dark_oak"},"sponge":{0:"wet=false",1:"wet=true",2:"wet=false",3:"wet=true",4:"wet=false",5:"wet=true",6:"wet=false",7:"wet=true",8:"wet=false",9:"wet=true",10:"wet=false",11:"wet=true",12:"wet=false",13:"wet=true",14:"wet=false",15:"wet=true"},"daylight_detector":{0:"power=0",1:"power=1",2:"power=2",3:"power=3",4:"power=4",5:"power=5",6:"power=6",7:"power=7",8:"power=8",9:"power=9",10:"power=10",11:"power=11",12:"power=12",13:"power=13",14:"power=14",15:"power=15"},"redstone_wire":{0:"power=0",1:"power=1",2:"power=2",3:"power=3",4:"power=4",5:"power=5",6:"power=6",7:"power=7",8:"power=8",9:"power=9",10:"power=10",11:"power=11",12:"power=12",13:"power=13",14:"power=14",15:"power=15"},"flowing_water":{0:"level=0",1:"level=1",2:"level=2",3:"level=3",4:"level=4",5:"level=5",6:"level=6",7:"level=7",8:"level=8",9:"level=9",10:"level=10",11:"level=11",12:"level=12",13:"level=13",14:"level=14",15:"level=15"},"flowing_lava":{0:"level=0",1:"level=1",2:"level=2",3:"level=3",4:"level=4",5:"level=5",6:"level=6",7:"level=7",8:"level=8",9:"level=9",10:"level=10",11:"level=11",12:"level=12",13:"level=13",14:"level=14",15:"level=15"},"red_flower":{0:"variant=poppy",1:"variant=blue_orchid",2:"variant=allium",3:"variant=houstonia",4:"variant=red_tulip",5:"variant=orange_tulip",6:"variant=white_tulip",7:"variant=pink_tulip",8:"variant=oxeye_daisy"},"water":{0:"level=0",1:"level=1",2:"level=2",3:"level=3",4:"level=4",5:"level=5",6:"level=6",7:"level=7",8:"level=8",9:"level=9",10:"level=10",11:"level=11",12:"level=12",13:"level=13",14:"level=14",15:"level=15"},"lava":{0:"level=0",1:"level=1",2:"level=2",3:"level=3",4:"level=4",5:"level=5",6:"level=6",7:"level=7",8:"level=8",9:"level=9",10:"level=10",11:"level=11",12:"level=12",13:"level=13",14:"level=14",15:"level=15"},"hopper":{0:"facing=down",2:"facing=north",3:"facing=south",4:"facing=west",5:"facing=east",6:"facing=down",8:"facing=down",10:"facing=north",11:"facing=south",12:"facing=west",13:"facing=east",14:"facing=down"},"purpur_pillar":{0:"axis=y",1:"axis=y",2:"axis=y",3:"axis=y",4:"axis=x",5:"axis=x",6:"axis=x",7:"axis=x",8:"axis=z",9:"axis=z",10:"axis=z",11:"axis=z",12:"axis=y",13:"axis=y",14:"axis=y",15:"axis=y"},"bone_block":{0:"axis=y",1:"axis=y",2:"axis=y",3:"axis=y",4:"axis=x",5:"axis=x",6:"axis=x",7:"axis=x",8:"axis=z",9:"axis=z",10:"axis=z",11:"axis=z",12:"axis=y",13:"axis=y",14:"axis=y",15:"axis=y"},"hay_block":{0:"axis=y",1:"axis=y",2:"axis=y",3:"axis=y",4:"axis=x",5:"axis=x",6:"axis=x",7:"axis=x",8:"axis=z",9:"axis=z",10:"axis=z",11:"axis=z",12:"axis=y",13:"axis=y",14:"axis=y",15:"axis=y"},"portal":{0:"axis=x",1:"axis=x",2:"axis=z",3:"axis=x",4:"axis=x",5:"axis=x",6:"axis=z",7:"axis=x",8:"axis=x",9:"axis=x",10:"axis=z",11:"axis=x",12:"axis=x",13:"axis=x",14:"axis=z",15:"axis=x"},"cactus":{0:"age=0",1:"age=1",2:"age=2",3:"age=3",4:"age=4",5:"age=5",6:"age=6",7:"age=7",8:"age=8",9:"age=9",10:"age=10",11:"age=11",12:"age=12",13:"age=13",14:"age=14",15:"age=15"},"frosted_ice":{0:"age=0",1:"age=1",2:"age=2",3:"age=3",4:"age=3",5:"age=3",6:"age=3",7:"age=3",8:"age=3",9:"age=3",10:"age=3",11:"age=3",12:"age=3",13:"age=3",14:"age=3",15:"age=3"},"reeds":{0:"age=0",1:"age=1",2:"age=2",3:"age=3",4:"age=4",5:"age=5",6:"age=6",7:"age=7",8:"age=8",9:"age=9",10:"age=10",11:"age=11",12:"age=12",13:"age=13",14:"age=14",15:"age=15"},"fire":{0:"age=0",1:"age=1",2:"age=2",3:"age=3",4:"age=4",5:"age=5",6:"age=6",7:"age=7",8:"age=8",9:"age=9",10:"age=10",11:"age=11",12:"age=12",13:"age=13",14:"age=14",15:"age=15"},"snow_layer":{0:"age=1",1:"age=2",2:"age=3",3:"age=4",4:"age=5",5:"age=6",6:"age=7",7:"age=8",8:"age=1",9:"age=2",10:"age=3",11:"age=4",12:"age=5",13:"age=6",14:"age=7",15:"age=8"},"stone":{0:"variant=stone",1:"variant=granite",2:"variant=smooth_granite",3:"variant=diorite",4:"variant=smooth_diorite",5:"variant=andesite",6:"variant=smooth_andesite"},"monster_egg":{0:"variants=stone",1:"variants=cobblestone",2:"variants=stone_brick",3:"variants=mossy_stone",4:"variants=cracked_brick",5:"variants=chiseled_brick"},"stonebrick":{0:"variants=stonebrick",1:"variants=mossy_stonebrick",2:"variants=cracked_stonebrick",3:"variants=chiseled_stonebrick"},"unlit_redstone_torch":{0:"facing=up",1:"facing=east",2:"facing=west",3:"facing=south",4:"facing=north"},"red_sandstone":{0:"type=red_sandstone",1:"type=chiseled_red_sandstone",2:"type=smooth_red_sandstone"},"redstone_torch":{0:"facing=up",1:"facing=east",2:"facing=west",3:"facing=south",4:"facing=north"},"light_blue_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"pumpkin_stem":{0:"age=0",1:"age=1",2:"age=2",3:"age=3",4:"age=4",5:"age=5",6:"age=6",7:"age=7"},"prismarine":{0:"variant=prismarine",1:"variant=prismarine_bricks",2:"variant=dark_prismarine"},"magenta_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"melon_stem":{0:"age=0",1:"age=1",2:"age=2",3:"age=3",4:"age=4",5:"age=5",6:"age=6",7:"age=7"},"orange_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"yellow_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"silver_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"purple_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"white_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"brown_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"green_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"cake":{0:"bites=0",1:"bites=1",2:"bites=2",3:"bites=3",4:"bites=4",5:"bites=5",6:"bites=6"},"potatoes":{0:"age=0",1:"age=1",2:"age=2",3:"age=3",4:"age=4",5:"age=5",6:"age=6",7:"age=7"},"lime_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"pink_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"gray_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"cyan_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"blue_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"black_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"carrots":{0:"age=0",1:"age=1",2:"age=2",3:"age=3",4:"age=4",5:"age=5",6:"age=6",7:"age=7"},"red_glazed_terracotta":{0:"facing=north",1:"facing=south",2:"facing=east",3:"facing=west"},"torch":{0:"facing=up",1:"facing=east",2:"facing=west",3:"facing=south",4:"facing=north"},"wheat":{0:"age=0",1:"age=1",2:"age=2",3:"age=3",4:"age=4",5:"age=5",6:"age=6",7:"age=7"},"sandstone":{0:"type=sandstone",1:"type=chiseled_sandstone",2:"type=smooth_sandstone"},"chorus_flower":{0:"age=0",1:"age=1",2:"age=2",3:"age=3",4:"age=4",5:"age=5"},"cobblestone_wall":{0:"variant=cobblestone",1:"variant=mossy_cobblestone"},"dirt":{0:"variant=dirt",1:"variant=coarse_dirt",2:"variant=podzol"},"cauldron":{0:"level=0",1:"level=1",2:"level=2",3:"level=3"},"wooden_pressure_plate":{0:"powered=false",1:"powered=true"},"stone_pressure_plate":{0:"powered=false",1:"powered=true"},"nether_wart":{0:"age=0",1:"age=1",2:"age=2",3:"age=3"},"beetroots":{0:"age=0",1:"age=1",2:"age=2",3:"age=3"},"sand":{0:"type=sand",1:"type=red_sand"},"nether_brick_fence":{},"purpur_double_slab":{},"mossy_cobblestone":{},"nether_wart_block":{},"lit_redstone_lamp":{},"enchanting_table":{},"red_nether_brick":{},"lit_redstone_ore":{},"brown_mushroom":{},"crafting_table":{},"dark_oak_fence":{},"redstone_block":{},"structure_void":{},"diamond_block":{},"hardened_clay":{},"emerald_block":{},"redstone_lamp":{},"yellow_flower":{},"acacia_fence":{},"chorus_plant":{},"jungle_fence":{},"nether_brick":{},"purpur_block":{},"red_mushroom":{},"redstone_ore":{},"spruce_fence":{},"birch_fence":{},"brick_block":{},"diamond_ore":{},"cobblestone":{},"sea_lantern":{},"end_gateway":{},"mob_spawner":{},"lapis_block":{},"emerald_ore":{},"dragon_egg":{},"end_portal":{},"end_bricks":{},"flower_pot":{},"glass_pane":{},"gold_block":{},"coal_block":{},"grass_path":{},"iron_block":{},"packed_ice":{},"netherrack":{},"quartz_ore":{},"bookshelf":{},"end_stone":{},"glowstone":{},"iron_bars":{},"lapis_ore":{},"noteblock":{},"soul_sand":{},"waterlily":{},"deadbush":{},"gold_ore":{},"iron_ore":{},"coal_ore":{},"mycelium":{},"obsidian":{},"bedrock":{},"barrier":{},"beacon":{},"gravel":{},"fence":{},"glass":{},"grass":{},"magma":{},"melon":{},"slime":{},"clay":{},"snow":{},"air":{},"ice":{},"web":{}}
-Globals.selectorRe = re.compile(r"^(?:@[rapes](?:\[(?:(?:[a-z0-9_]+=(?:!?[a-z0-9_:/-]+)?)(?:,[a-z0-9_]+=(?:!?[a-z0-9_:/-]+)?)*)?\])?|[^@=\[\]*]+)$", re.I)
+Globals.selectorRe = re.compile(r"^(?:@[pears](?:\[(?:(?:[a-z0-9_]+=(?:!?[a-z0-9_:/-]+)?)(?:,[a-z0-9_]+=(?:!?[a-z0-9_:/-]+)?)*)?])?|[^@=\[\]*]+)$", re.I)
 Globals.blockStateRe = re.compile(r"^(?:(?:[a-z_]+=[a-z0-9_]+)(?:,[a-z_]+=[a-z0-9_]+)*|default|\*)$")
 Globals.scoreRe = re.compile(r"^score_(.{1,16}?)(_min)?$")
 Globals.functionRe = re.compile(r"^.+?:[^/]+?(?:/[^/]+?)*$", re.I)
@@ -502,10 +503,10 @@ class Selector:
             self.target = raw
             self.playerName = True
 
-        self.at = False
+        self.canAt = False
         for posArg in Globals.posArgs:
             if posArg in self.data:
-                self.at = True
+                self.canAt = True
                 break
 
     def __unicode__(self):
@@ -571,7 +572,7 @@ class Selector:
 class Master:
     def __init__(self):
         self.syntax, self.data = (), {}
-        self.at, self.ass = False, False
+        self.canAt, self.canAs = False, False
 
     def __unicode__(self):
         s = unicode(self.__class__.__name__).replace("_", "-")
@@ -587,7 +588,7 @@ class advancement(Master):
                     ("<(grant|revoke", "<@player", "<(everything"),
                     ("<(test", "<@player", "<.advancement", "[.criterion"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = True, True
+        self.canAt, self.canAs = True, True
 
     def __unicode__(self):
         if "<(test" in self.data:
@@ -607,7 +608,7 @@ class ban(Master):
         Master.__init__(self)
         syntaxes = (("<.name", "[*reason"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.ass = True
+        self.canAs = True
 
 
 class ban_ip(Master):
@@ -622,7 +623,7 @@ class blockdata(Master):
         Master.__init__(self)
         syntaxes = (("<~x", "<~y", "<~z", "<{dataTag"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at = canAt(self.data, "<~x", "<~y", "<~z")
+        self.canAt = canAt(self.data, "<~x", "<~y", "<~z")
 
     def __unicode__(self):
         return u"data merge block {} {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"], self.data["<{dataTag"])
@@ -634,7 +635,7 @@ class clear(Master):
         if tokens:
             syntaxes = (("<@player", "[.item", "[0data", "[0maxCount", "[{dataTag"), )
             self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-            self.at, self.ass = self.data["<@player"].at, True
+            self.canAt, self.canAs = self.data["<@player"].canAt, True
 
     def __unicode__(self):
         if "<@player" not in self.data:
@@ -653,7 +654,7 @@ class clone(Master):
         syntaxes = (("<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2", "<~x", "<~y", "<~z", "[(masked|replace", "[(force|move|normal"),
                     ("<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2", "<~x", "<~y", "<~z", "<(filtered", "<(force|move|normal", "<.tileName", "[=dataValue"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at = canAt(self.data, "<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2", "<~x", "<~y", "<~z")
+        self.canAt = canAt(self.data, "<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2", "<~x", "<~y", "<~z")
 
     def __unicode__(self):
         s = u"clone {} {} {} {} {} {} {} {} {}".format(self.data["<~x1"], self.data["<~y1"], self.data["<~z1"], self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], self.data["<~x"], self.data["<~y"], self.data["<~z"])
@@ -697,7 +698,7 @@ class deop(Master):
         Master.__init__(self)
         syntaxes = (("<@player", ), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = self.data["<@player"].at, True
+        self.canAt, self.canAs = self.data["<@player"].canAt, True
 
 
 class difficulty(Master):
@@ -726,7 +727,7 @@ class effect(Master):
         syntaxes = (("<@player", "<(clear"),
                     ("<@player", "<.effect", "[0seconds", "[0amplifier", "[(true|false"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = self.data["<@player"].at, True
+        self.canAt, self.canAs = self.data["<@player"].canAt, True
 
     def __unicode__(self):
         if self.syntax[1] == "<(clear":
@@ -742,7 +743,7 @@ class enchant(Master):  # todo /modifyitem, syntax unknown
         Master.__init__(self)
         syntaxes = (("<@player", "<.enchantment", "[0level"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = self.data["<@player"].at, True
+        self.canAt, self.canAs = self.data["<@player"].canAt, True
 
 
 class entitydata(Master):
@@ -750,7 +751,7 @@ class entitydata(Master):
         Master.__init__(self)
         syntaxes = (("<@entity", "<{dataTag"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = self.data["<@entity"].at, True
+        self.canAt, self.canAs = self.data["<@entity"].canAt, True
 
     def __unicode__(self):
         return u"data merge entity {} {}".format(self.data["<@entity"], self.data["<{dataTag"])
@@ -764,23 +765,23 @@ class execute(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.data["<*command"] = self.data["<*command"][1:] if self.data["<*command"][0] == '/' else self.data["<*command"]
         self.data["<*command"] = decide(self.data["<*command"])
-        self.at, self.ass = self.data["<*command"].at or self.data["<@entity"].at, self.data["<*command"].ass
+        self.canAt, self.canAs = self.data["<*command"].canAt or self.data["<@entity"].canAt, self.data["<*command"].canAs
 
     def __unicode__(self):
         command = unicode(self.data["<*command"])
-        self.at = False if command[:7] == "execute" else self.at
+        self.canAt = False if command[:7] == "execute" else self.canAt
         s = u""
         if not '~' == self.data["<~x"] == self.data["<~y"] == self.data["<~z"]:
             s += u" offset {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"])
-            self.at = True
+            self.canAt = True
 
         if "<(detect" in self.data:
             s += u" if block {} {} {} {}".format(self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], block(self.data, False, "<.block", "<=dataValue"))
-            self.at = True
+            self.canAt = True
 
-        if self.at and self.ass:
+        if self.canAt and self.canAs:
             s = u"execute as {} at @s{}".format(self.data["<@entity"], s)
-        elif self.at and not self.ass:
+        elif self.canAt and not self.canAs:
             s = u"execute at {}{}".format(self.data["<@entity"], s)
         else:
             s = u"execute as {}{}".format(self.data["<@entity"], s)
@@ -802,7 +803,7 @@ class fill(Master):
         syntaxes = (("<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2", "<.block", "[=dataValue", "[(destroy|hollow|keep|outline", "[{dataTag"),
                     ("<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2", "<.block", "<=dataValue", "<(replace", "[.replaceTileName", "[=replaceDataValue"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at = canAt(self.data, "<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2")
+        self.canAt = canAt(self.data, "<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2")
 
     def __unicode__(self):
         s = u"fill {} {} {} {} {} {}".format(self.data["<~x1"], self.data["<~y1"], self.data["<~z1"], self.data["<~x2"], self.data["<~y2"], self.data["<~z2"])
@@ -825,12 +826,12 @@ class function(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         if not Globals.functionRe.match(self.data["<.function"]):
             raise SyntaxError("Invalid format of function name: {}".format(self.data["<.function"]))
-        self.at, self.ass = True, True
+        self.canAt, self.canAs = True, True
 
     def __unicode__(self):
         if "<(if|unless" not in self.data:
             return u"function {}".format(self.data["<.function"])
-        return u"execute {} entity {} then function {}".format(self.data["<(if|unless"], self.data["<@selector"], self.data["<.function"])
+        return u"execute {} entity {} run function {}".format(self.data["<(if|unless"], self.data["<@selector"], self.data["<.function"])
 
 
 class gamemode(Master):
@@ -839,7 +840,7 @@ class gamemode(Master):
         syntaxes = (("<(0|1|2|3|s|c|a|sp|survival|creative|adventure|spectator", "[@player"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         if "[@player" in self.data:
-            self.at, self.ass = self.data["[@player"].at, True
+            self.canAt, self.canAs = self.data["[@player"].canAt, True
 
     def __unicode__(self):
         s = "<(0|1|2|3|s|c|a|sp|survival|creative|adventure|spectator"
@@ -873,7 +874,7 @@ class give(Master):
         Master.__init__(self)
         syntaxes = (("<@player", "<.item", "[0amount", "[0data", "[{dataTag"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = self.data["<@player"].at, True
+        self.canAt, self.canAs = self.data["<@player"].canAt, True
 
     def __unicode__(self):
         s = u"give {} {}".format(self.data["<@player"], item(self.data, "<.item", "[0data", "[{dataTag"))
@@ -896,16 +897,17 @@ class kick(Master):
         Master.__init__(self)
         syntaxes = (("<@player", "[*reason"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = self.data["<@player"].at, True
+        self.canAt, self.canAs = self.data["<@player"].canAt, True
 
 
 class kill(Master):
     def __init__(self, tokens=None):
         Master.__init__(self)
+        self.canAt, self.canAs = False, True
         if tokens:
             syntaxes = (("<@player", ), )
             self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = self.data["<@player"].at, True
+            self.canAt = self.data["<@player"].canAt
 
 
 class list(Master):
@@ -928,7 +930,7 @@ class me(Master):
         Master.__init__(self)
         syntaxes = (("<*action", ), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.ass = True
+        self.canAs = True
 
 
 class op(Master):
@@ -936,15 +938,15 @@ class op(Master):
         Master.__init__(self)
         syntaxes = (("<@player", ), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = self.data["<@player"].at, True
+        self.canAt, self.canAs = self.data["<@player"].canAt, True
 
 
 class pardon(Master):
     def __init__(self, tokens):
         Master.__init__(self)
-        syntaxes = (("<@name", ), )
+        syntaxes = (("<@player", ), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = self.data["<@player"].at, True
+        self.canAt, self.canAs = self.data["<@player"].canAt, True
 
 
 class pardon_ip(Master):
@@ -954,12 +956,12 @@ class pardon_ip(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
 
 
-class particle(Master):
+class particle(Master):  # todo blockcrack
     def __init__(self, tokens):
         Master.__init__(self)
-        syntaxes = (("<.name", "<~x", "<~y", "<~z", "<0xd", "<0yd", "<0zd", "<0speed", "[0count", "[.mode", "[@player", "[*params"), )
+        syntaxes = (("<({}".format("|".join(Globals.particles)), "<~x", "<~y", "<~z", "<0xd", "<0yd", "<0zd", "<0speed", "[0count", "[.mode", "[@player", "[*params"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = True, "[@player" in self.data
+        self.canAt, self.canAs = True, "[@player" in self.data
 
 
 class playsound(Master):
@@ -968,7 +970,7 @@ class playsound(Master):
         syntaxes = (("<.sound", "<(master|music|record|weather|block|hostile|neutral|player|ambient|voice", "<@player"),
                     ("<.sound", "<(master|music|record|weather|block|hostile|neutral|player|ambient|voice", "<@player", "<~x", "<~y", "<~z", "[0volume", "[0pitch", "[0minimumVolume"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = ("<~x" in self.data and canAt(self.data, "<~x", "<~y", "<~z")) or self.data["<@player"].at, True
+        self.canAt, self.canAs = ("<~x" in self.data and canAt(self.data, "<~x", "<~y", "<~z")) or self.data["<@player"].canAt, True
 
 
 class publish(Master):
@@ -981,7 +983,7 @@ class recipe(Master):
         Master.__init__(self)
         syntaxes = (("<(give|take", "<@player", "<.name"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = self.data["<@player"].at, True
+        self.canAt, self.canAs = self.data["<@player"].canAt, True
 
 
 class reload(Master):
@@ -995,7 +997,7 @@ class replaceitem(Master):
         syntaxes = (("<(block", "<~x", "<~y", "<~z", "<.slot", "<.item", "[0amount", "[0data", "[{dataTag"),
                     ("<(entity", "<@selector", "<.slot", "<.item", "[0amount", "[0data", "[{dataTag"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = (canAt(self.data, "<~x", "<~y", "<~z"), False) if self.syntax == "<(block" else (self.data["<@selector"].at, True)
+        self.canAt, self.canAs = (canAt(self.data, "<~x", "<~y", "<~z"), False) if self.syntax == "<(block" else (self.data["<@selector"].canAt, True)
 
     def __unicode__(self):
         s = u"replaceitem"
@@ -1034,7 +1036,7 @@ class say(Master):
         Master.__init__(self)
         syntaxes = (("<*message", ), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.ass = True
+        self.canAs = True
 
 
 class scoreboard(Master):
@@ -1065,7 +1067,8 @@ class scoreboard(Master):
                     ("<(players", "<(tag", "<(*",      "<(list"),
 
                     ("<(teams", "<(list", "[.teamname"),
-                    ("<(teams", "<(add|join", "<.name", "[*displayName"),
+                    ("<(teams", "<(add", "<.name", "[*displayName"),
+                    ("<(teams", "<(join", "<.name", "[*entities"),
                     ("<(teams", "<(remove|empty", "<.name"),
                     ("<(teams", "<(leave", "[*entities"),
                     ("<(teams", "<(option", "<.team", "<(color", "<(black|dark_blue|dark_green|dark_aqua|dark_red|dark_purple|gold|gray|dark_gray|blue|green|aqua|red|light_purple|yellow|white|reset"),
@@ -1073,12 +1076,15 @@ class scoreboard(Master):
                     ("<(teams", "<(option", "<.team", "<(nametagVisibility|deathMessageVisibility", "<(never|hideForOtherTeams|hideForOwnTeam|always"),
                     ("<(teams", "<(option", "<.team", "<(collisionRule", "<(always|never|pushOwnTeam|pushOtherTeams"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = False, False
+        self.canAt, self.canAs = False, False
         for word in self.syntax:
             if word[1] == '@' or word == "[*entities":
-                self.at, self.ass = self.at or self.data[word].at, True
+                self.canAt, self.canAs = self.canAt or self.data[word].canAt, True
 
     def __unicode__(self):  # todo FakePlayerName, *
+        if "[*entities" in self.data:
+            pass
+
         if "<(test" in self.data:
             if "<(*" in self.data:
                 Globals.commentedOut = True
@@ -1136,7 +1142,7 @@ class setblock(Master):
         Master.__init__(self)
         syntaxes = (("<~x", "<~y", "<~z", "<.block", "[=dataValue", "[(destroy|keep|replace", "[{dataTag"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at = canAt(self.data, "<~x", "<~y", "<~z")
+        self.canAt = canAt(self.data, "<~x", "<~y", "<~z")
 
     def __unicode__(self):
         s = u"setblock {} {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"], block(self.data, True, "<.block", "[=dataValue", "[{dataTag"))
@@ -1158,7 +1164,7 @@ class setworldspawn(Master):
         if tokens:
             syntaxes = (("<~x", "<~y", "<~z", ), )
             self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at = canAt(self.data, "<~x", "<~y", "<~z")
+        self.canAt = canAt(self.data, "<~x", "<~y", "<~z")
 
 
 class spawnpoint(Master):
@@ -1168,7 +1174,7 @@ class spawnpoint(Master):
             syntaxes = (("<@player", ),
                         ("<@player", "<~x", "<~y", "<~z"))
             self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = "<~x" not in self.data or canAt(self.data, "<~x", "<~y", "<~z"), True
+        self.canAt, self.canAs = "<~x" not in self.data or canAt(self.data, "<~x", "<~y", "<~z"), True
 
 
 class spreadplayers(Master):
@@ -1176,7 +1182,7 @@ class spreadplayers(Master):
         Master.__init__(self)
         syntaxes = (("<~x", "<~z", "<0spreadDistance", "<0maxRange", "<(true|false", "<*player"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = True, True
+        self.canAt, self.canAs = True, True
 
 
 class stats(Master):
@@ -1188,7 +1194,7 @@ class stats(Master):
                     ("<(entity", "<@selector2", "<(clear", self.stat),
                     ("<(entity", "<@selector2", "<(set", self.stat, "<@selector", "<.objective"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = True, True
+        self.canAt, self.canAs = True, True
 
     def __unicode__(self):
         Globals.commentedOut = True
@@ -1207,7 +1213,7 @@ class stopsound(Master):
         Master.__init__(self)
         syntaxes = (("<@player", "[(master|music|record|weather|block|hostile|neutral|player|ambient|voice", "[.sound"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = self.data["<@player"].at, True
+        self.canAt, self.canAs = self.data["<@player"].canAt, True
 
 
 class summon(Master):
@@ -1218,7 +1224,7 @@ class summon(Master):
         syntaxes = ((entityName, ),
                     (entityName, "<~x", "<~y", "<~z", "[{dataTag"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at = "<~x" not in self.data or canAt(self.data, "<~x", "<~y", "<~z")
+        self.canAt = "<~x" not in self.data or canAt(self.data, "<~x", "<~y", "<~z")
 
 
 class teleport(Master):
@@ -1227,7 +1233,7 @@ class teleport(Master):
         syntaxes = (("<@target", "<~x", "<~y", "<~z"),
                     ("<@target", "<~x", "<~y", "<~z", "<~y-rot", "<~x-rot"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = canAt(self.data, "<~x", "<~y", "<~z", "<~y-rot", "<~x-rot"), True
+        self.canAt, self.canAs = canAt(self.data, "<~x", "<~y", "<~z", "<~y-rot", "<~x-rot"), True
 
         if self.data["<@target"] == Selector("@s"):
             self.syntax = self.syntax[1:]
@@ -1241,7 +1247,7 @@ class tellraw(Master):
         Master.__init__(self)
         syntaxes = (("<@player", "<:raw"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = self.data["<@player"].at, True
+        self.canAt, self.canAs = self.data["<@player"].canAt, True
 
 
 class testfor(Master):
@@ -1249,7 +1255,7 @@ class testfor(Master):
         Master.__init__(self)
         syntaxes = (("<@player", "[{dataTag"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = self.data["<@player"].at, True
+        self.canAt, self.canAs = self.data["<@player"].canAt, True
 
     def __unicode__(self):  # todo FakePlayerName
         if "[{dataTag" in self.data:
@@ -1264,7 +1270,7 @@ class testforblock(Master):
         Master.__init__(self)
         syntaxes = (("<~x", "<~y", "<~z", "<.block", "[=dataValue", "[{dataTag"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at = canAt(self.data, "<~x", "<~y", "<~z")
+        self.canAt = canAt(self.data, "<~x", "<~y", "<~z")
 
     def __unicode__(self):
         return u"execute if block {} {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"], block(self.data, False, "<.block", "[=dataValue", "[{dataTag"))
@@ -1275,7 +1281,7 @@ class testforblocks(Master):
         Master.__init__(self)
         syntaxes = (("<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2", "<~x", "<~y", "<~z", "[(all|masked"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at = canAt(self.data, "<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2", "<~x", "<~y", "<~z")
+        self.canAt = canAt(self.data, "<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2", "<~x", "<~y", "<~z")
 
     def __unicode__(self):
         return u"execute if blocks {} {} {} {} {} {} {} {} {} {}".format(self.data["<~x1"], self.data["<~y1"], self.data["<~z1"], self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], self.data["<~x"], self.data["<~y"], self.data["<~z"], self.data["[(all|masked"] if "[(all|masked" in self.data else "all")
@@ -1296,7 +1302,7 @@ class title(Master):
                     ("<@player", "<(title|subtitle|actionbar", "<:raw"),
                     ("<@player", "<(times", "<0fadeIn", "<0stay", "<0fadeOut"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = self.data["<@player"].at, True
+        self.canAt, self.canAs = self.data["<@player"].canAt, True
 
 
 class toggledownfall(Master):
@@ -1317,13 +1323,13 @@ class tp(Master):
                     ("<@target", "<~x", "<~y", "<~z"),
                     ("<@target", "<~x", "<~y", "<~z", "<~yaw", "<~pitch"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = False if len(self.syntax) < 3 else canAt(self.data, "<~x", "<~y", "<~z", "<~yaw", "<~pitch"), True
+        self.canAt, self.canAs = False if len(self.syntax) < 3 else canAt(self.data, "<~x", "<~y", "<~z", "<~yaw", "<~pitch"), True
 
     def __unicode__(self):
         if "<@target" not in self.data or (not self.data["<@target"].playerName and self.data["<@target"].target == 's') or "[@destination" in self.data:
             return Master.__unicode__(self)
 
-        s = u"execute as {}{} teleport {} {} {}".format(self.data["<@target"], u" at @s" if self.at else u"", self.data["<~x"], self.data["<~y"], self.data["<~z"])
+        s = u"execute as {}{} teleport {} {} {}".format(self.data["<@target"], u" at @s" if self.canAt else u"", self.data["<~x"], self.data["<~y"], self.data["<~z"])
 
         if "<~yaw" in self.data:
             s += u" {} {}".format(self.data["<~yaw"], self.data["<~pitch"])
@@ -1336,7 +1342,7 @@ class trigger(Master):
         Master.__init__(self)
         syntaxes = (("<.objective", "<(add|set", "<0value"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.ass = True
+        self.canAs = True
 
     def __unicode__(self):
         if self.data["<(add|set"] == "add" and self.data["<0value"] == '1':
@@ -1349,7 +1355,7 @@ class w(Master):
         Master.__init__(self)
         syntaxes = (("<@player", "<*message"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = self.data["<@player"].at, True
+        self.canAt, self.canAs = self.data["<@player"].canAt, True
 
 
 class weather(Master):  # todo warn if duration not specified (changed behaviour from random to 5 min)
@@ -1366,7 +1372,7 @@ class whitelist(Master):
                     ("<(on|off|list|reload", ))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         if "<@player" in self.data:
-            self.at, self.ass = self.data["<@player"].at, True
+            self.canAt, self.canAs = self.data["<@player"].canAt, True
 
 
 class worldborder(Master):
@@ -1380,7 +1386,7 @@ class worldborder(Master):
                     ("<(warning", "<(distance", "<0distance"),
                     ("<(warning", "<(time", "<0time"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at = "<~x" in self.data and canAt(self.data, "<~x", "<~z")
+        self.canAt = "<~x" in self.data and canAt(self.data, "<~x", "<~z")
 
 
 class xp(Master):
@@ -1388,7 +1394,7 @@ class xp(Master):
         Master.__init__(self)
         syntaxes = (("<%amount", "[@player"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.at, self.ass = "[@player" in self.data and self.data["[@player"].at, True
+        self.canAt, self.canAs = "[@player" in self.data and self.data["[@player"].canAt, True
 
     def __unicode__(self):
         if self.data["<%amount"][-1] == 'L':
