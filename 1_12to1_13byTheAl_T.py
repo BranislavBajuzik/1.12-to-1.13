@@ -569,6 +569,15 @@ class Selector:
         return not self.__eq__(other)
 
 
+class Selectors:
+    def __init__(self, raw):
+        self.selectors = map(Selector, raw.split(' '))
+        self.canAt = any(map(lambda x: x.canAt, self.selectors))
+
+    def __unicode__(self):
+        return u" ".join(map(unicode, self.selectors))
+
+
 class Master:
     def __init__(self):
         self.syntax, self.data = (), {}
@@ -1076,15 +1085,13 @@ class scoreboard(Master):
                     ("<(teams", "<(option", "<.team", "<(nametagVisibility|deathMessageVisibility", "<(never|hideForOtherTeams|hideForOwnTeam|always"),
                     ("<(teams", "<(option", "<.team", "<(collisionRule", "<(always|never|pushOwnTeam|pushOtherTeams"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.canAt, self.canAs = False, False
+        if "[*entities" in self.data:
+            self.data["[*entities"] = Selectors(self.data["[*entities"])
         for word in self.syntax:
             if word[1] == '@' or word == "[*entities":
                 self.canAt, self.canAs = self.canAt or self.data[word].canAt, True
 
     def __unicode__(self):  # todo FakePlayerName, *
-        if "[*entities" in self.data:
-            pass
-
         if "<(test" in self.data:
             if "<(*" in self.data:
                 Globals.commentedOut = True
@@ -1261,8 +1268,8 @@ class testfor(Master):
         if "[{dataTag" in self.data:
             selectorCopy = Selector(self.data["<@player"].raw)
             selectorCopy.data["nbt"] = u"{}".format(self.data["[{dataTag"])
-
-        return u"execute if entity {}".format(selectorCopy if "[{dataTag" in self.data else self.data["<@player"])
+            return u"execute if entity {}".format(selectorCopy)
+        return u"execute if entity {}".format(self.data["<@player"])
 
 
 class testforblock(Master):
