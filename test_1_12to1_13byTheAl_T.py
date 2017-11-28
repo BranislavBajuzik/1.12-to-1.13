@@ -1,4 +1,5 @@
 from unittest import TestCase
+from itertools import permutations
 import random
 import inspect
 converter = __import__("1_12to1_13byTheAl_T")
@@ -43,26 +44,67 @@ class TestBase(TestCase):
         print "\n{}:\n".format(cls.__name__)
 
     def setUp(self):
-        self.asses = 0
+        self.asserts = 0
         reload(converter)
 
     def assertStats(self):
         stack = inspect.stack()
-        print "\t{} assertion{} made in {}".format(self.asses, 's' if self.asses != 1 else '',
+        print "\t{} assertion{} made in {}".format(self.asserts, 's' if self.asserts != 1 else '',
                                                    stack[1][0].f_code.co_name)
 
     def decide(self, raw):
         ret = converter.decide(raw)
-        self.asses += 1
+        self.asserts += 1
         return ret
+
+    def assertPass(self, *args):
+        self.asserts += 1
 
     def assertRaises(self, excClass, callableObj=None, *args, **kwargs):
         super(TestBase, self).assertRaises(excClass, callableObj)
-        self.asses += 1
+        self.asserts += 1
 
     def assertEqual(self, first, second, msg=None):
         super(TestBase, self).assertEqual(first, second, msg)
-        self.asses += 1
+        self.asserts += 1
+
+
+class Selector(TestBase):
+    def test_syntax_ok(self):
+        self.assertPass(converter.Selector("playerName"))
+        self.assertPass(converter.Selector("player_name"))
+        self.assertPass(converter.Selector("@a[]"))
+
+        argPairs = (("x", "1"), ("y", "1"), ("z", "1"), ("dx", "1"), ("dy", "1"), ("dz", "1"), ("type", "Cow"),
+                    ("type", "!Cow"), ("lm", "1"), ("l", "1"), ("m", "1"), ("team", "blue"), ("team", ""), ("team", "!"),
+                    ("team", "!blue"), ("score_won", "1"), ("score_won_min", "1"), ("name", "TheAl_T"),
+                    ("tag", "inGame"), ("tag", "!inGame"), ("tag", ""), ("tag", "!"), ("rm", "1"), ("r", "1"),
+                    ("rxm", "1"), ("rx", "1"), ("rym", "1"), ("ry", "1"), ("c", "1"))
+
+        for sType in ("p", "e", "a", "r", "s"):
+            for n in (1, 2, 3):
+                for argPairsPerm in permutations(argPairs, n):
+                    self.assertPass(converter.Selector("@{}[{}]".format(sType, ",".join(map(lambda x: "{}={}".format(x[0], x[1]), argPairsPerm)))))
+        self.assertStats()
+
+    def test_syntax_nok(self):
+        cases = ("@", "*", "=", "[", "]", "@c", "@a[", "@s]", "@a[c =3]", "@a][", "@a[c=1][")
+
+        for case in cases:
+            self.assertRaises(SyntaxError, lambda: converter.Selector(case))
+
+        argPairs = (("x", "a"), ("y", "a"), ("z", "a"), ("dx", "a"), ("dy", "a"), ("dz", "a"), ("type", "bad"),
+                    ("type", "!bad"), ("lm", "a"), ("l", "a"), ("m", "bad"), ("score_won", "a"), ("score_won_min", "a"),
+                    ("rm", "a"), ("r", "a"), ("rxm", "a"), ("rx", "a"), ("rym", "a"), ("ry", "a"), ("c", "a"),
+                    ("bad", "bad"), ("x", ""), ("y", ""), ("z", ""), ("dx", ""), ("dy", ""), ("dz", ""), ("type", ""),
+                    ("type", ""), ("lm", ""), ("l", ""), ("m", ""), ("score_won", ""), ("score_won_min", ""),
+                    ("name", ""), ("rm", ""), ("r", ""), ("rxm", ""), ("rx", ""), ("rym", ""), ("ry", ""), ("c", ""))
+
+        for sType in ("p", "e", "a", "r", "s"):
+            for n in (1, 2, 3):
+                for argPairsPerm in permutations(argPairs, n):
+                    self.assertRaises(SyntaxError, lambda: converter.Selector("@{}[{}]".format(sType, ",".join(map(lambda x: "{}={}".format(x[0], x[1]), argPairsPerm)))))
+        self.assertStats()
 
 
 class Advancement(TestBase):
