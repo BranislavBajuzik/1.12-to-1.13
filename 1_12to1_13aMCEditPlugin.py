@@ -6,7 +6,7 @@
 import json
 from pymclevel import TAG_String
 try:
-    converter = __import__("1_12to1_13byTheAl_T")
+    converter = __import__("1_12to1_13")
 except ImportError:
     converter = False
 
@@ -54,23 +54,26 @@ def perform(level, box, options):
         e[label] = TAG_String(what)
         chunk.dirty = True
 
-    def fixCommand():
+    def fixCommand(entity=False):
         command = e["Command"].value.strip()
         if command:
             try:
                 converter.Globals.commentedOut = False
                 command = unicode(converter.decide(command))
-            except SyntaxError, ex:
+            except SyntaxError as ex:
                 print u"Error in block at [{}, {}, {}]:\n{}".format(x, y, z, ex)
                 if options["Errors"]:
-                    raise SyntaxError(u"Error in block at [{}, {}, {}]:\n{}".format(x, y, z, ex.message))
+                    if entity:
+                        raise SyntaxError(u"Error in minecart at [{}, {}, {}]:\n{}".format(x, y, z, ex.message))
+                    else:
+                        raise SyntaxError(u"Error in block at [{}, {}, {}]:\n{}".format(x, y, z, ex.message))
             validate(command, "Command")
 
     for (chunk, _, _) in level.getChunkSlices(box):
         for e in chunk.Entities:
             x, y, z = map(lambda x: x.value, e["Pos"].value)
             if (x, y, z) in box and e["id"].value == "minecraft:commandblock_minecart":
-                    fixCommand()
+                    fixCommand(True)
 
         for e in chunk.TileEntities:
             x, y, z = e["x"].value, e["y"].value, e["z"].value
@@ -87,7 +90,7 @@ def perform(level, box, options):
                             s = json.JSONEncoder(separators=(',', ':')).encode(s)
                         except ValueError:
                             continue
-                        except SyntaxError, ex:
+                        except SyntaxError as ex:
                             print u"Error in sign at [{}, {}, {}]:\n{}".format(x, y, z, ex)
                             if options["Errors"]:
                                 raise SyntaxError(u"Error in sign at [{}, {}, {}]:\n{}".format(x, y, z, ex.message))

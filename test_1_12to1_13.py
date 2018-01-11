@@ -4,6 +4,15 @@ import random
 import inspect
 converter = __import__("1_12to1_13byTheAl_T")
 
+if type(u"") is str:
+    _map = map
+    _filter = filter
+    xrange = range
+    raw_input = input
+    map = lambda x, y: list(_map(x, y))
+    filter = lambda x, y: list(_filter(x, y))
+    unicode = lambda x: x.__unicode__()
+
 
 def generate_perms(syntax, optional=0):
     ret = generate_perms_r(syntax)

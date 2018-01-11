@@ -2,16 +2,16 @@
 
 Made by **TheAl_T**: [planetminecraft.com/member/theal_t](https://www.planetminecraft.com/member/theal_t)
 
-Block data value -> block state database by: **Onnowhere**: [youtube.com/onnowhere2](https://www.youtube.com/onnowhere2)
+HUGE thanks to **Onnowhere** for block state database and conversion and for testing and feedback: [youtube.com/onnowhere2](https://www.youtube.com/onnowhere2)
 
 [Reddit](https://www.reddit.com/r/MinecraftCommands/comments/6prh1h/112_113_convert_script/)
 
 # Usage
 
-Use python 2.7
+Use python 2.7 _**or**_ 3.6
 
 Main file:
-- Pass filenames to convert as arguments or pass none for menu
+- When running the file, pass names of files you wish to convert as arguments or pass none for menu
 
 MCEdit filter:
 - Copy **both** files into your filters directory
@@ -29,7 +29,6 @@ Second character:
 - `0` a number
 - `~` a number prefixed (or not) by `'~'`
 - `%` a number suffixed (or not) by `'L'`
-- `=` Block data value or block state or `-1` or `*`
 - `{` NBT tag
 - `:` raw JSON
 - `.` whatever
