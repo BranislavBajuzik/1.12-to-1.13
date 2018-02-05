@@ -2,7 +2,7 @@ from unittest import TestCase
 from itertools import permutations
 import random
 import inspect
-converter = __import__("1_12to1_13byTheAl_T")
+converter = __import__("1_12to1_13")
 
 if type(u"") is str:
     _map = map
@@ -66,11 +66,18 @@ class TestBase(TestCase):
         self.asserts += 1
         return ret
 
-    def assertPass(self, *args):
+    def assertPass(self, _):
         self.asserts += 1
 
-    def assertRaises(self, excClass, callableObj=None, *args, **kwargs):
-        super(TestBase, self).assertRaises(excClass, callableObj)
+    def assertRaises(self, excClass, argument, function=False):
+        try:
+            if function:
+                super(TestBase, self).assertRaises(excClass, argument)
+            else:
+                super(TestBase, self).assertRaises(excClass, lambda: self.decide(argument))
+        except AssertionError:
+            raise AssertionError("{} didn't throw {}".format(argument, excClass))
+
         self.asserts += 1
 
     def assertEqual(self, first, second, msg=None):
@@ -100,7 +107,7 @@ class Selector(TestBase):
         cases = ("@", "*", "=", "[", "]", "@c", "@a[", "@s]", "@a[c =3]", "@a][", "@a[c=1][")
 
         for case in cases:
-            self.assertRaises(SyntaxError, lambda: converter.Selector(case))
+            self.assertRaises(SyntaxError, lambda: converter.Selector(case), True)
 
         argPairs = (("x", "a"), ("y", "a"), ("z", "a"), ("dx", "a"), ("dy", "a"), ("dz", "a"), ("type", "bad"),
                     ("type", "!bad"), ("lm", "a"), ("l", "a"), ("m", "bad"), ("score_won", "a"), ("score_won_min", "a"),
@@ -112,13 +119,13 @@ class Selector(TestBase):
         for sType in ("p", "e", "a", "r", "s"):
             for n in (1, 2, 3):
                 for argPairsPerm in permutations(argPairs, n):
-                    self.assertRaises(SyntaxError, lambda: converter.Selector("@{}[{}]".format(sType, ",".join(map(lambda x: "{}={}".format(x[0], x[1]), argPairsPerm)))))
+                    self.assertRaises(SyntaxError, lambda: converter.Selector("@{}[{}]".format(sType, ",".join(map(lambda x: "{}={}".format(x[0], x[1]), argPairsPerm)))), True)
         self.assertStats()
 
 
 class Advancement(TestBase):
     def test_syntax1_ok(self):
-        perms = generate_perms(["advancement", ["grant", "revoke"], "@s", ["only", "until", "from", "through"], "adv_name", ["crit", ""]])
+        perms = generate_perms(["advancement", ["grant", "revoke"], "@s", ["only", "until", "from", "through"], "adv_name", "crit"], optional=1)
         for perm in perms:
             self.decide(perm)
         self.assertStats()
@@ -133,7 +140,7 @@ class Advancement(TestBase):
                  "advancement grant @s aaaa adv_name crit",
                  "advancement grant @s only adv_name crit lolo")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -172,7 +179,7 @@ class Advancement(TestBase):
                  "advancement grant @s aaaaaaaaaa",
                  "advancement grant @s everything lolo")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -196,7 +203,7 @@ class Advancement(TestBase):
                  "advancement test @c adv_name crit",
                  "advancement test @s adv_name crit lolo")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax3_convert(self):
@@ -209,7 +216,7 @@ class Advancement(TestBase):
 
 class Ban(TestBase):
     def test_syntax1_ok(self):
-        perms = generate_perms(["ban", "p_name", ["Because", "Because I said so", ""]])
+        perms = generate_perms(["ban", "p_name", ["Because", "Because I said so"]], optional=1)
         for perm in perms:
             self.decide(perm)
         self.assertStats()
@@ -217,7 +224,7 @@ class Ban(TestBase):
     def test_syntax1_nok(self):
         perms = ("ban",)
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -231,7 +238,7 @@ class Ban(TestBase):
 
 class Ban_IP(TestBase):
     def test_syntax1_ok(self):
-        perms = generate_perms(["ban-ip", "p_name", ["because", "Because I said so", ""]])
+        perms = generate_perms(["ban-ip", "p_name", ["because", "Because I said so"]], optional=1)
         for perm in perms:
             self.decide(perm)
         self.assertStats()
@@ -239,7 +246,7 @@ class Ban_IP(TestBase):
     def test_syntax1_nok(self):
         perms = ("ban-ip",)
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -255,7 +262,7 @@ class BlockData(TestBase):
     def test_syntax1_ok(self):
         perms = generate_perms(["blockdata", coord(), coord(), coord(), nbt()])
         for perm in perms:
-             self.decide(perm)
+            self.decide(perm)
         self.assertStats()
 
     def test_syntax1_nok(self):
@@ -269,7 +276,7 @@ class BlockData(TestBase):
                  "blockdata 1 ~ ~3 aaaaa",
                  "blockdata 1 ~ ~3 {abc:def} lolo")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -288,20 +295,23 @@ class Clear(TestBase):
 
     def test_syntax1_nok(self):
         perms = ("clear @c minecraft:stone 1 42 {abc:def}",
+                 "clear @s minecraft:stone -2 42 {abc:def}",
+                 "clear @s minecraft:stone 16 42 {abc:def}",
                  "clear @s minecraft:stone a 42 {abc:def}",
+                 "clear @s minecraft:stone a -1 {abc:def}",
                  "clear @s minecraft:stone 1 aa {abc:def}",
                  "clear @s minecraft:stone 1 42 aaaaaaaaa")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
         tests = ((converter.decide("clear"), "clear"),
                  (converter.decide("clear @s"), "clear @s"),
                  (converter.decide("clear @s minecraft:stone"), "clear @s stone"),
-                 (converter.decide("clear @s minecraft:stone 1"), "clear @s stone{Damage:1}"),
-                 (converter.decide("clear @s minecraft:stone 1 42"), "clear @s stone{Damage:1} 42"),
-                 (converter.decide("clear @s minecraft:stone 1 42 {abc:def}"), "clear @s stone{abc:def,Damage:1} 42"))
+                 (converter.decide("clear @s minecraft:stone 1"), "clear @s granite"),
+                 (converter.decide("clear @s minecraft:stone 1 42"), "clear @s granite 42"),
+                 (converter.decide("clear @s minecraft:stone 1 42 {abc:def}"), "clear @s granite{abc:def} 42"))
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
@@ -338,7 +348,7 @@ class Clone(TestBase):
                  "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace aaaaa",
                  "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace force lolo")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -357,7 +367,7 @@ class Clone(TestBase):
 
     def test_syntax2_ok(self):
         perms = generate_perms(["clone", "1", "~-1", "~1", "1", "~-1", "~1", "1", "~-1", "~1",
-                                "filtered", ["force", "move", "normal"], "stone", ["1", ""]])
+                                "filtered", ["force", "move", "normal"], "stone", "1"], optional=1)
         for perm in perms:
             self.decide(perm)
         self.assertStats()
@@ -367,17 +377,19 @@ class Clone(TestBase):
                  "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force",
                  "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered aaaaa stone 1",
                  "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered aaaaa stone a",
-                 "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone 1 lolo")
+                 "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered aaaaa stone -2",
+                 "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered aaaaa stone 16",
+                 "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone 1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
-    def test_syntax2_convert(self):
-        tests = ((converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone 1"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone[variant=granite] force"),
+    def test_syntax2_convert(self):  # todo What to do with blocks like wool
+        tests = ((converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone 1"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite force"),
                  (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone force"),
-                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone 1"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone[variant=granite] move"),
+                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone 1"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite move"),
                  (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone move"),
-                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone 1"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone[variant=granite] normal"),
+                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone 1"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite normal"),
                  (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone normal"))
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
@@ -394,9 +406,9 @@ class Debug(TestBase):
     def test_syntax1_nok(self):
         perms = ("debug",
                  "debug aaaaa",
-                 "debug start lolo")
+                 "debug start ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -417,9 +429,9 @@ class DefaultGameMode(TestBase):
     def test_syntax1_nok(self):
         perms = ("defaultgamemode",
                  "defaultgamemode aaa",
-                 "defaultgamemode 1 lolo")
+                 "defaultgamemode 1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -450,9 +462,9 @@ class Deop(TestBase):
     def test_syntax1_nok(self):
         perms = ("deop",
                  "deop @c",
-                 "deop @s lolo")
+                 "deop @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -472,9 +484,9 @@ class Difficulty(TestBase):
     def test_syntax1_nok(self):
         perms = ("difficulty",
                  "difficulty aaa",
-                 "difficulty 1 lolo")
+                 "difficulty 1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -507,7 +519,7 @@ class Effect(TestBase):
                  "effect @s",
                  "effect @c clear")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -526,16 +538,21 @@ class Effect(TestBase):
         perms = ("effect",
                  "effect @s",
                  "effect @c speed 10 10 true",
+                 "effect @c speed -1 10 true",
+                 "effect @c speed 1000001 10 true",
                  "effect @s speed aa 10 true",
+                 "effect @s speed aa -1 true",
+                 "effect @s speed aa 1000001 true",
                  "effect @s speed 10 aa true",
                  "effect @s speed 10 10 aaaa",
-                 "effect @s speed 10 10 true lolo")
+                 "effect @s speed 10 10 true ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
         tests = ((converter.decide("effect @s speed"), "effect give @s speed"),
+                 (converter.decide("effect @s speed 0"), "effect clear @s speed"),
                  (converter.decide("effect @s speed 11"), "effect give @s speed 11"),
                  (converter.decide("effect @s speed 11 22"), "effect give @s speed 11 22"),
                  (converter.decide("effect @s speed 11 22 true"), "effect give @s speed 11 22 true"),
@@ -547,7 +564,7 @@ class Effect(TestBase):
 
 class Enchant(TestBase):
     def test_syntax1_ok(self):
-        perms = generate_perms(["enchant", "@s", "sharpness", ["1", ""]])
+        perms = generate_perms(["enchant", "@s", "sharpness", "1"], optional=1)
         for perm in perms:
             self.decide(perm)
         self.assertStats()
@@ -556,10 +573,12 @@ class Enchant(TestBase):
         perms = ("enchant",
                  "enchant @s",
                  "enchant @c sharpness 1",
+                 "enchant @s sharpness 0",
+                 "enchant @s sharpness 6",
                  "enchant @s sharpness a",
-                 "enchant @s sharpness 1 lolo")
+                 "enchant @s sharpness 1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -582,9 +601,9 @@ class EntityData(TestBase):
                  "entitydata @s",
                  "entitydata @c {abc:def}",
                  "entitydata @s aaaaaaaaa",
-                 "entitydata @s {abc:def} lolo")
+                 "entitydata @s {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -594,25 +613,588 @@ class EntityData(TestBase):
         self.assertStats()
 
 
-class Execute(TestBase):  # ToDo k i l l  m e
+class Execute(TestBase):
     def test_syntax1_ok(self):
-        self.assertTrue(False)
-        perms = generate_perms(["", ""])
+        perms = generate_perms(["execute", "@s", "1", "~-1", "1", "say hi"])
         for perm in perms:
             self.decide(perm)
         self.assertStats()
 
     def test_syntax1_nok(self):
-        self.assertTrue(False)
-        perms = ("",
-                 "")
+        perms = ("execute",
+                 "execute @c 1 ~-1 1 say hi",
+                 "execute @s",
+                 "execute @s a ~-1 1 say hi",
+                 "execute @s 1",
+                 "execute @s 1 aaa 1 say hi",
+                 "execute @s 1 ~-1",
+                 "execute @s 1 ~-1 a say hi",
+                 "execute @s 1 ~-1 1",
+                 "execute @s 1 ~-1 1 aaaaaa")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
-        self.assertTrue(False)
-        tests = ((converter.decide(""), ""), )
+        tests = (  # @s
+                 # not canAs and not canAt
+                 (converter.decide("execute @s ~ ~ ~ seed"),
+                                   "seed"),
+                 (converter.decide("execute @s[name=Carl] ~ ~ ~ seed"),
+                                   "execute as @s[name=Carl] run seed"),
+                 (converter.decide("execute @s 1 ~-1 1 seed"),
+                                   "seed"),
+                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 seed"),
+                                   "execute as @s[name=Carl] run seed"),
+
+                 (converter.decide("execute @s ~ ~ ~ execute @s ~ ~ ~ seed"),
+                                   "seed"),
+                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] ~ ~ ~ seed"),
+                                   "execute as @s[name=Carl] run seed"),
+                 (converter.decide("execute @s ~ ~ ~ execute @s 1 ~-1 1 seed"),
+                                   "seed"),
+                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 seed"),
+                                   "execute as @s[name=Carl] run seed"),
+
+                 (converter.decide("execute @s 1 ~-1 1 execute @s ~ ~ ~ seed"),
+                                   "seed"),
+                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ seed"),
+                                   "execute as @s[name=Carl] run seed"),
+                 (converter.decide("execute @s 1 ~-1 1 execute @s 1 ~-1 1 seed"),
+                                   "seed"),
+                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 seed"),
+                                   "execute as @s[name=Carl] run seed"),
+
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s ~ ~ ~ seed"),
+                                   "execute as @s[tag=Carl] run seed"),
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] ~ ~ ~ seed"),
+                                   "execute as @s[tag=Carl] as @s[name=Carl] run seed"),
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s 1 ~-1 1 seed"),
+                                   "execute as @s[tag=Carl] run seed"),
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 seed"),
+                                   "execute as @s[tag=Carl] as @s[name=Carl] run seed"),
+
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ seed"),
+                                   "execute as @s[tag=Carl] run seed"),
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ seed"),
+                                   "execute as @s[tag=Carl] as @s[name=Carl] run seed"),
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 seed"),
+                                   "execute as @s[tag=Carl] run seed"),
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 seed"),
+                                   "execute as @s[tag=Carl] as @s[name=Carl] run seed"),
+
+                 # canAs and not canAt
+                 (converter.decide("execute @s ~ ~ ~ say hi"),
+                                   "say hi"),
+                 (converter.decide("execute @s[name=Carl] ~ ~ ~ say hi"),
+                                   "execute as @s[name=Carl] run say hi"),
+                 (converter.decide("execute @s 1 ~-1 1 say hi"),
+                                   "say hi"),
+                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 say hi"),
+                                   "execute as @s[name=Carl] run say hi"),
+
+                 (converter.decide("execute @s ~ ~ ~ execute @s ~ ~ ~ say hi"),
+                                   "say hi"),
+                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] ~ ~ ~ say hi"),
+                                   "execute as @s[name=Carl] run say hi"),
+                 (converter.decide("execute @s ~ ~ ~ execute @s 1 ~-1 1 say hi"),
+                                   "say hi"),
+                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 say hi"),
+                                   "execute as @s[name=Carl] run say hi"),
+
+                 (converter.decide("execute @s 1 ~-1 1 execute @s ~ ~ ~ say hi"),
+                                   "say hi"),
+                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ say hi"),
+                                   "execute as @s[name=Carl] run say hi"),
+                 (converter.decide("execute @s 1 ~-1 1 execute @s 1 ~-1 1 say hi"),
+                                   "say hi"),
+                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 say hi"),
+                                   "execute as @s[name=Carl] run say hi"),
+
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s ~ ~ ~ say hi"),
+                                   "execute as @s[tag=Carl] run say hi"),
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] ~ ~ ~ say hi"),
+                                   "execute as @s[tag=Carl] as @s[name=Carl] run say hi"),
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s 1 ~-1 1 say hi"),
+                                   "execute as @s[tag=Carl] run say hi"),
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 say hi"),
+                                   "execute as @s[tag=Carl] as @s[name=Carl] run say hi"),
+
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ say hi"),
+                                   "execute as @s[tag=Carl] run say hi"),
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ say hi"),
+                                   "execute as @s[tag=Carl] as @s[name=Carl] run say hi"),
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 say hi"),
+                                   "execute as @s[tag=Carl] run say hi"),
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 say hi"),
+                                   "execute as @s[tag=Carl] as @s[name=Carl] run say hi"),
+
+                 # not canAs and canAt
+                 (converter.decide("execute @s ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @s[name=Carl] run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+
+                 (converter.decide("execute @s ~ ~ ~ execute @s ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @s[name=Carl] run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s ~ ~ ~ execute @s 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+
+                 (converter.decide("execute @s 1 ~-1 1 execute @s ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute positioned 1 ~-1 1 at @s[name=Carl] run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s 1 ~-1 1 execute @s 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute positioned 1 ~-1 1 positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute positioned 1 ~-1 1 at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @s[tag=Carl] run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @s[tag=Carl] at @s[name=Carl] run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @s[tag=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @s[tag=Carl] at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @s[tag=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s[name=Carl] run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @s[tag=Carl] positioned 1 ~-1 1 positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+
+                 # canAs and canAt
+                 (converter.decide("execute @s ~ ~ ~ function abc:def"),
+                                   "function abc:def"),
+                 (converter.decide("execute @s[name=Carl] ~ ~ ~ function abc:def"),
+                                   "execute as @s[name=Carl] run function abc:def"),
+                 (converter.decide("execute @s 1 ~-1 1 function abc:def"),
+                                   "execute positioned 1 ~-1 1 run function abc:def"),
+                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 function abc:def"),
+                                   "execute as @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
+
+                 (converter.decide("execute @s ~ ~ ~ execute @s ~ ~ ~ function abc:def"),
+                                   "function abc:def"),
+                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] ~ ~ ~ function abc:def"),
+                                   "execute as @s[name=Carl] run function abc:def"),
+                 (converter.decide("execute @s ~ ~ ~ execute @s 1 ~-1 1 function abc:def"),
+                                   "execute positioned 1 ~-1 1 run function abc:def"),
+                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 function abc:def"),
+                                   "execute as @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
+
+                 (converter.decide("execute @s 1 ~-1 1 execute @s ~ ~ ~ function abc:def"),
+                                   "execute positioned 1 ~-1 1 run function abc:def"),
+                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ function abc:def"),
+                                   "execute positioned 1 ~-1 1 as @s[name=Carl] run function abc:def"),
+                 (converter.decide("execute @s 1 ~-1 1 execute @s 1 ~-1 1 function abc:def"),
+                                   "execute positioned 1 ~-1 1 positioned 1 ~-1 1 run function abc:def"),
+                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 function abc:def"),
+                                   "execute positioned 1 ~-1 1 as @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
+
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s ~ ~ ~ function abc:def"),
+                                   "execute as @s[tag=Carl] run function abc:def"),
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] ~ ~ ~ function abc:def"),
+                                   "execute as @s[tag=Carl] as @s[name=Carl] run function abc:def"),
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s 1 ~-1 1 function abc:def"),
+                                   "execute as @s[tag=Carl] positioned 1 ~-1 1 run function abc:def"),
+                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 function abc:def"),
+                                   "execute as @s[tag=Carl] as @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
+
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ function abc:def"),
+                                   "execute as @s[tag=Carl] positioned 1 ~-1 1 run function abc:def"),
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ function abc:def"),
+                                   "execute as @s[tag=Carl] positioned 1 ~-1 1 as @s[name=Carl] run function abc:def"),
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 function abc:def"),
+                                   "execute as @s[tag=Carl] positioned 1 ~-1 1 positioned 1 ~-1 1 run function abc:def"),
+                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 function abc:def"),
+                                   "execute as @s[tag=Carl] positioned 1 ~-1 1 as @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
+
+                 # @e
+                 # not canAs and not canAt
+                 (converter.decide("execute @e ~ ~ ~ seed"),
+                                   "execute as @e run seed"),
+                 (converter.decide("execute @e[name=Carl] ~ ~ ~ seed"),
+                                   "execute as @e[name=Carl] run seed"),
+                 (converter.decide("execute @e 1 ~-1 1 seed"),
+                                   "execute as @e run seed"),
+                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 seed"),
+                                   "execute as @e[name=Carl] run seed"),
+
+                 (converter.decide("execute @e ~ ~ ~ execute @e ~ ~ ~ seed"),
+                                   "execute as @e as @e run seed"),
+                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] ~ ~ ~ seed"),
+                                   "execute as @e as @e[name=Carl] run seed"),
+                 (converter.decide("execute @e ~ ~ ~ execute @e 1 ~-1 1 seed"),
+                                   "execute as @e as @e run seed"),
+                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 seed"),
+                                   "execute as @e as @e[name=Carl] run seed"),
+
+                 (converter.decide("execute @e 1 ~-1 1 execute @e ~ ~ ~ seed"),
+                                   "execute as @e as @e run seed"),
+                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ seed"),
+                                   "execute as @e as @e[name=Carl] run seed"),
+                 (converter.decide("execute @e 1 ~-1 1 execute @e 1 ~-1 1 seed"),
+                                   "execute as @e as @e run seed"),
+                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 seed"),
+                                   "execute as @e as @e[name=Carl] run seed"),
+
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e ~ ~ ~ seed"),
+                                   "execute as @e[tag=Carl] as @e run seed"),
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] ~ ~ ~ seed"),
+                                   "execute as @e[tag=Carl] as @e[name=Carl] run seed"),
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e 1 ~-1 1 seed"),
+                                   "execute as @e[tag=Carl] as @e run seed"),
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 seed"),
+                                   "execute as @e[tag=Carl] as @e[name=Carl] run seed"),
+
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e ~ ~ ~ seed"),
+                                   "execute as @e[tag=Carl] as @e run seed"),
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ seed"),
+                                   "execute as @e[tag=Carl] as @e[name=Carl] run seed"),
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e 1 ~-1 1 seed"),
+                                   "execute as @e[tag=Carl] as @e run seed"),
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 seed"),
+                                   "execute as @e[tag=Carl] as @e[name=Carl] run seed"),
+
+                 # canAs and not canAt
+                 (converter.decide("execute @e ~ ~ ~ say hi"),
+                                   "execute as @e run say hi"),
+                 (converter.decide("execute @e[name=Carl] ~ ~ ~ say hi"),
+                                   "execute as @e[name=Carl] run say hi"),
+                 (converter.decide("execute @e 1 ~-1 1 say hi"),
+                                   "execute as @e run say hi"),
+                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 say hi"),
+                                   "execute as @e[name=Carl] run say hi"),
+
+                 (converter.decide("execute @e ~ ~ ~ execute @e ~ ~ ~ say hi"),
+                                   "execute as @e as @e run say hi"),
+                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] ~ ~ ~ say hi"),
+                                   "execute as @e as @e[name=Carl] run say hi"),
+                 (converter.decide("execute @e ~ ~ ~ execute @e 1 ~-1 1 say hi"),
+                                   "execute as @e as @e run say hi"),
+                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 say hi"),
+                                   "execute as @e as @e[name=Carl] run say hi"),
+
+                 (converter.decide("execute @e 1 ~-1 1 execute @e ~ ~ ~ say hi"),
+                                   "execute as @e as @e run say hi"),
+                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ say hi"),
+                                   "execute as @e as @e[name=Carl] run say hi"),
+                 (converter.decide("execute @e 1 ~-1 1 execute @e 1 ~-1 1 say hi"),
+                                   "execute as @e as @e run say hi"),
+                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 say hi"),
+                                   "execute as @e as @e[name=Carl] run say hi"),
+
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e ~ ~ ~ say hi"),
+                                   "execute as @e[tag=Carl] as @e run say hi"),
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] ~ ~ ~ say hi"),
+                                   "execute as @e[tag=Carl] as @e[name=Carl] run say hi"),
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e 1 ~-1 1 say hi"),
+                                   "execute as @e[tag=Carl] as @e run say hi"),
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 say hi"),
+                                   "execute as @e[tag=Carl] as @e[name=Carl] run say hi"),
+
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e ~ ~ ~ say hi"),
+                                   "execute as @e[tag=Carl] as @e run say hi"),
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ say hi"),
+                                   "execute as @e[tag=Carl] as @e[name=Carl] run say hi"),
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e 1 ~-1 1 say hi"),
+                                   "execute as @e[tag=Carl] as @e run say hi"),
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 say hi"),
+                                   "execute as @e[tag=Carl] as @e[name=Carl] run say hi"),
+
+                 # not canAs and canAt
+                 (converter.decide("execute @e ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @e run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @e[name=Carl] run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+
+                 (converter.decide("execute @e ~ ~ ~ execute @e ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @e at @e run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @e at @e[name=Carl] run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e ~ ~ ~ execute @e 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e at @e positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e at @e[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+
+                 (converter.decide("execute @e 1 ~-1 1 execute @e ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @e positioned 1 ~-1 1 at @e run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @e positioned 1 ~-1 1 at @e[name=Carl] run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e 1 ~-1 1 execute @e 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e positioned 1 ~-1 1 at @e positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e positioned 1 ~-1 1 at @e[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @e[tag=Carl] at @e run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @e[tag=Carl] at @e[name=Carl] run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e[tag=Carl] at @e positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e[tag=Carl] at @e[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @e[tag=Carl] positioned 1 ~-1 1 at @e run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
+                                   "execute at @e[tag=Carl] positioned 1 ~-1 1 at @e[name=Carl] run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e[tag=Carl] positioned 1 ~-1 1 at @e positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e[tag=Carl] positioned 1 ~-1 1 at @e[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+
+                 # canAs and canAt
+                 (converter.decide("execute @e ~ ~ ~ function abc:def"),
+                                   "execute as @e at @s run function abc:def"),
+                 (converter.decide("execute @e[name=Carl] ~ ~ ~ function abc:def"),
+                                   "execute as @e[name=Carl] at @s run function abc:def"),
+                 (converter.decide("execute @e 1 ~-1 1 function abc:def"),
+                                   "execute as @e at @s positioned 1 ~-1 1 run function abc:def"),
+                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 function abc:def"),
+                                   "execute as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
+
+                 (converter.decide("execute @e ~ ~ ~ execute @e ~ ~ ~ function abc:def"),
+                                   "execute as @e at @s as @e at @s run function abc:def"),
+                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] ~ ~ ~ function abc:def"),
+                                   "execute as @e at @s as @e[name=Carl] at @s run function abc:def"),
+                 (converter.decide("execute @e ~ ~ ~ execute @e 1 ~-1 1 function abc:def"),
+                                   "execute as @e at @s as @e at @s positioned 1 ~-1 1 run function abc:def"),
+                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 function abc:def"),
+                                   "execute as @e at @s as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
+
+                 (converter.decide("execute @e 1 ~-1 1 execute @e ~ ~ ~ function abc:def"),
+                                   "execute as @e at @s positioned 1 ~-1 1 as @e at @s run function abc:def"),
+                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ function abc:def"),
+                                   "execute as @e at @s positioned 1 ~-1 1 as @e[name=Carl] at @s run function abc:def"),
+                 (converter.decide("execute @e 1 ~-1 1 execute @e 1 ~-1 1 function abc:def"),
+                                   "execute as @e at @s positioned 1 ~-1 1 as @e at @s positioned 1 ~-1 1 run function abc:def"),
+                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 function abc:def"),
+                                   "execute as @e at @s positioned 1 ~-1 1 as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
+
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e ~ ~ ~ function abc:def"),
+                                   "execute as @e[tag=Carl] at @s as @e at @s run function abc:def"),
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] ~ ~ ~ function abc:def"),
+                                   "execute as @e[tag=Carl] at @s as @e[name=Carl] at @s run function abc:def"),
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e 1 ~-1 1 function abc:def"),
+                                   "execute as @e[tag=Carl] at @s as @e at @s positioned 1 ~-1 1 run function abc:def"),
+                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 function abc:def"),
+                                   "execute as @e[tag=Carl] at @s as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
+
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e ~ ~ ~ function abc:def"),
+                                   "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e at @s run function abc:def"),
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ function abc:def"),
+                                   "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e[name=Carl] at @s run function abc:def"),
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e 1 ~-1 1 function abc:def"),
+                                   "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e at @s positioned 1 ~-1 1 run function abc:def"),
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 function abc:def"),
+                                   "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax2_ok(self):
+        perms = generate_perms(["execute", "@s", "1", "~-1", "1", "detect", "1", "~-1", "1", "stone", "1", "say hi"])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax2_nok(self):
+        perms = ("execute",
+                 "execute @c 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi",
+                 "execute @s",
+                 "execute @s a ~-1 1 detect 1 ~-1 1 stone 1 say hi",
+                 "execute @s 1",
+                 "execute @s 1 aaa 1 detect 1 ~-1 1 stone 1 say hi",
+                 "execute @s 1 ~-1",
+                 "execute @s 1 ~-1 a detect 1 ~-1 1 stone 1 say hi",
+                 "execute @s 1 ~-1 1",
+                 "execute @s 1 ~-1 1 aaaaaa 1 ~-1 1 stone 1 say hi",
+                 "execute @s 1 ~-1 1 detect",
+                 "execute @s 1 ~-1 1 detect a ~-1 1 stone 1 say hi",
+                 "execute @s 1 ~-1 1 detect 1",
+                 "execute @s 1 ~-1 1 detect 1 aaa 1 stone 1 say hi",
+                 "execute @s 1 ~-1 1 detect 1 ~-1",
+                 "execute @s 1 ~-1 1 detect 1 ~-1 a stone 1 say hi",
+                 "execute @s 1 ~-1 1 detect 1 ~-1 1",
+                 "execute @s 1 ~-1 1 detect 1 ~-1 1 aaaaa",
+                 "execute @s 1 ~-1 1 detect 1 ~-1 1 stone a say hi",
+                 "execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1",
+                 "execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 aaaaaa")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax2_convert(self):
+        tests = (  # @s
+                 # not canAs and not canAt
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
+                                   "execute if block ~ ~ ~ granite run seed"),
+                 (converter.decide("execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
+                                   "execute at @s[name=Carl] if block ~ ~ ~ granite run seed"),
+                 (converter.decide("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
+                                   "execute positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
+                                   "execute at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
+                                   "execute if block ~ ~ ~ diorite if block ~ ~ ~ granite run seed"),
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
+                                   "execute if block ~ ~ ~ diorite at @s[name=Carl] if block ~ ~ ~ granite run seed"),
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
+                                   "execute if block ~ ~ ~ diorite positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
+                                   "execute if block ~ ~ ~ diorite at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+
+                 # canAs and not canAt
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
+                                   "execute if block ~ ~ ~ granite run say hi"),
+                 (converter.decide("execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
+                                   "execute as @s[name=Carl] if block ~ ~ ~ granite run say hi"),
+                 (converter.decide("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
+                                   "execute positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
+                                   "execute as @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
+                                   "execute if block ~ ~ ~ diorite if block ~ ~ ~ granite run say hi"),
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
+                                   "execute if block ~ ~ ~ diorite as @s[name=Carl] if block ~ ~ ~ granite run say hi"),
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
+                                   "execute if block ~ ~ ~ diorite positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
+                                   "execute if block ~ ~ ~ diorite as @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+
+                 # not canAs and canAt
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
+                                   "execute if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
+                                   "execute at @s[name=Carl] if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
+                                   "execute positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
+                                   "execute at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
+                                   "execute if block ~ ~ ~ diorite if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
+                                   "execute if block ~ ~ ~ diorite at @s[name=Carl] if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
+                                   "execute if block ~ ~ ~ diorite positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
+                                   "execute if block ~ ~ ~ diorite at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+
+                 # canAs and canAt
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
+                                   "execute if block ~ ~ ~ granite run function abc:def"),
+                 (converter.decide("execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
+                                   "execute as @s[name=Carl] if block ~ ~ ~ granite run function abc:def"),
+                 (converter.decide("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
+                                   "execute positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
+                                   "execute as @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
+                                   "execute if block ~ ~ ~ diorite if block ~ ~ ~ granite run function abc:def"),
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
+                                   "execute if block ~ ~ ~ diorite as @s[name=Carl] if block ~ ~ ~ granite run function abc:def"),
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
+                                   "execute if block ~ ~ ~ diorite positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
+                                   "execute if block ~ ~ ~ diorite as @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+
+                 # @e
+                 # not canAs and not canAt
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
+                                   "execute at @e if block ~ ~ ~ granite run seed"),
+                 (converter.decide("execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
+                                   "execute at @e[name=Carl] if block ~ ~ ~ granite run seed"),
+                 (converter.decide("execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
+                                   "execute at @e positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
+                                   "execute at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
+                                   "execute at @e if block ~ ~ ~ diorite at @e if block ~ ~ ~ granite run seed"),
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
+                                   "execute at @e if block ~ ~ ~ diorite at @e[name=Carl] if block ~ ~ ~ granite run seed"),
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
+                                   "execute at @e if block ~ ~ ~ diorite at @e positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
+                                   "execute at @e if block ~ ~ ~ diorite at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+
+                 # canAs and not canAt
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
+                                   "execute as @e at @s if block ~ ~ ~ granite run say hi"),
+                 (converter.decide("execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
+                                   "execute as @e[name=Carl] at @s if block ~ ~ ~ granite run say hi"),
+                 (converter.decide("execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
+                                   "execute as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
+                                   "execute as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
+                                   "execute as @e at @s if block ~ ~ ~ diorite as @e at @s if block ~ ~ ~ granite run say hi"),
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
+                                   "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s if block ~ ~ ~ granite run say hi"),
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
+                                   "execute as @e at @s if block ~ ~ ~ diorite as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
+                                   "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+
+                 # not canAs and canAt
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e[name=Carl] if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e if block ~ ~ ~ diorite at @e if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e if block ~ ~ ~ diorite at @e[name=Carl] if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e if block ~ ~ ~ diorite at @e positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
+                                   "execute at @e if block ~ ~ ~ diorite at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+
+                 # canAs and canAt
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
+                                   "execute as @e at @s if block ~ ~ ~ granite run function abc:def"),
+                 (converter.decide("execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
+                                   "execute as @e[name=Carl] at @s if block ~ ~ ~ granite run function abc:def"),
+                 (converter.decide("execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
+                                   "execute as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
+                                   "execute as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
+                                   "execute as @e at @s if block ~ ~ ~ diorite as @e at @s if block ~ ~ ~ granite run function abc:def"),
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
+                                   "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s if block ~ ~ ~ granite run function abc:def"),
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
+                                   "execute as @e at @s if block ~ ~ ~ diorite as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
+                                   "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"))
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
@@ -641,24 +1223,26 @@ class Fill(TestBase):
                  "fill 1 ~-1 ~1 1 ~-1 ~1",
                  "fill 1 ~-1 ~1 1 ~-1 aa stone 1 hollow {abc:def}",
                  "fill 1 ~-1 ~1 1 ~-1 ~1 stone a hollow {abc:def}",
+                 "fill 1 ~-1 ~1 1 ~-1 ~1 stone -2 hollow {abc:def}",
+                 "fill 1 ~-1 ~1 1 ~-1 ~1 stone 16 hollow {abc:def}",
                  "fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 aaaaaa {abc:def}",
                  "fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 hollow aaaaaaaaa",
-                 "fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 hollow {abc:def} lolo")
+                 "fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 hollow {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
         tests = ((converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone"), "fill 1 ~-1 ~1 1 ~-1 ~1 stone"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1"), "fill 1 ~-1 ~1 1 ~-1 ~1 stone[variant=granite]"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 destroy"), "fill 1 ~-1 ~1 1 ~-1 ~1 stone[variant=granite] destroy"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 destroy {abc:def}"), "fill 1 ~-1 ~1 1 ~-1 ~1 stone[variant=granite]{abc:def} destroy"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 hollow"), "fill 1 ~-1 ~1 1 ~-1 ~1 stone[variant=granite] hollow"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 hollow {abc:def}"), "fill 1 ~-1 ~1 1 ~-1 ~1 stone[variant=granite]{abc:def} hollow"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 keep"), "fill 1 ~-1 ~1 1 ~-1 ~1 stone[variant=granite] keep"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 keep {abc:def}"), "fill 1 ~-1 ~1 1 ~-1 ~1 stone[variant=granite]{abc:def} keep"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 outline"), "fill 1 ~-1 ~1 1 ~-1 ~1 stone[variant=granite] outline"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 outline {abc:def}"), "fill 1 ~-1 ~1 1 ~-1 ~1 stone[variant=granite]{abc:def} outline"))
+                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite"),
+                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 destroy"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite destroy"),
+                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 destroy {abc:def}"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite{abc:def} destroy"),
+                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 hollow"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite hollow"),
+                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 hollow {abc:def}"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite{abc:def} hollow"),
+                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 keep"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite keep"),
+                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 keep {abc:def}"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite{abc:def} keep"),
+                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 outline"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite outline"),
+                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 outline {abc:def}"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite{abc:def} outline"))
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
@@ -683,15 +1267,24 @@ class Fill(TestBase):
                  "fill 1 ~-1 ~1 1 aaa ~1 stone 1 replace stone 2",
                  "fill 1 ~-1 ~1 1 ~-1 ~1",
                  "fill 1 ~-1 ~1 1 ~-1 aa stone 1 replace stone 2",
-                 "fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone 2 lolo")
+                 "fill 1 ~-1 ~1 1 ~-1 aa aaaaa 1 replace stone 2",
+                 "fill 1 ~-1 ~1 1 ~-1 aa stone a replace stone 2",
+                 "fill 1 ~-1 ~1 1 ~-1 aa stone -1 replace stone 2",
+                 "fill 1 ~-1 ~1 1 ~-1 aa stone 16 replace stone 2",
+                 "fill 1 ~-1 ~1 1 ~-1 aa stone 1 aaaaaaa stone 2",
+                 "fill 1 ~-1 ~1 1 ~-1 aa stone 1 replace aaaaa 2",
+                 "fill 1 ~-1 ~1 1 ~-1 aa stone 1 replace stone a",
+                 "fill 1 ~-1 ~1 1 ~-1 aa stone 1 replace stone -2",
+                 "fill 1 ~-1 ~1 1 ~-1 aa stone 1 replace stone 16",
+                 "fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone 2 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace"), "fill 1 ~-1 ~1 1 ~-1 ~1 stone[variant=granite] replace"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone"), "fill 1 ~-1 ~1 1 ~-1 ~1 stone[variant=granite] replace stone"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone 2"), "fill 1 ~-1 ~1 1 ~-1 ~1 stone[variant=granite] replace stone[variant=smooth_granite]"))
+        tests = ((converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace"),
+                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace stone"),
+                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone 2"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace polished_granite"))
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
@@ -707,9 +1300,9 @@ class Function(TestBase):
     def test_syntax1_nok(self):
         perms = ("function",
                  "function aaaaaaaaaaaaaaaaaaa",
-                 "function custom:example/test lolo")
+                 "function custom:example/test ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -730,9 +1323,9 @@ class Function(TestBase):
                  "function custom:example/test if",
                  "function custom:example/test aa @s",
                  "function custom:example/test if @c",
-                 "function custom:example/test if @s lolo")
+                 "function custom:example/test if @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -745,7 +1338,7 @@ class Function(TestBase):
 
 class GameMode(TestBase):
     def test_syntax1_ok(self):
-        perms = generate_perms(["gamemode", ["0", "1", "2", "3", "s", "c", "a", "sp", "survival", "creative", "adventure", "spectator"], ["@s", ""]])
+        perms = generate_perms(["gamemode", ["0", "1", "2", "3", "s", "c", "a", "sp", "survival", "creative", "adventure", "spectator"], "@s"], optional=1)
         for perm in perms:
             self.decide(perm)
         self.assertStats()
@@ -754,9 +1347,9 @@ class GameMode(TestBase):
         perms = ("gamemode",
                  "gamemode o @s",
                  "gamemode 1 @c",
-                 "gamemode 1 @s lolo")
+                 "gamemode 1 @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -791,21 +1384,21 @@ class GameMode(TestBase):
 
 class GameRule(TestBase):
     def test_syntax1_ok(self):
-        perms = generate_perms(["gamerule", "gameLoopFunction", ["kappa", ""]])
+        perms = generate_perms(["gamerule", "gameLoopFunction", "true"], optional=1)
         for perm in perms:
             self.decide(perm)
         self.assertStats()
 
     def test_syntax1_nok(self):
         perms = ("gamerule",
-                 "gamerule gameLoopFunction kappa lolo")
+                 "gamerule gameLoopFunction kappa ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
         tests = ((converter.decide("gamerule gameLoopFunction"), "gamerule gameLoopFunction"),
-                 (converter.decide("gamerule gameLoopFunction kappa"), "gamerule gameLoopFunction kappa"),
+                 (converter.decide("gamerule gameLoopFunction true"), "gamerule gameLoopFunction true"),
                  (converter.decide("gamerule custom"), "#~ gamerule custom ||| Custom gamerules are no longer supported"),
                  (converter.decide("gamerule custom val"), "#~ gamerule custom val ||| Custom gamerules are no longer supported"))
         for before, after in tests:
@@ -825,18 +1418,20 @@ class Give(TestBase):
                  "give @s",
                  "give @c stone 11 1 {abc:def}",
                  "give @s stone aa 1 {abc:def}",
+                 "give @s stone 0 1 {abc:def}",
+                 "give @s stone 65 1 {abc:def}",
                  "give @s stone 11 a {abc:def}",
                  "give @s stone 11 1 aaaaaaaaa",
-                 "give @s stone 11 1 {abc:def} lolo")
+                 "give @s stone 11 1 {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
         tests = ((converter.decide("give @s stone"), "give @s stone"),
                  (converter.decide("give @s stone 11"), "give @s stone 11"),
-                 (converter.decide("give @s stone 11 1"), "give @s stone{Damage:1} 11"),
-                 (converter.decide("give @s stone 11 1 {abc:def}"), "give @s stone{abc:def,Damage:1} 11"))
+                 (converter.decide("give @s stone 11 1"), "give @s granite 11"),
+                 (converter.decide("give @s stone 11 1 {abc:def}"), "give @s granite{abc:def} 11"))
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
@@ -850,9 +1445,9 @@ class Help(TestBase):
         self.assertStats()
 
     def test_syntax1_nok(self):
-        perms = ("gamerule", )
+        perms = ("aaaa", )
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -862,20 +1457,20 @@ class Help(TestBase):
         self.assertStats()
 
     def test_syntax2_ok(self):
-        perms = generate_perms(["help", converter.Globals.commands+map(str, range(1, 9))])
+        perms = generate_perms(["help", converter.Globals.commands+map(str, xrange(1, 9))])
         for perm in perms:
             self.decide(perm)
         self.assertStats()
 
     def test_syntax2_nok(self):
         perms = ("help aaaa",
-                 "help kill lolo")
+                 "help kill ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = [(converter.decide("help {}".format(arg)), "help {}".format(arg)) for arg in converter.Globals.commands+map(str, range(1, 9))]
+        tests = [(converter.decide("help {}".format(arg)), "help {}".format(arg)) for arg in converter.Globals.commands+map(str, xrange(1, 9))]
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
@@ -883,15 +1478,15 @@ class Help(TestBase):
 
 class Kick(TestBase):
     def test_syntax1_ok(self):
-        perms = generate_perms(["kick", "p_name", ["Because", "Because I said so", ""]])
+        perms = generate_perms(["kick", "p_name", ["Because", "Because I said so"]], optional=1)
         for perm in perms:
             self.decide(perm)
         self.assertStats()
 
     def test_syntax1_nok(self):
-        perms = ("ban",)
+        perms = ("ban", )
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -905,15 +1500,15 @@ class Kick(TestBase):
 
 class Kill(TestBase):
     def test_syntax1_ok(self):
-        perms = generate_perms(["kill", ["p_name", ""]])
+        perms = generate_perms(["kill", "p_name"], optional=1)
         for perm in perms:
             self.decide(perm)
         self.assertStats()
 
     def test_syntax1_nok(self):
-        perms = ("kill @s lolo",)
+        perms = ("kill @s ImNotSupposedToBeHere",)
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -926,16 +1521,16 @@ class Kill(TestBase):
 
 class List(TestBase):
     def test_syntax1_ok(self):
-        perms = generate_perms(["list", ["uuids", ""]])
+        perms = generate_perms(["list", "uuids"], optional=1)
         for perm in perms:
             self.decide(perm)
         self.assertStats()
 
     def test_syntax1_nok(self):
         perms = ("list aaaaa",
-                 "list uuids lolo")
+                 "list uuids ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -957,9 +1552,9 @@ class Locate(TestBase):
     def test_syntax1_nok(self):
         perms = ("locate",
                  "locate aaaaaa",
-                 "locate Temple lolo")
+                 "locate Temple ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -976,7 +1571,7 @@ class Locate(TestBase):
         self.assertStats()
 
 
-class me(TestBase):
+class Me(TestBase):
     def test_syntax1_ok(self):
         perms = generate_perms(["me", ["action", "more actions"]])
         for perm in perms:
@@ -986,7 +1581,7 @@ class me(TestBase):
     def test_syntax1_nok(self):
         perms = ("me", )
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -997,7 +1592,7 @@ class me(TestBase):
         self.assertStats()
 
 
-class op(TestBase):
+class Op(TestBase):
     def test_syntax1_ok(self):
         perms = generate_perms(["op", "@s"])
         for perm in perms:
@@ -1006,9 +1601,9 @@ class op(TestBase):
 
     def test_syntax1_nok(self):
         perms = ("op",
-                 "op @s lolo")
+                 "op @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1027,9 +1622,9 @@ class Pardon(TestBase):
 
     def test_syntax1_nok(self):
         perms = ("pardon",
-                 "pardon @s lolo")
+                 "pardon @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1048,9 +1643,9 @@ class Pardon_IP(TestBase):
 
     def test_syntax1_nok(self):
         perms = ("pardon-ip",
-                 "pardon-ip 127.0.0.1 lolo")
+                 "pardon-ip 127.0.0.1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1064,7 +1659,6 @@ class Particle(TestBase):
     def test_syntax1_ok(self):
         perms = generate_perms(["particle", list(converter.Globals.particles), "1", "~-1", "~1", "1", "2", "3", "1", "10", "force", "@s", ["params", "pa rams"]], optional=4)
         for perm in perms:
-            print perm
             self.decide(perm)
         self.assertStats()
 
@@ -1073,7 +1667,7 @@ class Particle(TestBase):
         perms = ("",
                  "")
         for perm in perms:
-            self.assertRaises(SyntaxError, lambda: self.decide(perm))
+            self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
