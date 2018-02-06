@@ -242,8 +242,8 @@ def item(data, nameLabel, damageLabel=None, nbtLabel=None):
     s = noNamespace(data[nameLabel])
     if nbtLabel in data:
         if damageLabel in data and data[damageLabel] != '0':
-            data[nbtLabel].data["Damage"] = data[damageLabel]
-        return u"{}{}".format(s, data[nbtLabel] if data[nbtLabel].data != NBTCompound().data else "")
+            data[nbtLabel]["Damage"] = data[damageLabel]
+        return u"{}{}".format(s, data[nbtLabel] if data[nbtLabel] != {} else "")
     else:
         if damageLabel in data and data[damageLabel] != '0':
             return u"{}{{Damage:{}}}".format(s, data[damageLabel])
@@ -325,9 +325,10 @@ def constraints(data, rules):
         if label in data:
             if high == "*":
                 high = 2147483647
+            valueType = type(low)
             try:
-                if not (low <= int(data[label]) <= high):
-                    raise SyntaxError(u"\'{}\' has to be in range {}-{}".format(data[label], low, high))
+                if not (low <= valueType(data[label]) <= high):
+                    raise SyntaxError(u"\'{}\' has to be in range {}..{}".format(data[label], low, high))
             except ValueError:
                 raise SyntaxError(u"\'{}\' has to be integer".format(data[label]))
 
@@ -463,19 +464,20 @@ def decide(raw):
         raise SyntaxError("An empty string was provided")
 
     command = tokens[0].lower()
-    tokens[0] = tokens[0].lower().replace("-", "_").replace("?", "help").replace("msg", "w")
+    tokens[0] = tokens[0].lower().replace("?", "help").replace("msg", "w")
     if tokens[0] == "tell":
         tokens[0] = 'w'
 
     if tokens[0][0] == '/':
         tokens[0] = tokens[0][1:]
 
+    if tokens[0] not in commandsMap:
+        raise SyntaxError(u"{} is not a Minecraft command".format(command))
+
     try:
         if len(tokens) == 1:
-            return eval("{}()".format(tokens[0]))
-        return eval(u"{}(tokens[1:])".format(tokens[0]))
-    except NameError:
-        raise SyntaxError(u"{} is not a Minecraft command".format(command))
+            return commandsMap[tokens[0]]()
+        return commandsMap[tokens[0]](tokens[1:])
     except TypeError:
         if len(tokens) == 1:
             raise SyntaxError(u"{} needs arguments".format(command))
@@ -758,7 +760,9 @@ class clear(Master):
             self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
             self.canAt, self.canAs = self.data["<@player"].canAt, True
 
-        constraints(self.data, {"[0data": (-1, 15), "[0maxCount": (0, "*")})
+        if "[.item" in self.data:
+            item(self.data, "[.item", "[0data", "[{dataTag")
+        constraints(self.data, {"[0maxCount": (0, "*")})
 
     def __unicode__(self):
         if "<@player" not in self.data:
@@ -779,10 +783,13 @@ class clone(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt = canAt(self.data, "<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2", "<~x", "<~y", "<~z")
 
+        if "<(filtered" in self.data:
+            block(self.data, "<.tileName", "[.dataValue")  # todo -1, *
+
     def __unicode__(self):
         s = u"clone {} {} {} {} {} {} {} {} {}".format(self.data["<~x1"], self.data["<~y1"], self.data["<~z1"], self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], self.data["<~x"], self.data["<~y"], self.data["<~z"])
         if "<(filtered" in self.data:
-            s += u" filtered {} {}".format(block(self.data, "<.tileName", "[.dataValue"), self.data["<(force|move|normal"])
+            s += u" filtered {} {}".format(block(self.data, "<.tileName", "[.dataValue"), self.data["<(force|move|normal"])  # todo -1, *
         else:
             for key in self.syntax[9:]:
                 s += u" {}".format(self.data[key])
@@ -905,7 +912,8 @@ class execute(Master):
         self.canAt, self.canAs = self.data["<*command"].canAt or self.data["<@entity"].canAt, self.data["<*command"].canAs
         if "<(detect" in self.data:
             self.canAt = True
-            constraints(self.data, {"<.dataValue": (-1, 15)})
+
+            block(self.data, "<.block", "<.dataValue")  # todo -1, *
 
     def __unicode__(self):
         command = unicode(self.data["<*command"])
@@ -918,9 +926,9 @@ class execute(Master):
         if "<(detect" in self.data:
             if self.data["<.dataValue"] in ("-1", "*"):
                 coords = u" {} {} {} ".format(self.data["<~x2"], self.data["<~y2"], self.data["<~z2"])
-                detect += u" if block{}{}".format(coords, u" execute if block{}".format(coords).join(block(self.data, "<.block")))
+                detect += u" if block{}{}".format(coords, u" execute if block{}".format(coords).join(block(self.data, "<.block")))  # todo -1, *
             else:
-                detect += u" if block {} {} {} {}".format(self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], block(self.data, "<.block", "<.dataValue"))
+                detect += u" if block {} {} {} {}".format(self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], block(self.data, "<.block", "<.dataValue"))  # todo -1, *
 
         if not self.data["<@entity"].playerName and self.data["<@entity"].target == "s":
             selectorArgs = len(self.data["<@entity"].data)
@@ -982,14 +990,19 @@ class fill(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt = canAt(self.data, "<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2")
 
-        constraints(self.data, {"<.dataValue": (0, 15), "[.dataValue": (0, 15), "[.replaceDataValue": (-1, 15)})
+        if "<(replace" in self.data:
+            block(self.data, "<.block", "<.dataValue")
+            if "[.replaceTileName" in self.data:
+                block(self.data, "[.replaceTileName", "[.replaceDataValue")  # todo -1, *
+        else:
+            block(self.data, "<.block", "[.dataValue", "[{dataTag")
 
     def __unicode__(self):
         s = u"fill {} {} {} {} {} {}".format(self.data["<~x1"], self.data["<~y1"], self.data["<~z1"], self.data["<~x2"], self.data["<~y2"], self.data["<~z2"])
         if "<(replace" in self.data:
             s += u" {} replace".format(block(self.data, "<.block", "<.dataValue"))
             if "[.replaceTileName" in self.data:
-                s += u" {}".format(block(self.data, "[.replaceTileName", "[.replaceDataValue"))
+                s += u" {}".format(block(self.data, "[.replaceTileName", "[.replaceDataValue"))  # todo -1, *
         else:
             s += u" {}".format(block(self.data, "<.block", "[.dataValue", "[{dataTag"))
             if "[(destroy|hollow|keep|outline" in self.data:
@@ -1153,10 +1166,12 @@ class particle(Master):  # todo blockcrack
 class playsound(Master):
     def __init__(self, tokens):
         Master.__init__(self)
-        syntaxes = (("<.sound", "<(master|music|record|weather|block|hostile|neutral|player|ambient|voice", "<@player"),
-                    ("<.sound", "<(master|music|record|weather|block|hostile|neutral|player|ambient|voice", "<@player", "<~x", "<~y", "<~z", "[0volume", "[0pitch", "[0minimumVolume"))
+        syntaxes = (("<.sound", "<(master|music|record|weather|block|hostile|neutral|player|ambient|voice", "<@player", "<~x", "<~y", "<~z", "[0volume", "[0pitch", "[0minimumVolume"),
+                    ("<.sound", "<(master|music|record|weather|block|hostile|neutral|player|ambient|voice", "<@player"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = ("<~x" in self.data and canAt(self.data, "<~x", "<~y", "<~z")) or self.data["<@player"].canAt, True
+
+        constraints(self.data, {"[0volume": (0., '*'), "[0pitch": (0., 2.), "[0minimumVolume": (0., 1.)})
 
 
 class publish(Master):
@@ -1185,16 +1200,15 @@ class replaceitem(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = (canAt(self.data, "<~x", "<~y", "<~z"), False) if self.syntax == "<(block" else (self.data["<@selector"].canAt, True)
 
+        item(self.data, "<.item", "[0data", "[{dataTag")
+
     def __unicode__(self):
         s = u"replaceitem"
-        for word in self.syntax:
-            if word == "<.item":
-                break
-            s += u" {}".format(self.data[word])
-        s += u" {}".format(item(self.data, "<.item", "[0data", "[{dataTag"))
 
-        if "[0amount" in self.data:
-            s += u" {}".format(self.data["[0amount"])
+        for word in self.syntax[:self.syntax.index("<.item")]:
+            s += u" {}".format(self.data[word])
+
+        s += u" {}{}".format(item(self.data, "<.item", "[0data", "[{dataTag"), self.data["[0amount"] if "[0amount" in self.data else "")
 
         return s
 
@@ -1223,6 +1237,15 @@ class say(Master):
         syntaxes = (("<*message", ), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAs = True
+
+        for i in xrange(len(tokens)):
+            try:
+                if tokens[i][0] == "@":
+                    tokens[i] = Selector(tokens[i])
+                    self.canAt = self.canAt or tokens[i].canAt
+            except SyntaxError:
+                pass
+        self.data["<*message"] = u" ".join(map(unicode, tokens))
 
 
 class scoreboard(Master):
@@ -1328,6 +1351,8 @@ class setblock(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt = canAt(self.data, "<~x", "<~y", "<~z")
 
+        block(self.data, "<.block", "[.dataValue", "[{dataTag")
+
     def __unicode__(self):
         s = u"setblock {} {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"], block(self.data, "<.block", "[.dataValue", "[{dataTag"))
         if "[(destroy|keep|replace" in self.data and self.data["[(destroy|keep|replace"] != "replace":
@@ -1340,6 +1365,8 @@ class setidletimeout(Master):
         Master.__init__(self)
         syntaxes = (("<0minutes", ), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
+
+        constraints(self.data, {"<0minutes": (0, "*")})
 
 
 class setworldspawn(Master):
@@ -1368,15 +1395,19 @@ class spreadplayers(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = True, True
 
+        constraints(self.data, {"<0spreadDistance": (0., "*"), "<0maxRange": (float(self.data["<0spreadDistance"])+1., "*")})
+
+        self.data["<*player"] = Selectors(self.data["<*player"])
+
 
 class stats(Master):
     def __init__(self, tokens):
         Master.__init__(self)
-        self.stat = "<({}".format("|".join(Globals.statTags))
-        syntaxes = (("<(block", "<~x", "<~y", "<~z", "<(clear", self.stat),
-                    ("<(block", "<~x", "<~y", "<~z", "<(set", self.stat, "<@selector", "<.objective"),
-                    ("<(entity", "<@selector2", "<(clear", self.stat),
-                    ("<(entity", "<@selector2", "<(set", self.stat, "<@selector", "<.objective"))
+        self.statLabel = "<({}".format("|".join(Globals.statTags))
+        syntaxes = (("<(block", "<~x", "<~y", "<~z", "<(clear", self.statLabel),
+                    ("<(block", "<~x", "<~y", "<~z", "<(set", self.statLabel, "<@selector", "<.objective"),
+                    ("<(entity", "<@selector2", "<(clear", self.statLabel),
+                    ("<(entity", "<@selector2", "<(set", self.statLabel, "<@selector", "<.objective"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = True, True
 
@@ -1384,7 +1415,7 @@ class stats(Master):
         Globals.commentedOut = True
         if "<(clear" in self.data:
             return u"#~ {} ||| Clearing a stat is no longer needed".format(Master.__unicode__(self))
-        return u"#~ {} ||| Use \'execute store {} score {} {} COMMAND\' on the commands that you want the stats from".format(Master.__unicode__(self), "success" if self.data[self.stat] == "SuccessCount" else "result", self.data["<@selector"], self.data["<.objective"])
+        return u"#~ {} ||| Use \'execute store {} score {} {} run COMMAND\' on the commands that you want the stats from".format(Master.__unicode__(self), "success" if self.data[self.statLabel] == "SuccessCount" else "result", self.data["<@selector"], self.data["<.objective"])
 
 
 class stop(Master):
@@ -1415,15 +1446,38 @@ class teleport(Master):
     def __init__(self, tokens):
         Master.__init__(self)
         syntaxes = (("<@target", "<~x", "<~y", "<~z"),
-                    ("<@target", "<~x", "<~y", "<~z", "<~y-rot", "<~x-rot"))
+                    ("<@target", "<~x", "<~y", "<~z", "<~yaw", "<~pitch"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.canAt, self.canAs = canAt(self.data, "<~x", "<~y", "<~z", "<~y-rot", "<~x-rot"), True
+        self.canAt, self.canAs = canAt(self.data, "<~x", "<~y", "<~z", "<~yaw", "<~pitch"), True
 
         if self.data["<@target"] == Selector("@s"):
             self.syntax = self.syntax[1:]
 
     def __unicode__(self):
         return Master.__unicode__(self).replace("teleport", "tp", 1)
+
+
+class tp(Master):
+    def __init__(self, tokens):
+        Master.__init__(self)
+        syntaxes = (("<~x", "<~y", "<~z"),
+                    ("<~x", "<~y", "<~z", "<~yaw", "<~pitch"),
+                    ("<@target", "[@destination"),
+                    ("<@target", "<~x", "<~y", "<~z"),
+                    ("<@target", "<~x", "<~y", "<~z", "<~yaw", "<~pitch"))
+        self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
+        self.canAt, self.canAs = False if len(self.syntax) < 3 else canAt(self.data, "<~x", "<~y", "<~z", "<~yaw", "<~pitch"), True
+
+    def __unicode__(self):  # todo tp @p @e
+        if "<@target" not in self.data or (not self.data["<@target"].playerName and self.data["<@target"].target == 's') or "[@destination" in self.data:
+            return Master.__unicode__(self)
+
+        s = u"execute as {}{} teleport {} {} {}".format(self.data["<@target"], u" at @s" if self.canAt else u"", self.data["<~x"], self.data["<~y"], self.data["<~z"])
+
+        if "<~yaw" in self.data:
+            s += u" {} {}".format(self.data["<~yaw"], self.data["<~pitch"])
+
+        return s
 
 
 class tellraw(Master):
@@ -1462,9 +1516,9 @@ class testforblock(Master):
     def __unicode__(self):
         if "[.dataValue" in self.data and self.data["[.dataValue"] in ("-1", "*"):
             coords = u" {} {} {} ".format(self.data["<~x"], self.data["<~y"], self.data["<~z"])
-            return u"execute if block{}{}".format(coords, u" execute if block{}".format(coords).join(allBlocks(self.data, "<.block", "[{dataTag", setMode=False)))
+            return u"execute if block{}{}".format(coords, u" execute if block{}".format(coords).join(block(self.data, "<.block", "[{dataTag")))  # todo -1, *
 
-        return u"execute if block {} {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"], block(self.data, "<.block", "[.dataValue", "[{dataTag", setMode=False))
+        return u"execute if block {} {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"], block(self.data, "<.block", "[.dataValue", "[{dataTag"))  # todo -1, *
 
 
 class testforblocks(Master):
@@ -1503,29 +1557,6 @@ class toggledownfall(Master):
     def __unicode__(self):
         Globals.commentedOut = True
         return u"#~ toggledownfall ||| This command was removed"
-
-
-class tp(Master):
-    def __init__(self, tokens):
-        Master.__init__(self)
-        syntaxes = (("<~x", "<~y", "<~z"),
-                    ("<~x", "<~y", "<~z", "<~yaw", "<~pitch"),
-                    ("<@target", "[@destination"),
-                    ("<@target", "<~x", "<~y", "<~z"),
-                    ("<@target", "<~x", "<~y", "<~z", "<~yaw", "<~pitch"))
-        self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.canAt, self.canAs = False if len(self.syntax) < 3 else canAt(self.data, "<~x", "<~y", "<~z", "<~yaw", "<~pitch"), True
-
-    def __unicode__(self):  # todo tp @p @e
-        if "<@target" not in self.data or (not self.data["<@target"].playerName and self.data["<@target"].target == 's') or "[@destination" in self.data:
-            return Master.__unicode__(self)
-
-        s = u"execute as {}{} teleport {} {} {}".format(self.data["<@target"], u" at @s" if self.canAt else u"", self.data["<~x"], self.data["<~y"], self.data["<~z"])
-
-        if "<~yaw" in self.data:
-            s += u" {} {}".format(self.data["<~yaw"], self.data["<~pitch"])
-
-        return s
 
 
 class trigger(Master):
@@ -1596,6 +1627,9 @@ class xp(Master):
         return u"experience add {} {}".format(self.data["[@player"], self.data["<%amount"])
 
 
+commandsMap = {command: eval(command.replace("-", "_")) for command in Globals.commands if command not in ("?", "msg", "tell")}
+
+
 if __name__ == "__main__":
     start = getTime()
     failedFiles = []
@@ -1636,7 +1670,7 @@ if __name__ == "__main__":
                 else:
                     tmpFiles.append(u"{}.TheAl_T".format(fileName))
         else:
-            choice = raw_input("No filenames on the command line, entering menu:\n1 - Convert all files in this folder\n2 - Convert all files in this folder recursively\n3 - Do Data Pack stuff\n4 - Remove .TheAl_T files\nelse - Convert one command here\n\n")
+            choice = raw_input("No filenames on the command line, entering menu:\n1 - Convert all files in this folder\n2 - Convert all files in this folder recursively\n3 - Do Data Pack stuff\n4 - Remove .TheAl_T files\nelse - Convert one command here\n\n> ")
             if choice.strip() in ('1', '2', '3', '4'):
                 print('')
                 if choice.strip() == '1':

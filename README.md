@@ -2,7 +2,7 @@
 
 Made by **TheAl_T**: [planetminecraft.com/member/theal_t](https://www.planetminecraft.com/member/theal_t)
 
-HUGE thanks to **Onnowhere** for block state database and conversion and for testing and feedback: [youtube.com/onnowhere2](https://www.youtube.com/onnowhere2)
+HUGE thanks to **Onnowhere** for block state database and conversion, for testing and feedback: [youtube.com/onnowhere2](https://www.youtube.com/onnowhere2)
 
 [Reddit](https://www.reddit.com/r/MinecraftCommands/comments/6prh1h/112_113_convert_script/)
 
@@ -14,7 +14,7 @@ Main file:
 - When running the file, pass names of files you wish to convert as arguments or pass none for menu
 
 MCEdit filter:
-- Copy **both** files into your filters directory
+- Copy `1_12to1_13.py`, `1_12to1_13aMCEditPlugin.py` and `data.py` into your filters directory
 
 # Syntax explanation:
 
