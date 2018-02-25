@@ -30,7 +30,7 @@ statTags = ("AffectedBlocks", "AffectedEntities", "AffectedItems", "QueryResult"
 
 def perform(level, box, options):
     if not converter:
-        raise ImportError("Unable to import main library (1_12to1_13byTheAl_T.py). Please make sure this file is in the same directory as this filter")
+        raise ImportError("Unable to import main library (1_12to1_13.py). Please make sure this file is in the same directory as this filter")
 
     def validate(what, label):
         if "CommandStats" in e:
@@ -42,12 +42,12 @@ def perform(level, box, options):
             what = s + what
 
         if len(what) > 32500:
-            print "The command at [{}, {}, {}] is too long ({}) after conversion\n(more than 32 500 characters)\n".format(x, y, z, len(what))
+            print("The command at [{}, {}, {}] is too long ({}) after conversion\n(more than 32 500 characters)\n".format(x, y, z, len(what)))
             if options["Errors"]:
                 raise AssertionError("The command at [{}, {}, {}] is too long ({}) after conversion\n(more than 32 500 characters)".format(x, y, z, len(what)))
 
-        if converter.Globals.commentedOut:
-            print "A command at [{}, {}, {}] was commented out because it has to be converted manually\n".format(x, y, z)
+        if converter.Globals.flags["commentedOut"]:
+            print("A command at [{}, {}, {}] was commented out because it has to be converted manually\n".format(x, y, z))
             if options["Warnings"]:
                 raise AssertionError("A command at [{}, {}, {}] has to be converted manually".format(x, y, z))
 
@@ -58,10 +58,10 @@ def perform(level, box, options):
         command = e["Command"].value.strip()
         if command:
             try:
-                converter.Globals.commentedOut = False
+                converter.Globals.flags["commentedOut"] = False
                 command = unicode(converter.decide(command))
             except SyntaxError as ex:
-                print u"Error in block at [{}, {}, {}]:\n{}".format(x, y, z, ex)
+                print(u"Error in block at [{}, {}, {}]:\n{}".format(x, y, z, ex))
                 if options["Errors"]:
                     if entity:
                         raise SyntaxError(u"Error in minecart at [{}, {}, {}]:\n{}".format(x, y, z, ex.message))
@@ -84,14 +84,14 @@ def perform(level, box, options):
                 if e["id"].value == "minecraft:sign":
                     for label in ("Text1", "Text2", "Text3", "Text4"):
                         try:
-                            converter.Globals.commentedOut = False
+                            converter.Globals.flags["commentedOut"] = False
                             s = json.JSONDecoder().decode(e[label].value.strip())
                             converter.walk(s)
                             s = json.JSONEncoder(separators=(',', ':')).encode(s)
                         except ValueError:
                             continue
                         except SyntaxError as ex:
-                            print u"Error in sign at [{}, {}, {}]:\n{}".format(x, y, z, ex)
+                            print(u"Error in sign at [{}, {}, {}]:\n{}".format(x, y, z, ex))
                             if options["Errors"]:
                                 raise SyntaxError(u"Error in sign at [{}, {}, {}]:\n{}".format(x, y, z, ex.message))
                             continue

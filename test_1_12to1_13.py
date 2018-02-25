@@ -10,7 +10,7 @@ if type(u"") is str:
     raw_input = input
     map = lambda x, y: list(_map(x, y))
     filter = lambda x, y: list(_filter(x, y))
-    unicode = lambda x: x.__unicode__()
+    unicode = lambda x: x.__unicode__() if hasattr(x, '__unicode__') else str(x)
 
 
 def generate_perms(syntax, optional=0):
@@ -105,9 +105,10 @@ class Selector(TestBase):
 
         argPairs = (("x", "1"), ("y", "1"), ("z", "1"), ("dx", "1"), ("dy", "1"), ("dz", "1"), ("type", "Cow"),
                     ("type", "!Cow"), ("type", "player"), ("type", "!player"), ("lm", "1"), ("l", "1"), ("m", "1"),
-                    ("team", "blue"), ("team", ""), ("team", "!"), ("team", "!blue"), ("score_won", "1"),
-                    ("score_won_min", "1"), ("name", "TheAl_T"), ("tag", "inGame"), ("tag", "!inGame"), ("tag", ""),
-                    ("tag", "!"), ("rm", "1"), ("r", "1"), ("rxm", "1"), ("rx", "1"), ("rym", "1"), ("ry", "1"), ("c", "1"))
+                    ("m", "!0"), ("m", "a"), ("m", "sp"), ("m", "creative"), ("team", "blue"), ("team", ""),
+                    ("team", "!"), ("team", "!blue"), ("score_won", "1"), ("score_won_min", "1"), ("name", "TheAl_T"),
+                    ("tag", "inGame"), ("tag", "!inGame"), ("tag", ""), ("tag", "!"), ("rm", "1"), ("r", "1"),
+                    ("rxm", "1"), ("rx", "1"), ("rym", "1"), ("ry", "1"), ("c", "-1"), ("c", "0"), ("c", "1"))
 
         for sType in ("p", "e", "a", "r", "s"):
             for n in (1, 2, 3):
@@ -402,7 +403,7 @@ class Clone(TestBase):
             self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
-    def test_syntax2_convert(self):  # todo What to do with blocks like wool
+    def test_syntax2_convert(self):
         tests = ((converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone 1"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite force"),
                  (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone force"),
                  (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone 1"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite move"),
@@ -556,8 +557,9 @@ class Effect(TestBase):
         perms = ("effect",
                  "effect @s",
                  "effect @c speed 10 10 true",
-                 "effect @c speed -1 10 true",
-                 "effect @c speed 1000001 10 true",
+                 "effect @s aaaaa 10 10 true",
+                 "effect @s speed -1 10 true",
+                 "effect @s speed 1000001 10 true",
                  "effect @s speed aa 10 true",
                  "effect @s speed aa -1 true",
                  "effect @s speed aa 1000001 true",
@@ -601,8 +603,201 @@ class Enchant(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("enchant @s sharpness 1"), "enchant @s sharpness 1"),
-                 (converter.decide("enchant @s sharpness"), "enchant @s sharpness"))
+        tests = ((converter.decide("enchant @s 0"), "enchant @s protection"),
+                 (converter.decide("enchant @s 0 1"), "enchant @s protection"),
+                 (converter.decide("enchant @s 0 2"), "enchant @s protection 2"),
+                 (converter.decide("enchant @s protection"), "enchant @s protection"),
+                 (converter.decide("enchant @s protection 1"), "enchant @s protection"),
+                 (converter.decide("enchant @s protection 2"), "enchant @s protection 2"),
+                
+                 (converter.decide("enchant @s 1"), "enchant @s fire_protection"),
+                 (converter.decide("enchant @s 1 1"), "enchant @s fire_protection"),
+                 (converter.decide("enchant @s 1 2"), "enchant @s fire_protection 2"),
+                 (converter.decide("enchant @s fire_protection"), "enchant @s fire_protection"),
+                 (converter.decide("enchant @s fire_protection 1"), "enchant @s fire_protection"),
+                 (converter.decide("enchant @s fire_protection 2"), "enchant @s fire_protection 2"),
+
+                 (converter.decide("enchant @s 2"), "enchant @s feather_falling"),
+                 (converter.decide("enchant @s 2 1"), "enchant @s feather_falling"),
+                 (converter.decide("enchant @s 2 2"), "enchant @s feather_falling 2"),
+                 (converter.decide("enchant @s feather_falling"), "enchant @s feather_falling"),
+                 (converter.decide("enchant @s feather_falling 1"), "enchant @s feather_falling"),
+                 (converter.decide("enchant @s feather_falling 2"), "enchant @s feather_falling 2"),
+
+                 (converter.decide("enchant @s 3"), "enchant @s blast_protection"),
+                 (converter.decide("enchant @s 3 1"), "enchant @s blast_protection"),
+                 (converter.decide("enchant @s 3 2"), "enchant @s blast_protection 2"),
+                 (converter.decide("enchant @s blast_protection"), "enchant @s blast_protection"),
+                 (converter.decide("enchant @s blast_protection 1"), "enchant @s blast_protection"),
+                 (converter.decide("enchant @s blast_protection 2"), "enchant @s blast_protection 2"),
+
+                 (converter.decide("enchant @s 4"), "enchant @s projectile_protection"),
+                 (converter.decide("enchant @s 4 1"), "enchant @s projectile_protection"),
+                 (converter.decide("enchant @s 4 2"), "enchant @s projectile_protection 2"),
+                 (converter.decide("enchant @s projectile_protection"), "enchant @s projectile_protection"),
+                 (converter.decide("enchant @s projectile_protection 1"), "enchant @s projectile_protection"),
+                 (converter.decide("enchant @s projectile_protection 2"), "enchant @s projectile_protection 2"),
+
+                 (converter.decide("enchant @s 5"), "enchant @s respiration"),
+                 (converter.decide("enchant @s 5 1"), "enchant @s respiration"),
+                 (converter.decide("enchant @s 5 2"), "enchant @s respiration 2"),
+                 (converter.decide("enchant @s respiration"), "enchant @s respiration"),
+                 (converter.decide("enchant @s respiration 1"), "enchant @s respiration"),
+                 (converter.decide("enchant @s respiration 2"), "enchant @s respiration 2"),
+
+                 (converter.decide("enchant @s 6"), "enchant @s aqua_affinity"),
+                 (converter.decide("enchant @s 6 1"), "enchant @s aqua_affinity"),
+                 (converter.decide("enchant @s aqua_affinity"), "enchant @s aqua_affinity"),
+                 (converter.decide("enchant @s aqua_affinity 1"), "enchant @s aqua_affinity"),
+
+                 (converter.decide("enchant @s 7"), "enchant @s thorns"),
+                 (converter.decide("enchant @s 7 1"), "enchant @s thorns"),
+                 (converter.decide("enchant @s 7 2"), "enchant @s thorns 2"),
+                 (converter.decide("enchant @s thorns"), "enchant @s thorns"),
+                 (converter.decide("enchant @s thorns 1"), "enchant @s thorns"),
+                 (converter.decide("enchant @s thorns 2"), "enchant @s thorns 2"),
+
+                 (converter.decide("enchant @s 8"), "enchant @s depth_strider"),
+                 (converter.decide("enchant @s 8 1"), "enchant @s depth_strider"),
+                 (converter.decide("enchant @s 8 2"), "enchant @s depth_strider 2"),
+                 (converter.decide("enchant @s depth_strider"), "enchant @s depth_strider"),
+                 (converter.decide("enchant @s depth_strider 1"), "enchant @s depth_strider"),
+                 (converter.decide("enchant @s depth_strider 2"), "enchant @s depth_strider 2"),
+
+                 (converter.decide("enchant @s 9"), "enchant @s frost_walker"),
+                 (converter.decide("enchant @s 9 1"), "enchant @s frost_walker"),
+                 (converter.decide("enchant @s 9 2"), "enchant @s frost_walker 2"),
+                 (converter.decide("enchant @s frost_walker"), "enchant @s frost_walker"),
+                 (converter.decide("enchant @s frost_walker 1"), "enchant @s frost_walker"),
+                 (converter.decide("enchant @s frost_walker 2"), "enchant @s frost_walker 2"),
+
+                 (converter.decide("enchant @s 10"), "enchant @s binding_curse"),
+                 (converter.decide("enchant @s 10 1"), "enchant @s binding_curse"),
+                 (converter.decide("enchant @s binding_curse"), "enchant @s binding_curse"),
+                 (converter.decide("enchant @s binding_curse 1"), "enchant @s binding_curse"),
+
+                 (converter.decide("enchant @s 16"), "enchant @s sharpness"),
+                 (converter.decide("enchant @s 16 1"), "enchant @s sharpness"),
+                 (converter.decide("enchant @s 16 2"), "enchant @s sharpness 2"),
+                 (converter.decide("enchant @s sharpness"), "enchant @s sharpness"),
+                 (converter.decide("enchant @s sharpness 1"), "enchant @s sharpness"),
+                 (converter.decide("enchant @s sharpness 2"), "enchant @s sharpness 2"),
+
+                 (converter.decide("enchant @s 17"), "enchant @s smite"),
+                 (converter.decide("enchant @s 17 1"), "enchant @s smite"),
+                 (converter.decide("enchant @s 17 2"), "enchant @s smite 2"),
+                 (converter.decide("enchant @s smite"), "enchant @s smite"),
+                 (converter.decide("enchant @s smite 1"), "enchant @s smite"),
+                 (converter.decide("enchant @s smite 2"), "enchant @s smite 2"),
+
+                 (converter.decide("enchant @s 18"), "enchant @s bane_of_arthropods"),
+                 (converter.decide("enchant @s 18 1"), "enchant @s bane_of_arthropods"),
+                 (converter.decide("enchant @s 18 2"), "enchant @s bane_of_arthropods 2"),
+                 (converter.decide("enchant @s bane_of_arthropods"), "enchant @s bane_of_arthropods"),
+                 (converter.decide("enchant @s bane_of_arthropods 1"), "enchant @s bane_of_arthropods"),
+                 (converter.decide("enchant @s bane_of_arthropods 2"), "enchant @s bane_of_arthropods 2"),
+
+                 (converter.decide("enchant @s 19"), "enchant @s knockback"),
+                 (converter.decide("enchant @s 19 1"), "enchant @s knockback"),
+                 (converter.decide("enchant @s 19 2"), "enchant @s knockback 2"),
+                 (converter.decide("enchant @s knockback"), "enchant @s knockback"),
+                 (converter.decide("enchant @s knockback 1"), "enchant @s knockback"),
+                 (converter.decide("enchant @s knockback 2"), "enchant @s knockback 2"),
+
+                 (converter.decide("enchant @s 20"), "enchant @s fire_aspect"),
+                 (converter.decide("enchant @s 20 1"), "enchant @s fire_aspect"),
+                 (converter.decide("enchant @s 20 2"), "enchant @s fire_aspect 2"),
+                 (converter.decide("enchant @s fire_aspect"), "enchant @s fire_aspect"),
+                 (converter.decide("enchant @s fire_aspect 1"), "enchant @s fire_aspect"),
+                 (converter.decide("enchant @s fire_aspect 2"), "enchant @s fire_aspect 2"),
+
+                 (converter.decide("enchant @s 21"), "enchant @s looting"),
+                 (converter.decide("enchant @s 21 1"), "enchant @s looting"),
+                 (converter.decide("enchant @s 21 2"), "enchant @s looting 2"),
+                 (converter.decide("enchant @s looting"), "enchant @s looting"),
+                 (converter.decide("enchant @s looting 1"), "enchant @s looting"),
+                 (converter.decide("enchant @s looting 2"), "enchant @s looting 2"),
+
+                 (converter.decide("enchant @s 22"), "enchant @s sweeping"),
+                 (converter.decide("enchant @s 22 1"), "enchant @s sweeping"),
+                 (converter.decide("enchant @s 22 2"), "enchant @s sweeping 2"),
+                 (converter.decide("enchant @s sweeping"), "enchant @s sweeping"),
+                 (converter.decide("enchant @s sweeping 1"), "enchant @s sweeping"),
+                 (converter.decide("enchant @s sweeping 2"), "enchant @s sweeping 2"),
+
+                 (converter.decide("enchant @s 32"), "enchant @s efficiency"),
+                 (converter.decide("enchant @s 32 1"), "enchant @s efficiency"),
+                 (converter.decide("enchant @s 32 2"), "enchant @s efficiency 2"),
+                 (converter.decide("enchant @s efficiency"), "enchant @s efficiency"),
+                 (converter.decide("enchant @s efficiency 1"), "enchant @s efficiency"),
+                 (converter.decide("enchant @s efficiency 2"), "enchant @s efficiency 2"),
+
+                 (converter.decide("enchant @s 33"), "enchant @s silk_touch"),
+                 (converter.decide("enchant @s 33 1"), "enchant @s silk_touch"),
+                 (converter.decide("enchant @s silk_touch"), "enchant @s silk_touch"),
+                 (converter.decide("enchant @s silk_touch 1"), "enchant @s silk_touch"),
+
+                 (converter.decide("enchant @s 34"), "enchant @s unbreaking"),
+                 (converter.decide("enchant @s 34 1"), "enchant @s unbreaking"),
+                 (converter.decide("enchant @s 34 2"), "enchant @s unbreaking 2"),
+                 (converter.decide("enchant @s unbreaking"), "enchant @s unbreaking"),
+                 (converter.decide("enchant @s unbreaking 1"), "enchant @s unbreaking"),
+                 (converter.decide("enchant @s unbreaking 2"), "enchant @s unbreaking 2"),
+
+                 (converter.decide("enchant @s 35"), "enchant @s fortune"),
+                 (converter.decide("enchant @s 35 1"), "enchant @s fortune"),
+                 (converter.decide("enchant @s 35 2"), "enchant @s fortune 2"),
+                 (converter.decide("enchant @s fortune"), "enchant @s fortune"),
+                 (converter.decide("enchant @s fortune 1"), "enchant @s fortune"),
+                 (converter.decide("enchant @s fortune 2"), "enchant @s fortune 2"),
+
+                 (converter.decide("enchant @s 48"), "enchant @s power"),
+                 (converter.decide("enchant @s 48 1"), "enchant @s power"),
+                 (converter.decide("enchant @s 48 2"), "enchant @s power 2"),
+                 (converter.decide("enchant @s power"), "enchant @s power"),
+                 (converter.decide("enchant @s power 1"), "enchant @s power"),
+                 (converter.decide("enchant @s power 2"), "enchant @s power 2"),
+
+                 (converter.decide("enchant @s 49"), "enchant @s punch"),
+                 (converter.decide("enchant @s 49 1"), "enchant @s punch"),
+                 (converter.decide("enchant @s 49 2"), "enchant @s punch 2"),
+                 (converter.decide("enchant @s punch"), "enchant @s punch"),
+                 (converter.decide("enchant @s punch 1"), "enchant @s punch"),
+                 (converter.decide("enchant @s punch 2"), "enchant @s punch 2"),
+
+                 (converter.decide("enchant @s 50"), "enchant @s flame"),
+                 (converter.decide("enchant @s 50 1"), "enchant @s flame"),
+                 (converter.decide("enchant @s flame"), "enchant @s flame"),
+                 (converter.decide("enchant @s flame 1"), "enchant @s flame"),
+
+                 (converter.decide("enchant @s 51"), "enchant @s infinity"),
+                 (converter.decide("enchant @s 51 1"), "enchant @s infinity"),
+                 (converter.decide("enchant @s infinity"), "enchant @s infinity"),
+                 (converter.decide("enchant @s infinity 1"), "enchant @s infinity"),
+
+                 (converter.decide("enchant @s 61"), "enchant @s luck_of_the_sea"),
+                 (converter.decide("enchant @s 61 1"), "enchant @s luck_of_the_sea"),
+                 (converter.decide("enchant @s 61 2"), "enchant @s luck_of_the_sea 2"),
+                 (converter.decide("enchant @s luck_of_the_sea"), "enchant @s luck_of_the_sea"),
+                 (converter.decide("enchant @s luck_of_the_sea 1"), "enchant @s luck_of_the_sea"),
+                 (converter.decide("enchant @s luck_of_the_sea 2"), "enchant @s luck_of_the_sea 2"),
+
+                 (converter.decide("enchant @s 62"), "enchant @s lure"),
+                 (converter.decide("enchant @s 62 1"), "enchant @s lure"),
+                 (converter.decide("enchant @s 62 2"), "enchant @s lure 2"),
+                 (converter.decide("enchant @s lure"), "enchant @s lure"),
+                 (converter.decide("enchant @s lure 1"), "enchant @s lure"),
+                 (converter.decide("enchant @s lure 2"), "enchant @s lure 2"),
+
+                 (converter.decide("enchant @s 70"), "enchant @s mending"),
+                 (converter.decide("enchant @s 70 1"), "enchant @s mending"),
+                 (converter.decide("enchant @s mending"), "enchant @s mending"),
+                 (converter.decide("enchant @s mending 1"), "enchant @s mending"),
+
+                 (converter.decide("enchant @s 71"), "enchant @s vanishing_curse"),
+                 (converter.decide("enchant @s 71 1"), "enchant @s vanishing_curse"),
+                 (converter.decide("enchant @s vanishing_curse"), "enchant @s vanishing_curse"),
+                 (converter.decide("enchant @s vanishing_curse 1"), "enchant @s vanishing_curse"))
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
@@ -655,7 +850,13 @@ class Execute(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = (  # @s
+        tests = ((converter.decide("execute @e[name=Carl] 1 ~-1 1 toggledownfall"),
+                                   "#~ execute as @e[name=Carl] run toggledownfall ||| This command was removed"),
+                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 toggledownfall"),
+                                   "#~ execute as @e[tag=Carl] as @e[name=Carl] run toggledownfall ||| This command was removed"),
+
+
+                 # @s
                  # not canAs and not canAt
                  (converter.decide("execute @s ~ ~ ~ seed"),
                                    "seed"),
@@ -1055,7 +1256,6 @@ class Execute(TestBase):
                  "execute @s 1 ~-1 1 detect 1 ~-1 1 aaaaa 1 say hi",
                  "execute @s 1 ~-1 1 detect 1 ~-1 1 stone",
                  "execute @s 1 ~-1 1 detect 1 ~-1 1 stone a say hi",
-                 "execute @s 1 ~-1 1 detect 1 ~-1 1 stone -1 say hi",
                  "execute @s 1 ~-1 1 detect 1 ~-1 1 stone 16 say hi",
                  "execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1",
                  "execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 aaaaaa")
@@ -1064,7 +1264,13 @@ class Execute(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = (  # @s
+        tests = ((converter.decide("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 toggledownfall"),
+                                   "#~ execute at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run toggledownfall ||| This command was removed"),
+                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 toggledownfall"),
+                                   "#~ execute at @e if block ~ ~ ~ diorite at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run toggledownfall ||| This command was removed"),
+
+
+                 # @s
                  # not canAs and not canAt
                  (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
                                    "execute if block ~ ~ ~ granite run seed"),
@@ -1352,8 +1558,11 @@ class Function(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("function custom:example/test if @s"), "execute if entity @s run function custom:example/test"),
-                 (converter.decide("function custom:example/test unless @s"), "execute unless entity @s run function custom:example/test"))
+        tests = ((converter.decide("function custom:example/test if @s"), "function custom:example/test"),
+                 (converter.decide("function custom:example/test unless @s"), "function custom:example/test"),
+                 (converter.decide("function custom:example/test if @e"), "execute if entity @e run function custom:example/test"),
+                 (converter.decide("function custom:example/test unless @e"), "execute unless entity @e run function custom:example/test")
+                 )
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
@@ -1465,7 +1674,7 @@ class Give(TestBase):
 
 class Help(TestBase):
     def test_syntax1_ok(self):
-        perms = ["help"]
+        perms = generate_perms([["help", "?"]])
         for perm in perms:
             self.decide(perm)
         self.assertStats()
@@ -1477,13 +1686,14 @@ class Help(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("help"), "help"), )
+        tests = ((converter.decide("?"), "help"),
+                 (converter.decide("help"), "help"),)
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
 
     def test_syntax2_ok(self):
-        perms = generate_perms(["help", converter.Globals.commands+map(str, xrange(1, 9))])
+        perms = generate_perms([["help", "?"], converter.Globals.commands+map(str, xrange(1, 9))])
         for perm in perms:
             self.decide(perm)
         self.assertStats()
@@ -1496,7 +1706,7 @@ class Help(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = [(converter.decide("help {}".format(arg)), "help {}".format(arg)) for arg in converter.Globals.commands+map(str, xrange(1, 9))]
+        tests = [(converter.decide("{} {}".format(command, arg)), "help {}".format(arg)) for arg in converter.Globals.commands+map(str, xrange(1, 9)) for command in ("help", "?")]
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
@@ -1539,7 +1749,7 @@ class Kill(TestBase):
 
     def test_syntax1_convert(self):
         tests = ((converter.decide("kill p_name"), "kill p_name"),
-                 (converter.decide("kill"), "kill"))
+                 (converter.decide("kill"), "kill @s"))
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
@@ -1583,14 +1793,14 @@ class Locate(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("locate Temple"), "locate Temple"),
-                 (converter.decide("locate Monument"), "locate Monument"),
+        tests = ((converter.decide("locate Monument"), "locate Monument"),
                  (converter.decide("locate Mansion"), "locate Mansion"),
                  (converter.decide("locate Village"), "locate Village"),
                  (converter.decide("locate Mineshaft"), "locate Mineshaft"),
                  (converter.decide("locate Fortress"), "locate Fortress"),
                  (converter.decide("locate EndCity"), "locate EndCity"),
-                 (converter.decide("locate Stronghold"), "locate Stronghold"))
+                 (converter.decide("locate Stronghold"), "locate Stronghold"),
+                 (converter.decide("locate Temple"), "locate Desert_Pyramid\nlocate Igloo\nlocate Jungle_Pyramid\nlocate Swamp_Hut"))
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
@@ -1682,7 +1892,9 @@ class Pardon_IP(TestBase):
 
 class Particle(TestBase):
     def test_syntax1_ok(self):
-        perms = generate_perms(["particle", list(converter.Globals.particles), coord(), coord(), coord(), "1", "2", "3", "1", "10", "force", "@s", ["params", "pa rams"]], optional=4)
+        perms = generate_perms(["particle", list(converter.Globals.particles.keys()), coord(), coord(), coord(), "1", "2", "3", "1", "10", "force", "@s"], optional=3)
+        perms.update(generate_perms(["particle", ["blockdust", "blockcrack", "fallingdust", "reddust"], coord(), coord(), coord(), "1", "2", "3", "1", "10", "force", "@s", "1"], optional=4))
+        perms.update(generate_perms(["particle", "iconcrack", coord(), coord(), coord(), "1", "2", "3", "1", "10", "force", "@s", "2 3"], optional=4))
         for perm in perms:
             self.decide(perm)
         self.assertStats()
@@ -1873,17 +2085,32 @@ class Reload(TestBase):
 
 
 class ReplaceItem(TestBase):
-    @skip("Not implemented")
     def test_syntax1_ok(self):
-        perms = generate_perms(["replaceitem", ""], optional=3)
+        perms = generate_perms(["replaceitem", "block", coord(), coord(), coord(), list(converter.Globals.slots), "stone", "5", "1", "{abc:def}"], optional=3)
         for perm in perms:
             self.decide(perm)
         self.assertStats()
 
     @skip("Not implemented")
     def test_syntax1_nok(self):
-        perms = ("",
-                 "")
+        perms = ("replaceitem",
+                 "replaceitem aaaaa 1 ~-1 ~1 slot.armor.chest stone 5 1 {abc:def}",
+                 "replaceitem block",
+                 "replaceitem block a ~-1 ~1 slot.armor.chest stone 5 1 {abc:def}",
+                 "replaceitem block 1",
+                 "replaceitem block 1 aaa ~1 slot.armor.chest stone 5 1 {abc:def}",
+                 "replaceitem block 1 ~-1",
+                 "replaceitem block 1 ~-1 aa slot.armor.chest stone 5 1 {abc:def}",
+                 "replaceitem block 1 ~-1 ~1",
+                 "replaceitem block 1 ~-1 ~1 aaaaaaaaaaaaaaaa stone 5 1 {abc:def}",
+                 "replaceitem block 1 ~-1 ~1 slot.armor.chest",
+                 "replaceitem block 1 ~-1 ~1 slot.armor.chest aaaaa 5 1 {abc:def}",
+                 "replaceitem block 1 ~-1 ~1 slot.armor.chest stone a 1 {abc:def}",
+                 "replaceitem block 1 ~-1 ~1 slot.armor.chest stone 0 1 {abc:def}",
+                 "replaceitem block 1 ~-1 ~1 slot.armor.chest stone 65 1 {abc:def}",
+                 "replaceitem block 1 ~-1 ~1 slot.armor.chest stone 5 a {abc:def}",
+                 "replaceitem block 1 ~-1 ~1 slot.armor.chest stone 5 1 aaaaaaaaa",
+                 "replaceitem block 1 ~-1 ~1 slot.armor.chest stone 5 1 {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
             self.assertRaises(SyntaxError, perm)
         self.assertStats()
@@ -1983,24 +2210,187 @@ class Say(TestBase):
 
 
 class Scoreboard(TestBase):
-    @skip("Not implemented")
     def test_syntax1_ok(self):
-        perms = generate_perms(["replaceitem", ""], optional=3)
+        perms = generate_perms(["scoreboard", "objectives", "list"])
         for perm in perms:
             self.decide(perm)
         self.assertStats()
 
-    @skip("Not implemented")
     def test_syntax1_nok(self):
-        perms = ("",
-                 "")
+        perms = ("scoreboard",
+                 "scoreboard aaaaaaaaaa list",
+                 "scoreboard objectives",
+                 "scoreboard objectives aaaa",
+                 "scoreboard objectives list ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax1_convert(self):
+        tests = ((converter.decide("scoreboard objectives list"), "scoreboard objectives list"), )
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax2_ok(self):
+        perms = generate_perms(["scoreboard", "objectives", "add", "anObjective", converter.Globals.criteria, ["displayName", "display name"]], optional=1)
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax2_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaaaaaaa add anObjective dummy displayName",
+                 "scoreboard objectives",
+                 "scoreboard objectives aaa anObjective dummy displayName",
+                 "scoreboard objectives add",
+                 "scoreboard objectives add anObjective",
+                 "scoreboard objectives add anObjective aaaaa displayName",
+                 "scoreboard objectives add anObjective dummy aaaaabbbbbcccccdddddeeeeefffffggg")
         for perm in perms:
             self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     @skip("Not implemented")
-    def test_syntax1_convert(self):
+    def test_syntax2_convert(self):
         tests = ((converter.decide(""), ""), )
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax3_ok(self):
+        perms = generate_perms(["scoreboard", "objectives", "remove", "anObjective"])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax3_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaaaaaaa remove anObjective",
+                 "scoreboard objectives",
+                 "scoreboard objectives aaaaaa anObjective",
+                 "scoreboard objectives remove",
+                 "scoreboard objectives remove anObjective ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax3_convert(self):
+        tests = ((converter.decide("scoreboard objectives remove anObjective"), "scoreboard objectives remove anObjective"), )
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    sidebars = ["list", "sidebar", "belowName"] + map(lambda x: "sidebar.team.{}".format(x), converter.Globals.colors)
+
+    def test_syntax4_ok(self):
+        perms = generate_perms(["scoreboard", "objectives", "setdisplay", Scoreboard.sidebars, "anObjective"], optional=1)
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax4_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaaaaaaa setdisplay list anObjective",
+                 "scoreboard objectives",
+                 "scoreboard objectives aaaaaaaaaa list anObjective",
+                 "scoreboard objectives setdisplay",
+                 "scoreboard objectives setdisplay aaaa anObjective",
+                 "scoreboard objectives setdisplay list anObjective ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax4_convert(self):
+        tests = [(converter.decide("scoreboard objectives setdisplay {}{}".format(bar, option)), "scoreboard objectives setdisplay {}{}".format(bar, option)) for bar in Scoreboard.sidebars for option in ("", " anObjective")]
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax5_ok(self):
+        perms = generate_perms(["scoreboard", "players", "list", ["@s", "*"]], optional=1)
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax5_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaaaa list @s",
+                 "scoreboard players",
+                 "scoreboard players aaaa @s",
+                 "scoreboard players list @c",
+                 "scoreboard players list @s ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax5_convert(self):
+        tests = ((converter.decide("scoreboard players list"), "scoreboard players list"),
+                 (converter.decide("scoreboard players list @s"), "scoreboard players list @s"),
+                 (converter.decide("scoreboard players list *"), "scoreboard players list *"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax6_ok(self):
+        perms = generate_perms(["scoreboard", "players", ["set", "add", "remove"], "@s", "anObjective", "1", "{abc:def}"], optional=1)
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax6_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaaaa set @s anObjective 1 {abc:def}",
+                 "scoreboard players",
+                 "scoreboard players aaa @s anObjective 1 {abc:def}",
+                 "scoreboard players set",
+                 "scoreboard players set @c anObjective 1 {abc:def}",
+                 "scoreboard players set @s",
+                 "scoreboard players set @s anObjective",
+                 "scoreboard players set @s anObjective a {abc:def}",
+                 "scoreboard players set @s anObjective 1 aaaaaaaaa",
+                 "scoreboard players set @s anObjective 1 {abc:def} ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax6_convert(self):
+        tests = ((converter.decide("scoreboard players set @s anObjective 1"), "scoreboard players set @s anObjective 1"),
+                 (converter.decide("scoreboard players set @s anObjective 1 {abc:def}"), "scoreboard players set @s[nbt={abc:def}] anObjective 1"),
+                 (converter.decide("scoreboard players set Carl anObjective 1 {abc:def}"), "scoreboard players set @p[name=Carl,nbt={abc:def}] anObjective 1"),
+                 (converter.decide("scoreboard players add @s anObjective 1"), "scoreboard players add @s anObjective 1"),
+                 (converter.decide("scoreboard players add @s anObjective 1 {abc:def}"), "scoreboard players add @s[nbt={abc:def}] anObjective 1"),
+                 (converter.decide("scoreboard players add Carl anObjective 1 {abc:def}"), "scoreboard players add @p[name=Carl,nbt={abc:def}] anObjective 1"),
+                 (converter.decide("scoreboard players remove @s anObjective 1"), "scoreboard players remove @s anObjective 1"),
+                 (converter.decide("scoreboard players remove @s anObjective 1 {abc:def}"), "scoreboard players remove @s[nbt={abc:def}] anObjective 1"),
+                 (converter.decide("scoreboard players remove Carl anObjective 1 {abc:def}"), "scoreboard players remove @p[name=Carl,nbt={abc:def}] anObjective 1"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax7_ok(self):
+        perms = generate_perms(["scoreboard", "players", ["set", "add", "remove"], "*", "anObjective", "1",])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax7_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaaaa set * anObjective 1",
+                 "scoreboard players",
+                 "scoreboard players aaa * anObjective 1",
+                 "scoreboard players set",
+                 "scoreboard players set *",
+                 "scoreboard players set * anObjective a",
+                 "scoreboard players set * anObjective 1 ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax7_convert(self):
+        tests = ((converter.decide("scoreboard players set * anObjective 1"), "scoreboard players set * anObjective 1"),
+                 (converter.decide("scoreboard players add * anObjective 1"), "scoreboard players add * anObjective 1"),
+                 (converter.decide("scoreboard players remove * anObjective 1"), "scoreboard players remove * anObjective 1"))
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
@@ -2566,6 +2956,529 @@ class Testfor(TestBase):
                  (converter.decide("testfor @s {abc:def}"), "execute if entity @s[nbt={abc:def}]"),
                  (converter.decide("testfor Carl"), "execute if entity Carl"),
                  (converter.decide("testfor Carl {abc:def}"), "execute if entity @p[name=Carl,nbt={abc:def}]"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+
+class TestforBlock(TestBase):
+    def test_syntax1_ok(self):
+        perms = generate_perms(["testforblock", coord(), coord(), coord(), "stone", "1", "{abc:def}"], optional=2)
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax1_nok(self):
+        perms = ("testforblock",
+                 "testforblock a ~-1 1 stone 1 {abc:def}",
+                 "testforblock 1",
+                 "testforblock 1 aaa 1 stone 1 {abc:def}",
+                 "testforblock 1 ~-1",
+                 "testforblock 1 ~-1 a stone 1 {abc:def}",
+                 "testforblock 1 ~-1 1",
+                 "testforblock 1 ~-1 1 aaaaa 1 {abc:def}",
+                 "testforblock 1 ~-1 1 stone a {abc:def}",
+                 "testforblock 1 ~-1 1 stone 1 aaaaaaaaa",
+                 "testforblock 1 ~-1 1 stone 1 {abc:def} ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax1_convert(self):
+        tests = ((converter.decide("testforblock 1 ~-1 1 stone"), "execute if block 1 ~-1 1 stone"),
+                 (converter.decide("testforblock 1 ~-1 1 stone 1"), "execute if block 1 ~-1 1 granite"),
+                 (converter.decide("testforblock 1 ~-1 1 stone 1 {abc:def}"), "execute if block 1 ~-1 1 granite{abc:def}"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+
+class TestforBlocks(TestBase):
+    def test_syntax1_ok(self):
+        perms = generate_perms(["testforblocks", coord(), coord(), coord(), coord(), coord(), coord(), coord(), coord(), coord(), ["all", "masked"]], optional=1)
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax1_nok(self):
+        perms = ("testforblocks",
+                 "testforblocks a ~-1 1 1 ~-1 1 1 ~-1 1 all",
+                 "testforblocks 1",
+                 "testforblocks 1 aaa 1 1 ~-1 1 1 ~-1 1 all",
+                 "testforblocks 1 ~-1",
+                 "testforblocks 1 ~-1 a 1 ~-1 1 1 ~-1 1 all",
+                 "testforblocks 1 ~-1 1",
+                 "testforblocks 1 ~-1 1 a ~-1 1 1 ~-1 1 all",
+                 "testforblocks 1 ~-1 1 1",
+                 "testforblocks 1 ~-1 1 1 aaa 1 1 ~-1 1 all",
+                 "testforblocks 1 ~-1 1 1 ~-1",
+                 "testforblocks 1 ~-1 1 1 ~-1 a 1 ~-1 1 all",
+                 "testforblocks 1 ~-1 1 1 ~-1 1",
+                 "testforblocks 1 ~-1 1 1 ~-1 1 a ~-1 1 all",
+                 "testforblocks 1 ~-1 1 1 ~-1 1 1",
+                 "testforblocks 1 ~-1 1 1 ~-1 1 1 aaa 1 all",
+                 "testforblocks 1 ~-1 1 1 ~-1 1 1 ~-1",
+                 "testforblocks 1 ~-1 1 1 ~-1 1 1 ~-1 a all",
+                 "testforblocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 aaa",
+                 "testforblocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 all ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax1_convert(self):
+        tests = ((converter.decide("testforblocks 1 ~-1 1 1 ~-1 1 1 ~-1 1"), "execute if blocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 all"),
+                 (converter.decide("testforblocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 all"), "execute if blocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 all"),
+                 (converter.decide("testforblocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 masked"), "execute if blocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 masked"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+
+class Time(TestBase):
+    def test_syntax1_ok(self):
+        perms = generate_perms(["time", ["add", "set"], "42"])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax1_nok(self):
+        perms = ("time",
+                 "time aaa 42",
+                 "time add",
+                 "time add aa",
+                 "time add 0",
+                 "time add 42 ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax1_convert(self):
+        tests = ((converter.decide("time add 42"), "time add 42"),
+                 (converter.decide("time set 42"), "time set 42"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax2_ok(self):
+        perms = generate_perms(["time", "set", ["day", "night"]])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax2_nok(self):
+        perms = ("time",
+                 "time aaa day",
+                 "time set",
+                 "time set aaa",
+                 "time set day ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax2_convert(self):
+        tests = ((converter.decide("time set day"), "time set day"),
+                 (converter.decide("time set night"), "time set night"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax3_ok(self):
+        perms = generate_perms(["time", "query", ["daytime", "gametime", "day"]])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax3_nok(self):
+        perms = ("time",
+                 "time aaaaa day",
+                 "time query",
+                 "time query aaa",
+                 "time query day ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax3_convert(self):
+        tests = ((converter.decide("time query day"), "time query day"),
+                 (converter.decide("time query daytime"), "time query daytime"),
+                 (converter.decide("time query gametime"), "time query gametime"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+
+class Title(TestBase):
+    def test_syntax1_ok(self):
+        perms = generate_perms(["title", "@s", ["clear", "reset"]])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax1_nok(self):
+        perms = ("title",
+                 "title @c clear",
+                 "title @s",
+                 "title @s aaaaa",
+                 "title @s clear ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax1_convert(self):
+        tests = ((converter.decide("title @s clear"), "title @s clear"),
+                 (converter.decide("title @s reset"), "title @s reset"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax2_ok(self):
+        perms = generate_perms(["title", "@s", ["title", "subtitle", "actionbar"], "{\"text\":\"hi\"}"])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax2_nok(self):
+        perms = ("title",
+                 "title @c title {\"text\":\"hi\"}",
+                 "title @s",
+                 "title @s aaaaa {\"text\":\"hi\"}",
+                 "title @s title",
+                 "title @s title aaaaaaaaaaaaaaaaa",
+                 "title @s title {\"text\":\"hi\"} ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax2_convert(self):
+        tests = ((converter.decide("title @s title {\"text\":\"hi\"}"), "title @s title {\"text\":\"hi\"}"),
+                 (converter.decide("title @s subtitle {\"text\":\"hi\"}"), "title @s subtitle {\"text\":\"hi\"}"),
+                 (converter.decide("title @s actionbar {\"text\":\"hi\"}"), "title @s actionbar {\"text\":\"hi\"}"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax3_ok(self):
+        perms = generate_perms(["title", "@s", "times", "1", "2", "3"])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax3_nok(self):
+        perms = ("title",
+                 "title @c times 1 2 3",
+                 "title @s",
+                 "title @s aaaaa 1 2 3",
+                 "title @s times",
+                 "title @s times a 2 3",
+                 "title @s times 1",
+                 "title @s times 1 a 3",
+                 "title @s times 1 2",
+                 "title @s times 1 2 a",
+                 "title @s times 1 2 3 ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax3_convert(self):
+        tests = ((converter.decide("title @s times 1 2 3"), "title @s times 1 2 3"), )
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+
+class ToggleDownfall(TestBase):
+    def test_syntax1_ok(self):
+        perms = ["toggledownfall"]
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax1_nok(self):
+        perms = ("aaaaaaaaaaaaaa",
+                 "toggledownfall ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax1_convert(self):
+        tests = ((converter.decide("toggledownfall"), "#~ toggledownfall ||| This command was removed"), )
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+
+class Trigger(TestBase):
+    def test_syntax1_ok(self):
+        perms = generate_perms(["trigger", "anObjective", ["add", "set"], "0"])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax1_nok(self):
+        perms = ("trigger",
+                 "trigger anObjective",
+                 "trigger anObjective aaa 0",
+                 "trigger anObjective add",
+                 "trigger anObjective add a",
+                 "trigger anObjective add 0 ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax1_convert(self):
+        tests = ((converter.decide("trigger anObjective add 0"), "trigger anObjective add 0"),
+                 (converter.decide("trigger anObjective add 1"), "trigger anObjective"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+
+class W(TestBase):
+    def test_syntax1_ok(self):
+        perms = generate_perms(["w", "@s", ["hi", "hi there!"]])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax1_nok(self):
+        perms = ("w",
+                 "w @c hi",
+                 "w @s",)
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax1_convert(self):
+        tests = ((converter.decide("w @s hi"), "w @s hi"),
+                 (converter.decide("msg @s hi"), "w @s hi"),
+                 (converter.decide("tell @s hi"), "w @s hi"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+
+class Weather(TestBase):
+    def test_syntax1_ok(self):
+        perms = generate_perms(["weather", ["clear", "rain", "thunder"], "5"])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax1_nok(self):
+        perms = ("weather",
+                 "weather aaaaa 1",
+                 "weather clear 0",
+                 "weather clear 1000001",
+                 "weather clear 1 ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax1_convert(self):
+        tests = ((converter.decide("weather clear 1"), "weather clear 1"),
+                 (converter.decide("weather rain 1"), "weather rain 1"),
+                 (converter.decide("weather thunder 1"), "weather thunder 1"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+
+class WhiteList(TestBase):
+    def test_syntax1_ok(self):
+        perms = generate_perms(["whitelist", ["add", "remove"], "@s"])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax1_nok(self):
+        perms = ("whitelist",
+                 "whitelist aaa @s",
+                 "whitelist add",
+                 "whitelist add @c",
+                 "whitelist add @s ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax1_convert(self):
+        tests = ((converter.decide("whitelist add @s"), "whitelist add @s"),
+                 (converter.decide("whitelist remove @s"), "whitelist remove @s"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax2_ok(self):
+        perms = generate_perms(["whitelist", ["on", "off", "list", "reload"]])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax2_nok(self):
+        perms = ("whitelist",
+                 "whitelist aa",
+                 "whitelist on ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax2_convert(self):
+        tests = ((converter.decide("whitelist on"), "whitelist on"),
+                 (converter.decide("whitelist off"), "whitelist off"),
+                 (converter.decide("whitelist list"), "whitelist list"),
+                 (converter.decide("whitelist reload"), "whitelist reload"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+
+class WorldBorder(TestBase):
+    def test_syntax1_ok(self):
+        perms = generate_perms(["worldborder", ["add", "set"], "1", "2"], optional=1)
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax1_nok(self):
+        perms = ("worldborder",
+                 "worldborder aaa 1 2",
+                 "worldborder add",
+                 "worldborder add a 2",
+                 "worldborder set 0 2",
+                 "worldborder add 1 a",
+                 "worldborder add 1 -1",
+                 "worldborder add 1 2 ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax1_convert(self):
+        tests = ((converter.decide("weather clear 1"), "weather clear 1"),
+                 (converter.decide("weather rain 1"), "weather rain 1"),
+                 (converter.decide("weather thunder 1"), "weather thunder 1"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax2_ok(self):
+        perms = generate_perms(["worldborder", "center", coord(), coord()])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax2_nok(self):
+        perms = ("worldborder",
+                 "worldborder aaaaaa 1 ~2",
+                 "worldborder center",
+                 "worldborder center a ~2",
+                 "worldborder center 1",
+                 "worldborder center 1 aa",
+                 "worldborder center 1 ~2 ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax2_convert(self):
+        tests = ((converter.decide("worldborder center 1 ~2"), "worldborder center 1 ~2"), )
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax3_ok(self):
+        perms = generate_perms(["worldborder", "damage", ["amount", "buffer"], "1"])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax3_nok(self):
+        perms = ("worldborder",
+                 "worldborder aaaaaa amount 1",
+                 "worldborder damage",
+                 "worldborder damage aaaaaa 1",
+                 "worldborder damage amount",
+                 "worldborder damage amount a",
+                 "worldborder damage amount -1",
+                 "worldborder damage amount 1 ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax3_convert(self):
+        tests = ((converter.decide("worldborder damage amount 1"), "worldborder damage amount 1"),
+                 (converter.decide("worldborder damage buffer 1"), "worldborder damage buffer 1"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax4_ok(self):
+        perms = generate_perms(["worldborder", "warning", ["distance", "time"], "1"])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax4_nok(self):
+        perms = ("worldborder",
+                 "worldborder aaaaaaa distance 1",
+                 "worldborder warning",
+                 "worldborder warning aaaaaaaa 1",
+                 "worldborder warning distance",
+                 "worldborder warning distance a",
+                 "worldborder warning distance -1",
+                 "worldborder warning distance 1 ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax4_convert(self):
+        tests = ((converter.decide("worldborder warning distance 1"), "worldborder warning distance 1"),
+                 (converter.decide("worldborder warning time 1"), "worldborder warning time 1"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax5_ok(self):
+        perms = generate_perms(["worldborder", "get"])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax5_nok(self):
+        perms = ("worldborder",
+                 "worldborder aaa",
+                 "worldborder get ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax5_convert(self):
+        tests = ((converter.decide("worldborder get"), "worldborder get"), )
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+
+class Xp(TestBase):
+    def test_syntax1_ok(self):
+        perms = generate_perms(["xp", ["1", "2L"], "@s"], optional=1)
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax1_nok(self):
+        perms = ("xp",
+                 "xp aa @s",
+                 "xp 1l @s",
+                 "xp -1 @s",
+                 "xp 1L @c",
+                 "xp 1L @s ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax1_convert(self):
+        tests = ((converter.decide("xp 1"), "experience add @s 1"),
+                 (converter.decide("xp 1 @p"), "experience add @p 1"),
+                 (converter.decide("xp 1L"), "experience add @s 1 levels"),
+                 (converter.decide("xp 1L @p"), "experience add @p 1 levels"))
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()

@@ -25,7 +25,7 @@ Syntax explanation:
         . - whatever
 """
 
-from data import *
+from data import Globals
 from time import time as getTime
 
 import json, sys, codecs, os, shutil
@@ -41,7 +41,7 @@ if type(u"") is str:
     os.getcwdu = os.getcwd
     map = lambda x, y: _list(_map(x, y))
     filter = lambda x, y: _list(_filter(x, y))
-    unicode = lambda x: x.__unicode__()
+    unicode = lambda x: x.__unicode__() if hasattr(x, '__unicode__') else str(x)
 
 
 def escape(s):
@@ -52,8 +52,8 @@ def unEscape(s):
     return s.replace("\\\\", "\\").replace("\\\"", "\"")
 
 
-def noNamespace(s):
-    return s[10:] if s[:10] == "minecraft:" else s
+def noPrefix(s, prefix="minecraft:"):
+    return s[len(prefix):] if s[:len(prefix)] == prefix else s
 
 
 def canAt(data, *labels):
@@ -96,7 +96,7 @@ def getString(s):
         if s[i] in (',', '}', ']'):
             return ret.rstrip(), s[i:]
         if s[i] in ('{', '[', '\"', ':'):
-            raise SyntaxError(u"unquoted value can't have '{{' or '[' or '\"' or : in them")
+            raise SyntaxError(u"Unquoted value can't have '{{' or '[' or '\"' or : in them")
         ret += s[i]
         i += 1
 
@@ -186,7 +186,7 @@ def allBlocks(data, blockLabel, nbtLabel=None):
 
 
 def block(data, blockLabel, stateLabel=None, nbtLabel=None):
-    block = noNamespace(data[blockLabel])
+    block = noPrefix(data[blockLabel])
 
     if block not in Globals.data2states:
         raise SyntaxError(u"{} is not a valid block".format(block))
@@ -239,7 +239,7 @@ def block(data, blockLabel, stateLabel=None, nbtLabel=None):
 
 
 def item(data, nameLabel, damageLabel=None, nbtLabel=None):
-    s = noNamespace(data[nameLabel])
+    s = noPrefix(data[nameLabel])
     if nbtLabel in data:
         if damageLabel in data and data[damageLabel] != '0':
             data[nbtLabel]["Damage"] = data[damageLabel]
@@ -328,9 +328,12 @@ def constraints(data, rules):
             valueType = type(low)
             try:
                 if not (low <= valueType(data[label]) <= high):
-                    raise SyntaxError(u"\'{}\' has to be in range {}..{}".format(data[label], low, high))
+                    if low == high:
+                        raise SyntaxError(u"{} has to be equal to {}".format(label[2:], low))
+                    else:
+                        raise SyntaxError(u"{} has to be in range {}..{}".format(label[2:], low, high))
             except ValueError:
-                raise SyntaxError(u"\'{}\' has to be integer".format(data[label]))
+                raise SyntaxError(u"{} has to be {}".format(label[2:], u"int" if valueType == int else u"float"))
 
 
 def walk(node):
@@ -341,8 +344,7 @@ def walk(node):
             else:
                 if key == "action" and item == "run_command" and "value" in node:
                     if node["value"][0] == '/':
-                        node["value"] = u"/{}".format(decide(node["value"][1:]))
-
+                        node["value"] = u"/{}".format(decide(node["value"]))
     else:
         for item in node:
             if type(item) is dict or type(item) is _list:
@@ -386,9 +388,11 @@ def lex(caller, syntaxes, tokens):
                 if word[1] == '@':
                     workTokens[i] = Selector(workTokens[i])
                 elif word[1] == '(':
-                    if workTokens[i].lower() not in map(lambda x: x.lower(), word[2:].split('|')):
-                        raise SyntaxError(u"Token: '{}' is not in the list: {}".format(workTokens[i], word[2:].split('|')))
-                    workTokens[i] = word[2:].split('|')[map(lambda x: x.lower(), word[2:].split('|')).index(workTokens[i].lower())]
+                    splitted = word[2:].split('|')
+                    lowered = map(lambda x: x.lower(), splitted)
+                    if workTokens[i].lower() not in lowered:
+                        raise SyntaxError(u"Token: '{}' is not in the list: {}".format(workTokens[i], splitted))
+                    workTokens[i] = splitted[lowered.index(workTokens[i].lower())]
                 elif word[1] == '*':
                     workTokens = workTokens[:i] + [u" ".join(workTokens[i:])]
                     break
@@ -420,7 +424,7 @@ def lex(caller, syntaxes, tokens):
                 elif word[1] == '.':
                     pass
                 else:
-                    raise AssertionError(u"A Syntax '{}' is defined badly at Word '{}'.".format(synt(caller, syntax), word))
+                    raise AssertionError(u"A Syntax '{}' is defined badly at Word '{}'.\nThis means that I messed up, please send this message to me".format(synt(caller, syntax), word))
             if len(syntax) != len(workTokens):
                 raise SyntaxError(u"Too many tokens: Syntax({}): '{}' Tokens({}): {}".format(len(syntax)+1, synt(caller, syntax), len(workTokens)+1, array([caller] + workTokens)))
             return syntax, dict(zip(syntax, workTokens))
@@ -574,11 +578,6 @@ class Selector(object):
                     if not (Globals.scoreRe.match(key) or key in Globals.selectorArgs):
                         raise SyntaxError(u"\'{}\' is not a valid selector because: \'{}\' is not valid selector argument".format(raw, key))
 
-            for posArg in Globals.posArgs:
-                if posArg in self.data:
-                    self.canAt = True
-                    break
-
             for key in ("x", "y", "z", "dx", "dy", "dz", "lm", "l", "rm", "r", "rxm", "rx", "rym", "ry", "c"):
                 try:
                     if key in self.data:
@@ -626,7 +625,7 @@ class Selector(object):
                 if tmp == 0:
                     del self.data['c']
                 elif tmp < 0:
-                    self.data['c'] = -tmp
+                    self.data['c'] = str(-tmp)
                     if self.target != 'r':
                         self.data["sort"] = "furthest"
                 else:
@@ -642,6 +641,11 @@ class Selector(object):
                 if test not in Globals.summons and test != "player":
                     raise SyntaxError(u"\'{}\' is not valid entity type".format(self.data["type"]))
 
+            for posArg in Globals.posArgs:
+                if posArg in self.data:
+                    self.canAt = True
+                    break
+
     def __unicode__(self):
         if self.playerName:
             return u"{}".format(self.target)
@@ -654,7 +658,7 @@ class Selector(object):
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            return self.__dict__ == other.__dict__
+            return self.canAt == other.canAt and self.data == other.data and self.playerName == other.playerName and self.target == other.target
         else:
             return False
 
@@ -761,7 +765,7 @@ class clear(Master):
             self.canAt, self.canAs = self.data["<@player"].canAt, True
 
         if "[.item" in self.data:
-            item(self.data, "[.item", "[0data", "[{dataTag")
+            self.item = item(self.data, "[.item", "[0data", "[{dataTag")
         constraints(self.data, {"[0maxCount": (0, "*")})
 
     def __unicode__(self):
@@ -769,7 +773,7 @@ class clear(Master):
             return u"clear"
         s = u"clear {}".format(self.data["<@player"])
         if "[.item" in self.data:
-            s += u" {}".format(item(self.data, "[.item", "[0data", "[{dataTag"))
+            s += u" {}".format(self.item)
             if "[0maxCount" in self.data:
                 s += u" {}".format(self.data["[0maxCount"])
         return s
@@ -784,12 +788,12 @@ class clone(Master):
         self.canAt = canAt(self.data, "<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2", "<~x", "<~y", "<~z")
 
         if "<(filtered" in self.data:
-            block(self.data, "<.tileName", "[.dataValue")  # todo -1, *
+            self.block = block(self.data, "<.tileName", "[.dataValue")  # todo -1, *
 
     def __unicode__(self):
         s = u"clone {} {} {} {} {} {} {} {} {}".format(self.data["<~x1"], self.data["<~y1"], self.data["<~z1"], self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], self.data["<~x"], self.data["<~y"], self.data["<~z"])
         if "<(filtered" in self.data:
-            s += u" filtered {} {}".format(block(self.data, "<.tileName", "[.dataValue"), self.data["<(force|move|normal"])  # todo -1, *
+            s += u" filtered {} {}".format(self.block, self.data["<(force|move|normal"])
         else:
             for key in self.syntax[9:]:
                 s += u" {}".format(self.data[key])
@@ -852,10 +856,12 @@ class difficulty(Master):
 
 
 class effect(Master):
+    effects = "<({}".format("|".join(map(lambda x: "{}|{}".format(*x), Globals.effects.items())))
+
     def __init__(self, tokens):
         Master.__init__(self)
         syntaxes = (("<@player", "<(clear"),
-                    ("<@player", "<.effect", "[0seconds", "[0amplifier", "[(true|false"))
+                    ("<@player", effect.effects, "[0seconds", "[0amplifier", "[(true|false"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = self.data["<@player"].canAt, True
 
@@ -866,22 +872,30 @@ class effect(Master):
             return u"effect clear {}".format(self.data["<@player"])
 
         if "[0seconds" in self.data and self.data["[0seconds"] == "0":
-            return u"effect clear {} {}".format(self.data["<@player"], self.data["<.effect"])
+            return u"effect clear {} {}".format(self.data["<@player"], self.data[effect.effects])
 
-        s = u"effect give {} {}".format(self.data["<@player"], self.data["<.effect"])
+        s = u"effect give {} {}".format(self.data["<@player"], self.data[effect.effects])
         for key in self.syntax[2:]:
             s += u" {}".format(self.data[key])
         return s
 
 
-class enchant(Master):  # todo /modifyitem, syntax unknown
+class enchant(Master):
+    enchants = "<({}".format("|".join(map(lambda x: "{}|{}".format(*x), Globals.enchants.items())))
+
     def __init__(self, tokens):
         Master.__init__(self)
-        syntaxes = (("<@player", "<.enchantment", "[0level"), )
+        syntaxes = (("<@player", enchant.enchants, "[0level"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = self.data["<@player"].canAt, True
 
-        constraints(self.data, {"[0level": (1, 5)})
+        if self.data[enchant.enchants] in Globals.enchants:
+            self.data[enchant.enchants] = Globals.enchants[self.data[enchant.enchants]]
+
+        if "[0level" in self.data:
+            constraints(self.data, {"[0level": (1, Globals.enchantLevels[self.data[enchant.enchants]])})
+            if self.data["[0level"] == "1":
+                self.syntax = self.syntax[:-1]
 
 
 class entitydata(Master):
@@ -913,7 +927,11 @@ class execute(Master):
         if "<(detect" in self.data:
             self.canAt = True
 
-            block(self.data, "<.block", "<.dataValue")  # todo -1, *
+            if self.data["<.dataValue"] in ("-1", "*"):
+                pass
+                # self.block =   # todo -1, *
+            else:
+                self.block = block(self.data, "<.block", "<.dataValue")
 
     def __unicode__(self):
         command = unicode(self.data["<*command"])
@@ -926,9 +944,9 @@ class execute(Master):
         if "<(detect" in self.data:
             if self.data["<.dataValue"] in ("-1", "*"):
                 coords = u" {} {} {} ".format(self.data["<~x2"], self.data["<~y2"], self.data["<~z2"])
-                detect += u" if block{}{}".format(coords, u" execute if block{}".format(coords).join(block(self.data, "<.block")))  # todo -1, *
+                detect += u" if block{}{}".format(coords, u" execute if block{}".format(coords).join(self.block))
             else:
-                detect += u" if block {} {} {} {}".format(self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], block(self.data, "<.block", "<.dataValue"))  # todo -1, *
+                detect += u" if block {} {} {} {}".format(self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], self.block)
 
         if not self.data["<@entity"].playerName and self.data["<@entity"].target == "s":
             selectorArgs = len(self.data["<@entity"].data)
@@ -972,7 +990,10 @@ class execute(Master):
             s += position + detect
 
         if command[0] == '#':
-            s = u"#~ {} {}".format(s, command[3:])
+            if command[:10] == "#~ execute":
+                s = u"#~ {} {}".format(s, command[11:])
+            else:
+                s = u"#~ {} run {}".format(s, command[3:])
         else:
             if command[:7] == "execute":
                 s += command[7:]
@@ -991,20 +1012,20 @@ class fill(Master):
         self.canAt = canAt(self.data, "<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2")
 
         if "<(replace" in self.data:
-            block(self.data, "<.block", "<.dataValue")
+            self.block = block(self.data, "<.block", "<.dataValue")
             if "[.replaceTileName" in self.data:
-                block(self.data, "[.replaceTileName", "[.replaceDataValue")  # todo -1, *
+                self.replaceBlock = block(self.data, "[.replaceTileName", "[.replaceDataValue")  # todo -1, *
         else:
-            block(self.data, "<.block", "[.dataValue", "[{dataTag")
+            self.block = block(self.data, "<.block", "[.dataValue", "[{dataTag")
 
     def __unicode__(self):
         s = u"fill {} {} {} {} {} {}".format(self.data["<~x1"], self.data["<~y1"], self.data["<~z1"], self.data["<~x2"], self.data["<~y2"], self.data["<~z2"])
         if "<(replace" in self.data:
-            s += u" {} replace".format(block(self.data, "<.block", "<.dataValue"))
+            s += u" {} replace".format(self.block)
             if "[.replaceTileName" in self.data:
-                s += u" {}".format(block(self.data, "[.replaceTileName", "[.replaceDataValue"))  # todo -1, *
+                s += u" {}".format(self.replaceBlock)
         else:
-            s += u" {}".format(block(self.data, "<.block", "[.dataValue", "[{dataTag"))
+            s += u" {}".format(self.block)
             if "[(destroy|hollow|keep|outline" in self.data:
                 s += u" {}".format(self.data["[(destroy|hollow|keep|outline"])
         return s
@@ -1021,8 +1042,8 @@ class function(Master):
         self.canAt, self.canAs = True, True
 
     def __unicode__(self):
-        if "<(if|unless" not in self.data:
-            return Master.__unicode__(self)
+        if "<(if|unless" not in self.data or self.data["<@selector"] == Selector("@s"):
+            return u"function {}".format(self.data["<.function"])
         return u"execute {} entity {} run function {}".format(self.data["<(if|unless"], self.data["<@selector"], self.data["<.function"])
 
 
@@ -1061,7 +1082,7 @@ class gamerule(Master):
 
     def __unicode__(self):
         if self.custom:
-            Globals.commentedOut = True
+            Globals.flags["commentedOut"] = True
             return u"#~ {} ||| Custom gamerules are no longer supported".format(Master.__unicode__(self))
         return Master.__unicode__(self)
 
@@ -1084,10 +1105,12 @@ class give(Master):
 
 
 class help(Master):
+    helps = "<({}".format("|".join(Globals.commands + map(str, xrange(1, 9))))
+
     def __init__(self, tokens=None):
         Master.__init__(self)
         if tokens:
-            syntaxes = (("<({}".format("|".join(Globals.commands + map(str, xrange(1, 9)))), ), )
+            syntaxes = ((help.helps, ), )
             self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
 
 
@@ -1108,6 +1131,11 @@ class kill(Master):
             self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
             self.canAt = self.data["<@player"].canAt
 
+    def __unicode__(self):
+        if "<@player" not in self.data:
+            return u"kill @s"
+        return u"kill {}".format(self.data["<@player"])
+
 
 class list(Master):
     def __init__(self, tokens=None):
@@ -1122,6 +1150,12 @@ class locate(Master):
         Master.__init__(self)
         syntaxes = (("<(EndCity|Fortress|Mansion|Mineshaft|Monument|Stronghold|Temple|Village", ), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
+
+    def __unicode__(self):
+        if self.data[self.syntax[0]] != "Temple":
+            return Master.__unicode__(self)
+        Globals.flags["multiLine"] = True
+        return u"locate {}".format(u"\nlocate ".join(('Desert_Pyramid', 'Igloo', 'Jungle_Pyramid', 'Swamp_Hut')))
 
 
 class me(Master):
@@ -1155,12 +1189,83 @@ class pardon_ip(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
 
 
-class particle(Master):  # todo blockcrack
+class particle(Master):
+    particles = "<({}".format("|".join(Globals.particles.keys()))
+
     def __init__(self, tokens):
         Master.__init__(self)
-        syntaxes = (("<({}".format("|".join(Globals.particles)), "<~x", "<~y", "<~z", "<0xd", "<0yd", "<0zd", "<0speed", "[0count", "[.mode", "[@player", "[*params"), )
+        syntaxes = ((particle.particles, "<~x", "<~y", "<~z", "<0xd", "<0yd", "<0zd", "<0speed", "[0count", "[.mode", "[@player", "[*params"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = True, "[@player" in self.data
+
+        constraints(self.data, {"<0count": (0., "*")})
+        if float(self.data["<0speed"]) < 0:
+            self.data["<0speed"] = 0
+
+        if "[*params" in self.data:
+            self.syntax = self.syntax[:-1]
+
+        if "[@player" in self.data and self.data["[@player"] == Selector("@s"):
+            self.syntax = self.syntax[:-1]
+
+        if "[.mode" in self.data:
+            if self.data["[.mode"] != "force":
+                self.data["[.mode"] = "normal"
+
+            if self.syntax[-1] == "[.mode" and self.data["[.mode"] == "normal":
+                self.syntax = self.syntax[:-1]
+
+        if len(self.syntax) < 10 and self.data["<0xd"] == self.data["<0yd"] == self.data["<0zd"] == self.data["<0speed"] == "0" and ("[0count" not in self.data or self.data["[0count"] == "0"):
+            self.syntax = self.syntax[:4]
+
+        if self.data[self.syntax[0]] in ("blockdust", "blockcrack", "fallingdust") and "[*params" in self.data:
+            if len(self.data["[*params"].split(" ")) != 1:
+                raise SyntaxError(u"Only one param is allowed when using the {} particle".format(self.data[self.syntax[0]]))
+            try:
+                params = int(self.data["[*params"])
+            except ValueError:
+                raise SyntaxError(u"The param '{}' must be an integer".format(self.data["[*params"]))
+
+            modulo = params % 4096
+            if modulo not in Globals.value2block:
+                raise SyntaxError(u"There is no block with block value {} ({} % 4096)".format(modulo, self.data["[*params"]))
+            self.particleArg = block({"block": Globals.value2block[modulo], "state": str((params - modulo) / 4096)}, "block", "state")
+
+        elif self.data[self.syntax[0]] == "iconcrack" and "[*params" in self.data:
+            params = self.data["[*params"].split(" ")
+            if len(params) > 2:
+                raise SyntaxError(u"Only up to two params allowed when using the iconcrack particle")
+            try:
+                params = tuple(map(int, self.data["[*params"].split(" ")))
+            except ValueError:
+                raise SyntaxError(u"The params '{}' and '{}' must be integers".format(*params))
+
+            if params[0] < 256:
+                if params[0] not in Globals.value2block:
+                    raise SyntaxError(u"There is no block with block value {}".format(params[0]))
+                self.particleArg = block({"block": Globals.value2block[params[0]], "state": str(params[1]) if len(params) == 2 else "0"}, "block", "state")
+            else:  # todo items
+                if params[0] not in Globals.value2item:
+                    raise SyntaxError(u"There is no item with item value {}".format(params[0]))
+
+    def __unicode__(self):
+        particleName = self.data[self.syntax[0]]
+        if Globals.particles[particleName] is None:
+            Globals.flags["commentedOut"] = True
+            return u"#~ {} ||| The particle {} was removed".format(Master.__unicode__(self), particleName)
+
+        if particleName in ("blockdust", "blockcrack", "fallingdust", "iconcrack") and "[*params" in self.data:
+            return u"particle {} {} {}".format(Globals.particles[particleName], self.particleArg, u" ".join((unicode(self.data[word]) for word in self.syntax[1:])))
+
+        elif self.data[self.syntax[0]] in ("mobSpell", "mobSpellAmbient") and self.data["<0speed"] != "0" and ("[0count" not in self.data or self.data["[0count"] == "0"):
+            r, g, b = map(lambda x: float(self.data[x]) * float(self.data["<0speed"]), ("<0xd", "<0yd", "<0zd"))
+            r, g, b = map(lambda x: 0 if x < 0 else 1 if x > 1 else x, (r, g, b))
+            # return u"particle {} {} {} {} 1".format(Globals.particles[particleName], r, g, b)
+
+        elif self.data[self.syntax[0]] == "reddust" and self.data["<0speed"] != "0" and ("[0count" not in self.data or self.data["[0count"] == "0"):
+            pass  # todo reddust
+
+        return Master.__unicode__(self)
 
 
 class playsound(Master):
@@ -1193,14 +1298,19 @@ class reload(Master):
 
 
 class replaceitem(Master):
+    slots = "<({}".format("|".join(Globals.slots))
+
     def __init__(self, tokens):
         Master.__init__(self)
-        syntaxes = (("<(block", "<~x", "<~y", "<~z", "<.slot", "<.item", "[0amount", "[0data", "[{dataTag"),
-                    ("<(entity", "<@selector", "<.slot", "<.item", "[0amount", "[0data", "[{dataTag"))
+        syntaxes = (("<(block", "<~x", "<~y", "<~z", replaceitem.slots, "<.item", "[0amount", "[0data", "[{dataTag"),
+                    ("<(entity", "<@selector", replaceitem.slots, "<.item", "[0amount", "[0data", "[{dataTag"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.canAt, self.canAs = (canAt(self.data, "<~x", "<~y", "<~z"), False) if self.syntax == "<(block" else (self.data["<@selector"].canAt, True)
+        self.canAt, self.canAs = (canAt(self.data, "<~x", "<~y", "<~z"), False) if self.syntax[0] == "<(block" else (self.data["<@selector"].canAt, True)
 
-        item(self.data, "<.item", "[0data", "[{dataTag")
+        constraints(self.data, {"[0amount": (1, 64)})
+        self.item = item(self.data, "<.item", "[0data", "[{dataTag")
+
+        self.data[replaceitem.slots] = noPrefix(self.data[replaceitem.slots], prefix="slot.")
 
     def __unicode__(self):
         s = u"replaceitem"
@@ -1208,7 +1318,7 @@ class replaceitem(Master):
         for word in self.syntax[:self.syntax.index("<.item")]:
             s += u" {}".format(self.data[word])
 
-        s += u" {}{}".format(item(self.data, "<.item", "[0data", "[{dataTag"), self.data["[0amount"] if "[0amount" in self.data else "")
+        s += u" {}{}".format(self.item, self.data["[0amount"] if "[0amount" in self.data else "")
 
         return s
 
@@ -1249,12 +1359,14 @@ class say(Master):
 
 
 class scoreboard(Master):
+    sidebars = "<(list|sidebar|belowName|sidebar.team.{}".format("|sidebar.team.".join(Globals.colors))
+
     def __init__(self, tokens):
         Master.__init__(self)
         syntaxes = (("<(objectives", "<(list"),
-                    ("<(objectives", "<(add", "<.name", "<.criteria", "[*display"),
-                    ("<(objectives", "<(remove", "<.name"),
-                    ("<(objectives", "<(setdisplay", "<(list|sidebar|belowName|sidebar.team.black|sidebar.team.dark_blue|sidebar.team.dark_green|sidebar.team.dark_aqua|sidebar.team.dark_red|sidebar.team.dark_purple|sidebar.team.gold|sidebar.team.gray|sidebar.team.dark_gray|sidebar.team.blue|sidebar.team.green|sidebar.team.aqua|sidebar.team.red|sidebar.team.light_purple|sidebar.team.yellow|sidebar.team.white", "[(objective"),
+                    ("<(objectives", "<(add", "<.objective", "<.criteria", "[*display"),
+                    ("<(objectives", "<(remove", "<.objective"),
+                    ("<(objectives", "<(setdisplay", scoreboard.sidebars, "[.objective"),
 
                     ("<(players", "<(list", "[@entity"),
                     ("<(players", "<(list", "[(*"),
@@ -1285,6 +1397,16 @@ class scoreboard(Master):
                     ("<(teams", "<(option", "<.team", "<(nametagVisibility|deathMessageVisibility", "<(never|hideForOtherTeams|hideForOwnTeam|always"),
                     ("<(teams", "<(option", "<.team", "<(collisionRule", "<(always|never|pushOwnTeam|pushOtherTeams"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
+
+        if "<(add" in self.data:
+            lowered = map(lambda x: x.lower(), Globals.criteria)
+            if self.data["<.criteria"].lower() not in lowered:
+                raise SyntaxError(u"'{}' is not a valid objective type".format(self.data["<.criteria"]))
+            self.data["<.criteria"] = Globals.criteria[lowered.index(self.data["<.criteria"].lower())]
+
+            if "[*display" in self.data and len(self.data["[*display"]) > 32:
+                raise SyntaxError(u"'{}' is too long for an objective name (32 max)".format(self.data["[*display"]))
+
         if "[*entities" in self.data:
             self.data["[*entities"] = Selectors(self.data["[*entities"])
         for word in self.syntax:
@@ -1294,7 +1416,7 @@ class scoreboard(Master):
     def __unicode__(self):  # todo FakePlayerName, *
         if "<(test" in self.data:
             if "<(*" in self.data:
-                Globals.commentedOut = True
+                Globals.flags["commentedOut"] = True
                 return u"#~ There is no way to convert \'{}\' because of the \'*\'".format(Master.__unicode__(self))
             selectorCopy = self.data["<@entity"].copy()
 
@@ -1330,7 +1452,11 @@ class scoreboard(Master):
             return s
 
         if "[{dataTag" in self.data:
-            selectorCopy = self.data["<@entity"].copy()
+            if self.data["<@entity"].playerName:
+                selectorCopy = Selector(u"@p[name={}]".format(self.data["<@entity"]))
+            else:
+                selectorCopy = self.data["<@entity"].copy()
+
             selectorCopy.data["nbt"] = unicode(self.data["[{dataTag"])
             s = u"scoreboard"
             for key in self.syntax[:-1]:
@@ -1351,10 +1477,10 @@ class setblock(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt = canAt(self.data, "<~x", "<~y", "<~z")
 
-        block(self.data, "<.block", "[.dataValue", "[{dataTag")
+        self.block = block(self.data, "<.block", "[.dataValue", "[{dataTag")
 
     def __unicode__(self):
-        s = u"setblock {} {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"], block(self.data, "<.block", "[.dataValue", "[{dataTag"))
+        s = u"setblock {} {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"], self.block)
         if "[(destroy|keep|replace" in self.data and self.data["[(destroy|keep|replace"] != "replace":
             s += u" {}".format(self.data["[(destroy|keep|replace"])
         return s
@@ -1401,21 +1527,22 @@ class spreadplayers(Master):
 
 
 class stats(Master):
+    stat = "<({}".format("|".join(Globals.statTags))
+
     def __init__(self, tokens):
         Master.__init__(self)
-        self.statLabel = "<({}".format("|".join(Globals.statTags))
-        syntaxes = (("<(block", "<~x", "<~y", "<~z", "<(clear", self.statLabel),
-                    ("<(block", "<~x", "<~y", "<~z", "<(set", self.statLabel, "<@selector", "<.objective"),
-                    ("<(entity", "<@selector2", "<(clear", self.statLabel),
-                    ("<(entity", "<@selector2", "<(set", self.statLabel, "<@selector", "<.objective"))
+        syntaxes = (("<(block", "<~x", "<~y", "<~z", "<(clear", stats.stat),
+                    ("<(block", "<~x", "<~y", "<~z", "<(set", stats.stat, "<@selector", "<.objective"),
+                    ("<(entity", "<@selector2", "<(clear", stats.stat),
+                    ("<(entity", "<@selector2", "<(set", stats.stat, "<@selector", "<.objective"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = True, True
 
     def __unicode__(self):
-        Globals.commentedOut = True
+        Globals.flags["commentedOut"] = True
         if "<(clear" in self.data:
             return u"#~ {} ||| Clearing a stat is no longer needed".format(Master.__unicode__(self))
-        return u"#~ {} ||| Use \'execute store {} score {} {} run COMMAND\' on the commands that you want the stats from".format(Master.__unicode__(self), "success" if self.data[self.statLabel] == "SuccessCount" else "result", self.data["<@selector"], self.data["<.objective"])
+        return u"#~ {} ||| Use \'execute store {} score {} {} run COMMAND\' on the commands that you want the stats from".format(Master.__unicode__(self), "success" if self.data[stats.stat] == "SuccessCount" else "result", self.data["<@selector"], self.data["<.objective"])
 
 
 class stop(Master):
@@ -1432,12 +1559,13 @@ class stopsound(Master):
 
 
 class summon(Master):
+    summons = "<({}".format("|".join(Globals.summons))
+
     def __init__(self, tokens):
         Master.__init__(self)
-        tokens[0] = noNamespace(tokens[0])
-        entityName = "<({}".format("|".join(Globals.summons))
-        syntaxes = ((entityName, ),
-                    (entityName, "<~x", "<~y", "<~z", "[{dataTag"))
+        tokens[0] = noPrefix(tokens[0])
+        syntaxes = ((summon.summons, ),
+                    (summon.summons, "<~x", "<~y", "<~z", "[{dataTag"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt = "<~x" not in self.data or canAt(self.data, "<~x", "<~y", "<~z")
 
@@ -1513,12 +1641,17 @@ class testforblock(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt = canAt(self.data, "<~x", "<~y", "<~z")
 
+        if "[.dataValue" in self.data and self.data["[.dataValue"] in ("-1", "*"):  # todo -1, *
+            pass
+        else:
+            self.block = block(self.data, "<.block", "[.dataValue", "[{dataTag")
+
     def __unicode__(self):
         if "[.dataValue" in self.data and self.data["[.dataValue"] in ("-1", "*"):
             coords = u" {} {} {} ".format(self.data["<~x"], self.data["<~y"], self.data["<~z"])
-            return u"execute if block{}{}".format(coords, u" execute if block{}".format(coords).join(block(self.data, "<.block", "[{dataTag")))  # todo -1, *
+            return u"execute if block{}{}".format(coords, u" execute if block{}".format(coords).join(self.block))
 
-        return u"execute if block {} {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"], block(self.data, "<.block", "[.dataValue", "[{dataTag"))  # todo -1, *
+        return u"execute if block {} {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"], self.block)
 
 
 class testforblocks(Master):
@@ -1536,8 +1669,11 @@ class time(Master):
     def __init__(self, tokens):
         Master.__init__(self)
         syntaxes = (("<(add|set", "<0value"),
+                    ("<(set", "<(day|night"),
                     ("<(query", "<(daytime|gametime|day"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
+
+        constraints(self.data, {"<0value": (1, "*")})
 
 
 class title(Master):
@@ -1555,7 +1691,7 @@ class toggledownfall(Master):
         Master.__init__(self)
 
     def __unicode__(self):
-        Globals.commentedOut = True
+        Globals.flags["commentedOut"] = True
         return u"#~ toggledownfall ||| This command was removed"
 
 
@@ -1586,8 +1722,10 @@ class weather(Master):  # todo warn if duration not specified (changed behaviour
         syntaxes = (("<(clear|rain|thunder", "[0duration"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
 
-        if "[0duration" in self.data:
-            Globals.weatherFlag = True
+        if "[0duration" not in self.data:
+            Globals.flags['weather'] = True
+
+        constraints(self.data, {"[0duration": (1, 1000000)})
 
 
 class whitelist(Master):
@@ -1605,13 +1743,15 @@ class worldborder(Master):
         Master.__init__(self)
         syntaxes = (("<(add|set", "<0distance", "[0time"),
                     ("<(center", "<~x", "<~z"),
-                    ("<(damage", "<(amount", "<0damagePerBlock"),
-                    ("<(damage", "<(buffer", "<0distance"),
-                    ("<(get", ),
-                    ("<(warning", "<(distance", "<0distance"),
-                    ("<(warning", "<(time", "<0time"))
+                    ("<(damage", "<(amount|buffer", "<0value"),
+                    ("<(warning", "<(distance|time", "<0value"),
+                    ("<(get", ))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt = "<~x" in self.data and canAt(self.data, "<~x", "<~z")
+
+        if "<(add|set" in self.data and self.data["<(add|set"] == "set":
+            constraints(self.data, {"<0distance": (1., "*")})
+        constraints(self.data, {"[0time": (0, "*"), "<0value": (0., "*")})
 
 
 class xp(Master):
@@ -1621,10 +1761,14 @@ class xp(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = "[@player" in self.data and self.data["[@player"].canAt, True
 
+        if self.data["<%amount"][-1] != "L":
+            constraints(self.data, {"<%amount": (0, "*")})
+
     def __unicode__(self):
+        player = self.data["[@player"] if "[@player" in self.data else Selector("@s")
         if self.data["<%amount"][-1] == 'L':
-            return u"experience add {} {} levels".format(self.data["[@player"], self.data["<%amount"][:-1])
-        return u"experience add {} {}".format(self.data["[@player"], self.data["<%amount"])
+            return u"experience add {} {} levels".format(player, self.data["<%amount"][:-1])
+        return u"experience add {} {}".format(player, self.data["<%amount"])
 
 
 commandsMap = {command: eval(command.replace("-", "_")) for command in Globals.commands if command not in ("?", "msg", "tell")}
@@ -1649,10 +1793,11 @@ if __name__ == "__main__":
                     start = len(line) - len(line.lstrip())
                     if line[start] == '#':
                         continue
-                    Globals.commentedOut = False
-                    # Globals.weatherFlag = False
+                    Globals.flags["commentedOut"] = False
+                    Globals.flags["multiLine"] = False
+                    Globals.flags["weather"] = False
                     lines[lineNumber] = u"{}{}\n".format(line[:start], unicode(decide(line)))
-                    if Globals.commentedOut:
+                    if Globals.flags["commentedOut"]:
                         commentedOutFiles.append((fileName, lineNumber))
                     # if Gloals.weatherFlag:
         except SyntaxError as ex:
