@@ -323,6 +323,8 @@ def isNumber(s):
 def constraints(data, rules):
     for label, (low, high) in rules.items():
         if label in data:
+            if low == "*":
+                low = -2147483648
             if high == "*":
                 high = 2147483647
             valueType = type(low)
@@ -333,7 +335,7 @@ def constraints(data, rules):
                     else:
                         raise SyntaxError(u"{} has to be in range {}..{}".format(label[2:], low, high))
             except ValueError:
-                raise SyntaxError(u"{} has to be {}".format(label[2:], u"int" if valueType == int else u"float"))
+                raise SyntaxError(u"{} has to be {}".format(label[2:], u"float" if valueType == float else u"int"))
 
 
 def walk(node):
@@ -1069,7 +1071,7 @@ class gamemode(Master):
         return u"gamemode {}{}".format(self.data[s], " {}".format(self.data["[@player"]) if len(self.syntax) == 2 else "")
 
 
-class gamerule(Master):
+class gamerule(Master):  # ToDo validate value
     def __init__(self, tokens):
         Master.__init__(self)
         syntaxes = (("<.rule", "[.value"), )
@@ -1360,6 +1362,7 @@ class say(Master):
 
 class scoreboard(Master):
     sidebars = "<(list|sidebar|belowName|sidebar.team.{}".format("|sidebar.team.".join(Globals.colors))
+    colorsKey = "<(reset|{}".format("|".join(Globals.colors))
 
     def __init__(self, tokens):
         Master.__init__(self)
@@ -1369,36 +1372,36 @@ class scoreboard(Master):
                     ("<(objectives", "<(setdisplay", scoreboard.sidebars, "[.objective"),
 
                     ("<(players", "<(list", "[@entity"),
-                    ("<(players", "<(list", "[(*"),
+                    ("<(players", "<(list", "[(*"),  # NOT working
                     ("<(players", "<(set|add|remove", "<@entity", "<.objective", "<0score", "[{dataTag"),
-                    ("<(players", "<(set|add|remove", "<(*",      "<.objective", "<0score"),
+                    ("<(players", "<(set|add|remove", "<(*",      "<.objective", "<0score", "[{dataTag"),  # works WITHOUT dataTag
                     ("<(players", "<(reset", "<@entity", "[.objective"),
-                    ("<(players", "<(reset", "<(*",      "[.objective"),
-                    ("<(players", "<(enable", "<@entity", "<.trigger"),
-                    ("<(players", "<(enable", "<(*",      "<.trigger"),
+                    ("<(players", "<(reset", "<(*",      "[.objective"),  # works
+                    ("<(players", "<(enable", "<@entity", "<.objective"),
+                    ("<(players", "<(enable", "<(*",      "<.objective"),  # works
                     ("<(players", "<(test", "<@entity", "<.objective", "<.min", "[.max"),
-                    ("<(players", "<(test", "<(*",      "<.objective", "<.min", "[.max"),
+                    ("<(players", "<(test", "<(*",      "<.objective", "<.min", "[.max"),  # NOT working
                     ("<(players", "<(operation", "<@targetName", "<.targetObjective", "<(+=|-=|*=|/=|%=|=|<|>|><", "<@selector", "<.objective"),
-                    ("<(players", "<(operation", "<(*",          "<.targetObjective", "<(+=|-=|*=|/=|%=|=|<|>|><", "<@selector", "<.objective"),
-                    ("<(players", "<(operation", "<@targetName", "<.targetObjective", "<(+=|-=|*=|/=|%=|=|<|>|><", "<(*",        "<.objective"),
+                    ("<(players", "<(operation", "<(*",          "<.targetObjective", "<(+=|-=|*=|/=|%=|=|<|>|><", "<@selector", "<.objective"),  # NOT working
+                    ("<(players", "<(operation", "<@targetName", "<.targetObjective", "<(+=|-=|*=|/=|%=|=|<|>|><", "<(*",        "<.objective"),  # NOT working
 
                     ("<(players", "<(tag", "<@entity", "<(add|remove", "<.tagName", "[{dataTag"),
-                    ("<(players", "<(tag", "<(*",      "<(add|remove", "<.tagName"),
+                    ("<(players", "<(tag", "<(*",      "<(add|remove", "<.tagName", "[{dataTag"),  # NOT working
                     ("<(players", "<(tag", "<@entity", "<(list"),
-                    ("<(players", "<(tag", "<(*",      "<(list"),
+                    ("<(players", "<(tag", "<(*",      "<(list"),  # NOT working
 
                     ("<(teams", "<(list", "[.teamname"),
                     ("<(teams", "<(add", "<.name", "[*displayName"),
                     ("<(teams", "<(join", "<.name", "[*entities"),
                     ("<(teams", "<(remove|empty", "<.name"),
                     ("<(teams", "<(leave", "[*entities"),
-                    ("<(teams", "<(option", "<.team", "<(color", "<(black|dark_blue|dark_green|dark_aqua|dark_red|dark_purple|gold|gray|dark_gray|blue|green|aqua|red|light_purple|yellow|white|reset"),
+                    ("<(teams", "<(option", "<.team", "<(color", scoreboard.colorsKey),
                     ("<(teams", "<(option", "<.team", "<(friendlyfire|seeFriendlyInvisibles", "<(true|false"),
                     ("<(teams", "<(option", "<.team", "<(nametagVisibility|deathMessageVisibility", "<(never|hideForOtherTeams|hideForOwnTeam|always"),
                     ("<(teams", "<(option", "<.team", "<(collisionRule", "<(always|never|pushOwnTeam|pushOtherTeams"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
 
-        if "<(add" in self.data:
+        if "<.criteria" in self.data:
             lowered = map(lambda x: x.lower(), Globals.criteria)
             if self.data["<.criteria"].lower() not in lowered:
                 raise SyntaxError(u"'{}' is not a valid objective type".format(self.data["<.criteria"]))
@@ -1407,62 +1410,61 @@ class scoreboard(Master):
             if "[*display" in self.data and len(self.data["[*display"]) > 32:
                 raise SyntaxError(u"'{}' is too long for an objective name (32 max)".format(self.data["[*display"]))
 
+        if "<.min" in self.data:
+            rules = {}
+            if self.data["<.min"] != "*":
+                rules["<.min"] = ("*", "*")
+            if "[.max" in self.data and self.data["[.max"] != "*":
+                rules["[.max"] = ("*", "*")
+            constraints(self.data, rules)
+
         if "[*entities" in self.data:
             self.data["[*entities"] = Selectors(self.data["[*entities"])
+
         for word in self.syntax:
             if word[1] == '@' or word == "[*entities":
                 self.canAt, self.canAs = self.canAt or self.data[word].canAt, True
 
-    def __unicode__(self):  # todo FakePlayerName, *
-        if "<(test" in self.data:
-            if "<(*" in self.data:
+    def __unicode__(self):
+        if any(map(lambda x: x[2] == '*', self.syntax)):
+            if self.syntax[1] in ("<(list", "<(test", "<(operation", "<(tag") or "[{dataTag" in self.data:
                 Globals.flags["commentedOut"] = True
                 return u"#~ There is no way to convert \'{}\' because of the \'*\'".format(Master.__unicode__(self))
-            selectorCopy = self.data["<@entity"].copy()
 
-            low, high = self.data["<.min"], self.data["[.max"] if "[.max" in self.data else u'*'
+        if "<(test" in self.data:
+            low = self.data["<.min"] if self.data["<.min"] != "*" else u"" if "[.max" in self.data else u"-2147483648"
+            high = self.data["[.max"] if "[.max" in self.data and self.data["[.max"] != "*" else u""
+            if low == high == u"":
+                low = u"-2147483648"
 
-            if high == '*':
-                selectorCopy.data[u"score_{}_min".format(self.data["<.objective"])] = low if low != '*' else "-2147483648"
-            elif low == '*':
-                selectorCopy.data[u"score_{}".format(self.data["<.objective"])] = high
-            else:
-                selectorCopy.data[u"score_{}_min".format(self.data["<.objective"])] = low
-                selectorCopy.data[u"score_{}".format(self.data["<.objective"])] = high
+            return u"execute if score {} {} matches {}..{}".format(self.data["<@entity"], self.data["<.objective"], low, high)
 
-            return u"execute if entity {}".format(selectorCopy)
-
-        if "<(teams" in self.data:
-            s = u"team"
-            for key in self.syntax[1:]:
-                s += u" {}".format(self.data[key])
-            return s
-
-        if "<(tag" in self.data:
-            if "[{dataTag" in self.data:
-                selectorCopy = self.data["<@entity"].copy()
-                selectorCopy.data["nbt"] = unicode(self.data["[{dataTag"])
-                end = -1
-            else:
-                selectorCopy = self.data["<@entity"]
-                end = len(self.syntax)
-            s = u"tag"
-            for key in self.syntax[2:end]:
-                s += u" {}".format(self.data[key] if key != "<@entity" else selectorCopy)
-            return s
-
+        end = len(self.syntax)
         if "[{dataTag" in self.data:
             if self.data["<@entity"].playerName:
                 selectorCopy = Selector(u"@p[name={}]".format(self.data["<@entity"]))
             else:
                 selectorCopy = self.data["<@entity"].copy()
-
             selectorCopy.data["nbt"] = unicode(self.data["[{dataTag"])
+            end = -1
+        elif "<@entity" in self.data:
+            selectorCopy = self.data["<@entity"]
+        else:
+            selectorCopy = u"ThisWillNeverHappen"
+
+        if "<(teams" in self.data:
+            s = u"team"
+            syntax = self.syntax[1:]
+        elif "<(tag" in self.data:
+            s = u"tag"
+            syntax = self.syntax[2:end]
+        else:
             s = u"scoreboard"
-            for key in self.syntax[:-1]:
-                s += u" {}".format(self.data[key] if key != "<@entity" else selectorCopy)
-            return s
-        return Master.__unicode__(self)
+            syntax = self.syntax[:end]
+
+        for key in syntax:
+            s += u" {}".format(self.data[key] if key != "<@entity" else selectorCopy)
+        return s
 
 
 class seed(Master):

@@ -135,7 +135,9 @@ class Selector(TestBase):
                     self.assertRaises(SyntaxError, lambda: converter.Selector("@{}[{}]".format(sType, ",".join(map(lambda x: "{}={}".format(x[0], x[1]), argPairsPerm)))), True)
         self.assertStats()
 
-        # todo test_convert
+    @skip("Not implemented")
+    def test_syntax_convert(self):
+        pass
 
 
 class Advancement(TestBase):
@@ -308,7 +310,6 @@ class Clear(TestBase):
             self.decide(perm)
         self.assertStats()
 
-    @skip("Not implemented")
     def test_syntax1_nok(self):
         perms = ("clear @c stone 1 42 {abc:def}",
                  "clear @s aaaaa 1 42 {abc:def}",
@@ -1645,7 +1646,6 @@ class Give(TestBase):
             self.decide(perm)
         self.assertStats()
 
-    @skip("Not implemented")
     def test_syntax1_nok(self):
         perms = ("give",
                  "give @s",
@@ -2091,7 +2091,6 @@ class ReplaceItem(TestBase):
             self.decide(perm)
         self.assertStats()
 
-    @skip("Not implemented")
     def test_syntax1_nok(self):
         perms = ("replaceitem",
                  "replaceitem aaaaa 1 ~-1 ~1 slot.armor.chest stone 5 1 {abc:def}",
@@ -2327,13 +2326,13 @@ class Scoreboard(TestBase):
     def test_syntax5_convert(self):
         tests = ((converter.decide("scoreboard players list"), "scoreboard players list"),
                  (converter.decide("scoreboard players list @s"), "scoreboard players list @s"),
-                 (converter.decide("scoreboard players list *"), "scoreboard players list *"))
+                 (converter.decide("scoreboard players list *"), "#~ There is no way to convert \'scoreboard players list *\' because of the \'*\'"))
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
 
     def test_syntax6_ok(self):
-        perms = generate_perms(["scoreboard", "players", ["set", "add", "remove"], "@s", "anObjective", "1", "{abc:def}"], optional=1)
+        perms = generate_perms(["scoreboard", "players", ["set", "add", "remove"], ["@s", "*"], "anObjective", "1", "{abc:def}"], optional=1)
         for perm in perms:
             self.decide(perm)
         self.assertStats()
@@ -2341,15 +2340,21 @@ class Scoreboard(TestBase):
     def test_syntax6_nok(self):
         perms = ("scoreboard",
                  "scoreboard aaaaaaa set @s anObjective 1 {abc:def}",
+                 "scoreboard aaaaaaa set * anObjective 1 {abc:def}",
                  "scoreboard players",
                  "scoreboard players aaa @s anObjective 1 {abc:def}",
+                 "scoreboard players aaa * anObjective 1 {abc:def}",
                  "scoreboard players set",
                  "scoreboard players set @c anObjective 1 {abc:def}",
                  "scoreboard players set @s",
                  "scoreboard players set @s anObjective",
+                 "scoreboard players set * anObjective",
                  "scoreboard players set @s anObjective a {abc:def}",
+                 "scoreboard players set * anObjective a {abc:def}",
                  "scoreboard players set @s anObjective 1 aaaaaaaaa",
-                 "scoreboard players set @s anObjective 1 {abc:def} ImNotSupposedToBeHere")
+                 "scoreboard players set * anObjective 1 aaaaaaaaa",
+                 "scoreboard players set @s anObjective 1 {abc:def} ImNotSupposedToBeHere",
+                 "scoreboard players set * anObjective 1 {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
             self.assertRaises(SyntaxError, perm)
         self.assertStats()
@@ -2363,34 +2368,385 @@ class Scoreboard(TestBase):
                  (converter.decide("scoreboard players add Carl anObjective 1 {abc:def}"), "scoreboard players add @p[name=Carl,nbt={abc:def}] anObjective 1"),
                  (converter.decide("scoreboard players remove @s anObjective 1"), "scoreboard players remove @s anObjective 1"),
                  (converter.decide("scoreboard players remove @s anObjective 1 {abc:def}"), "scoreboard players remove @s[nbt={abc:def}] anObjective 1"),
-                 (converter.decide("scoreboard players remove Carl anObjective 1 {abc:def}"), "scoreboard players remove @p[name=Carl,nbt={abc:def}] anObjective 1"))
+                 (converter.decide("scoreboard players remove Carl anObjective 1 {abc:def}"), "scoreboard players remove @p[name=Carl,nbt={abc:def}] anObjective 1"),
+
+                 (converter.decide("scoreboard players set * anObjective 1"), "scoreboard players set * anObjective 1"),
+                 (converter.decide("scoreboard players set * anObjective 1 {abc:def}"), "#~ There is no way to convert \'scoreboard players set * anObjective 1 {abc:def}\' because of the \'*\'"),
+                 (converter.decide("scoreboard players add * anObjective 1"), "scoreboard players add * anObjective 1"),
+                 (converter.decide("scoreboard players add * anObjective 1 {abc:def}"), "#~ There is no way to convert \'scoreboard players add * anObjective 1 {abc:def}\' because of the \'*\'"),
+                 (converter.decide("scoreboard players remove * anObjective 1"), "scoreboard players remove * anObjective 1"),
+                 (converter.decide("scoreboard players remove * anObjective 1 {abc:def}"), "#~ There is no way to convert \'scoreboard players remove * anObjective 1 {abc:def}\' because of the \'*\'"))
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
 
     def test_syntax7_ok(self):
-        perms = generate_perms(["scoreboard", "players", ["set", "add", "remove"], "*", "anObjective", "1",])
+        perms = generate_perms(["scoreboard", "players", "reset", ["@s", "*"], "anObjective"], optional=1)
         for perm in perms:
             self.decide(perm)
         self.assertStats()
 
     def test_syntax7_nok(self):
         perms = ("scoreboard",
-                 "scoreboard aaaaaaa set * anObjective 1",
+                 "scoreboard aaaaaaa reset @s anObjective",
+                 "scoreboard aaaaaaa reset * anObjective",
                  "scoreboard players",
-                 "scoreboard players aaa * anObjective 1",
-                 "scoreboard players set",
-                 "scoreboard players set *",
-                 "scoreboard players set * anObjective a",
-                 "scoreboard players set * anObjective 1 ImNotSupposedToBeHere")
+                 "scoreboard players aaaaa @s anObjective",
+                 "scoreboard players aaaaa * anObjective",
+                 "scoreboard players reset",
+                 "scoreboard players reset @c anObjective",
+                 "scoreboard players reset @s anObjective ImNotSupposedToBeHere",
+                 "scoreboard players reset * anObjective ImNotSupposedToBeHere")
         for perm in perms:
             self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax7_convert(self):
-        tests = ((converter.decide("scoreboard players set * anObjective 1"), "scoreboard players set * anObjective 1"),
-                 (converter.decide("scoreboard players add * anObjective 1"), "scoreboard players add * anObjective 1"),
-                 (converter.decide("scoreboard players remove * anObjective 1"), "scoreboard players remove * anObjective 1"))
+        tests = ((converter.decide("scoreboard players reset @s"), "scoreboard players reset @s"),
+                 (converter.decide("scoreboard players reset @s anObjective"), "scoreboard players reset @s anObjective"),
+                 (converter.decide("scoreboard players reset *"), "scoreboard players reset *"),
+                 (converter.decide("scoreboard players reset * anObjective"), "scoreboard players reset * anObjective"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax8_ok(self):
+        perms = generate_perms(["scoreboard", "players", "enable", ["@s", "*"], "anObjective"])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax8_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaaaa enable @s anObjective",
+                 "scoreboard aaaaaaa enable * anObjective",
+                 "scoreboard players",
+                 "scoreboard players aaaaaa @s anObjective",
+                 "scoreboard players aaaaaa * anObjective",
+                 "scoreboard players enable",
+                 "scoreboard players enable @c anObjective",
+                 "scoreboard players enable @s",
+                 "scoreboard players enable @s anObjective ImNotSupposedToBeHere",
+                 "scoreboard players enable * anObjective ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax8_convert(self):
+        tests = ((converter.decide("scoreboard players enable @s anObjective"), "scoreboard players enable @s anObjective"),
+                 (converter.decide("scoreboard players enable * anObjective"), "scoreboard players enable * anObjective"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax9_ok(self):
+        perms = generate_perms(["scoreboard", "players", "test", ["@s", "*"], "anObjective", ["1", "*"], ["1", "*"]], optional=1)
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax9_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaaaa test @s anObjective 1 2",
+                 "scoreboard aaaaaaa test * anObjective 1 2",
+                 "scoreboard players",
+                 "scoreboard players aaaa @s anObjective 1 2",
+                 "scoreboard players aaaa * anObjective 1 2",
+                 "scoreboard players test",
+                 "scoreboard players test @c anObjective 1 2",
+                 "scoreboard players test @s",
+                 "scoreboard players test @s anObjective",
+                 "scoreboard players test @s anObjective a 2",
+                 "scoreboard players test * anObjective a 2",
+                 "scoreboard players test @s anObjective 1 a",
+                 "scoreboard players test * anObjective 1 a",
+                 "scoreboard players test @s anObjective 1 2 ImNotSupposedToBeHere",
+                 "scoreboard players test * anObjective 1 2 ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax9_convert(self):
+        tests = ((converter.decide("scoreboard players test @s anObjective 1"), "execute if score @s anObjective matches 1.."),
+                 (converter.decide("scoreboard players test @s anObjective 1 *"), "execute if score @s anObjective matches 1.."),
+                 (converter.decide("scoreboard players test @s anObjective 1 2"), "execute if score @s anObjective matches 1..2"),
+                 (converter.decide("scoreboard players test @s anObjective * 2"), "execute if score @s anObjective matches ..2"),
+                 (converter.decide("scoreboard players test @s anObjective * *"), "execute if score @s anObjective matches -2147483648.."),
+                 (converter.decide("scoreboard players test @s anObjective *"), "execute if score @s anObjective matches -2147483648.."),
+                 (converter.decide("scoreboard players test * anObjective 1 2"), "#~ There is no way to convert \'scoreboard players test * anObjective 1 2\' because of the \'*\'"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax10_ok(self):
+        perms = generate_perms(["scoreboard", "players", "operation", "@s", "anObjective", ["+=", "-=", "*=", "/=", "%=", "=", "<", ">", "><"], "@s", "aObjective"])
+        perms.update(generate_perms(["scoreboard", "players", "operation", "*", "anObjective", ["+=", "-=", "*=", "/=", "%=", "=", "<", ">", "><"], "@s", "aObjective"]))
+        perms.update(generate_perms(["scoreboard", "players", "operation", "@s", "anObjective", ["+=", "-=", "*=", "/=", "%=", "=", "<", ">", "><"], "*", "aObjective"]))
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax10_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaaaa operation @s anObjective += @s aObjective",
+                 "scoreboard aaaaaaa operation * anObjective += @s aObjective",
+                 "scoreboard aaaaaaa operation @s anObjective += * aObjective",
+                 "scoreboard players",
+                 "scoreboard players aaaaaaaaa @s anObjective += @s aObjective",
+                 "scoreboard players aaaaaaaaa * anObjective += @s aObjective",
+                 "scoreboard players aaaaaaaaa @s anObjective += * aObjective",
+                 "scoreboard players operation",
+                 "scoreboard players operation @c anObjective += @s aObjective",
+                 "scoreboard players operation @c anObjective += * aObjective",
+                 "scoreboard players operation @s",
+                 "scoreboard players operation @s anObjective",
+                 "scoreboard players operation @s anObjective aa @s aObjective",
+                 "scoreboard players operation * anObjective aa @s aObjective",
+                 "scoreboard players operation @s anObjective aa * aObjective",
+                 "scoreboard players operation @s anObjective +=",
+                 "scoreboard players operation @s anObjective += @c aObjective",
+                 "scoreboard players operation * anObjective += @c aObjective",
+                 "scoreboard players operation @s anObjective += @s",
+                 "scoreboard players operation @s anObjective += @s aObjective ImNotSupposedToBeHere",
+                 "scoreboard players operation * anObjective += @s aObjective ImNotSupposedToBeHere",
+                 "scoreboard players operation @s anObjective += * aObjective ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax10_convert(self):
+        tests = ((converter.decide("scoreboard players operation @s anObjective += @s aObjective"), "scoreboard players operation @s anObjective += @s aObjective"),
+                 (converter.decide("scoreboard players operation * anObjective += @s aObjective"), "#~ There is no way to convert \'scoreboard players operation * anObjective += @s aObjective\' because of the \'*\'"),
+                 (converter.decide("scoreboard players operation @s anObjective += * aObjective"), "#~ There is no way to convert \'scoreboard players operation @s anObjective += * aObjective\' because of the \'*\'"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax11_ok(self):
+        perms = generate_perms(["scoreboard", "players", "tag", ["@s", "*"], ["add", "remove"], "aTag", "{abc:def}"], optional=1)
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax11_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaaaa tag @s add aTag {abc:def}",
+                 "scoreboard aaaaaaa tag * add aTag {abc:def}",
+                 "scoreboard players",
+                 "scoreboard players aaa @s add aTag {abc:def}",
+                 "scoreboard players aaa * add aTag {abc:def}",
+                 "scoreboard players tag",
+                 "scoreboard players tag @c add aTag {abc:def}",
+                 "scoreboard players tag @s",
+                 "scoreboard players tag @s aaa aTag {abc:def}",
+                 "scoreboard players tag * aaa aTag {abc:def}",
+                 "scoreboard players tag @s add",
+                 "scoreboard players tag @s add aTag aaaaaaaaa",
+                 "scoreboard players tag * add aTag aaaaaaaaa",
+                 "scoreboard players tag @s add aTag {abc:def} ImNotSupposedToBeHere",
+                 "scoreboard players tag * add aTag {abc:def} ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax11_convert(self):
+        tests = ((converter.decide("scoreboard players tag @s add aTag"), "tag @s add aTag"),
+                 (converter.decide("scoreboard players tag * add aTag"), "#~ There is no way to convert \'scoreboard players tag * add aTag\' because of the \'*\'"),
+                 (converter.decide("scoreboard players tag @s add aTag {abc:def}"), "tag @s[nbt={abc:def}] add aTag"),
+                 (converter.decide("scoreboard players tag * add aTag {abc:def}"), "#~ There is no way to convert \'scoreboard players tag * add aTag {abc:def}\' because of the \'*\'"),
+                 (converter.decide("scoreboard players tag Carl add aTag {abc:def}"), "tag @p[name=Carl,nbt={abc:def}] add aTag"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax12_ok(self):
+        perms = generate_perms(["scoreboard", "players", "tag", ["@s", "*"], "list"])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax12_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaaaa tag @s list",
+                 "scoreboard aaaaaaa tag * list",
+                 "scoreboard players",
+                 "scoreboard players aaa @s list",
+                 "scoreboard players aaa * list",
+                 "scoreboard players tag",
+                 "scoreboard players tag @c list",
+                 "scoreboard players tag @s",
+                 "scoreboard players tag @s aaaa",
+                 "scoreboard players tag * aaaa",
+                 "scoreboard players tag @s list ImNotSupposedToBeHere",
+                 "scoreboard players tag * list ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax12_convert(self):
+        tests = ((converter.decide("scoreboard players tag @s list"), "tag @s list"),
+                 (converter.decide("scoreboard players tag * list"), "#~ There is no way to convert \'scoreboard players tag * list\' because of the \'*\'"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax13_ok(self):
+        perms = generate_perms(["scoreboard", "teams", "list", "aName"], optional=1)
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax13_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaa list aName",
+                 "scoreboard teams",
+                 "scoreboard teams aaaa aName",
+                 "scoreboard teams list aName ImNotSupposedToBeHere",
+                 "scoreboard teams list aName ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax13_convert(self):
+        tests = ((converter.decide("scoreboard teams list"), "team list"),
+                 (converter.decide("scoreboard teams list aName"), "team list aName"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax14_ok(self):
+        perms = generate_perms(["scoreboard", "teams", "add", "aName", ["TeamName", "Team name"]], optional=1)
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax14_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaa add aName TeamName",
+                 "scoreboard teams",
+                 "scoreboard teams aaa aName TeamName",
+                 "scoreboard teams add")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax14_convert(self):
+        tests = ((converter.decide("scoreboard teams add aName"), "team add aName"),
+                 (converter.decide("scoreboard teams add aName TeamName"), "team add aName TeamName"),
+                 (converter.decide("scoreboard teams add aName Team Name"), "team add aName Team Name"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax15_ok(self):
+        perms = generate_perms(["scoreboard", "teams", "join", "aName", ["@s", "@s @e"]], optional=1)
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax15_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaa join aName @s",
+                 "scoreboard teams",
+                 "scoreboard teams aaaa aName @s",
+                 "scoreboard teams join",
+                 "scoreboard teams join aName @c",
+                 "scoreboard teams join aName @s @c",
+                 "scoreboard teams join aName @c @s")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax15_convert(self):
+        tests = ((converter.decide("scoreboard teams join aName"), "team join aName"),
+                 (converter.decide("scoreboard teams join aName @s"), "team join aName @s"),
+                 (converter.decide("scoreboard teams join aName @s @e[c=1]"), "team join aName @s @e[limit=1,sort=nearest]"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax16_ok(self):
+        perms = generate_perms(["scoreboard", "teams", ["remove", "empty"], "aName"])
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax16_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaa remove aName",
+                 "scoreboard teams",
+                 "scoreboard teams aaaaaa aName",
+                 "scoreboard teams remove",
+                 "scoreboard teams remove aName ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax16_convert(self):
+        tests = ((converter.decide("scoreboard teams remove aName"), "team remove aName"),
+                 (converter.decide("scoreboard teams empty aName"), "team empty aName"))
+        for before, after in tests:
+            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        self.assertStats()
+
+    def test_syntax17_ok(self):
+        perms = generate_perms(["scoreboard", "teams", "option", "aTeam", "color", ["reset"]+list(converter.Globals.colors)])
+        perms.update(generate_perms(["scoreboard", "teams", "option", "aTeam", ["friendlyfire", "seeFriendlyInvisibles"], ["true", "false"]]))
+        perms.update(generate_perms(["scoreboard", "teams", "option", "aTeam", ["nametagVisibility", "deathMessageVisibility"], ["never", "hideForOtherTeams", "hideForOwnTeam", "always"]]))
+        perms.update(generate_perms(["scoreboard", "teams", "option", "aTeam", ["collisionRule"], ["always", "never", "pushOwnTeam", "pushOtherTeams"]]))
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax17_nok(self):
+        perms = ("scoreboard",
+                 "scoreboard aaaaa option aTeam color reset",
+                 "scoreboard teams",
+                 "scoreboard teams aaaaaa aTeam color reset",
+                 "scoreboard teams option",
+                 "scoreboard teams option aTeam",
+                 "scoreboard teams option aTeam aaaaa reset",
+                 "scoreboard teams option aTeam color",
+                 "scoreboard teams option aTeam color aaaaa",
+                 "scoreboard teams option aTeam color reset ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, perm)
+        self.assertStats()
+
+    def test_syntax17_convert(self):
+        tests = ((converter.decide("scoreboard teams option aTeam color reset"), "team option aTeam color reset"),
+                 (converter.decide("scoreboard teams option aTeam color aqua"), "team option aTeam color aqua"),
+                 (converter.decide("scoreboard teams option aTeam color black"), "team option aTeam color black"),
+                 (converter.decide("scoreboard teams option aTeam color blue"), "team option aTeam color blue"),
+                 (converter.decide("scoreboard teams option aTeam color dark_aqua"), "team option aTeam color dark_aqua"),
+                 (converter.decide("scoreboard teams option aTeam color dark_blue"), "team option aTeam color dark_blue"),
+                 (converter.decide("scoreboard teams option aTeam color dark_gray"), "team option aTeam color dark_gray"),
+                 (converter.decide("scoreboard teams option aTeam color dark_green"), "team option aTeam color dark_green"),
+                 (converter.decide("scoreboard teams option aTeam color dark_purple"), "team option aTeam color dark_purple"),
+                 (converter.decide("scoreboard teams option aTeam color dark_red"), "team option aTeam color dark_red"),
+                 (converter.decide("scoreboard teams option aTeam color gold"), "team option aTeam color gold"),
+                 (converter.decide("scoreboard teams option aTeam color gray"), "team option aTeam color gray"),
+                 (converter.decide("scoreboard teams option aTeam color green"), "team option aTeam color green"),
+                 (converter.decide("scoreboard teams option aTeam color light_purple"), "team option aTeam color light_purple"),
+                 (converter.decide("scoreboard teams option aTeam color red"), "team option aTeam color red"),
+                 (converter.decide("scoreboard teams option aTeam color white"), "team option aTeam color white"),
+                 (converter.decide("scoreboard teams option aTeam color yellow"), "team option aTeam color yellow"),
+                 (converter.decide("scoreboard teams option aTeam friendlyfire true"), "team option aTeam friendlyfire true"),
+                 (converter.decide("scoreboard teams option aTeam friendlyfire false"), "team option aTeam friendlyfire false"),
+                 (converter.decide("scoreboard teams option aTeam seeFriendlyInvisibles true"), "team option aTeam seeFriendlyInvisibles true"),
+                 (converter.decide("scoreboard teams option aTeam seeFriendlyInvisibles false"), "team option aTeam seeFriendlyInvisibles false"),
+                 (converter.decide("scoreboard teams option aTeam nametagVisibility never"), "team option aTeam nametagVisibility never"),
+                 (converter.decide("scoreboard teams option aTeam nametagVisibility hideForOtherTeams"), "team option aTeam nametagVisibility hideForOtherTeams"),
+                 (converter.decide("scoreboard teams option aTeam nametagVisibility hideForOwnTeam"), "team option aTeam nametagVisibility hideForOwnTeam"),
+                 (converter.decide("scoreboard teams option aTeam nametagVisibility always"), "team option aTeam nametagVisibility always"),
+                 (converter.decide("scoreboard teams option aTeam deathMessageVisibility never"), "team option aTeam deathMessageVisibility never"),
+                 (converter.decide("scoreboard teams option aTeam deathMessageVisibility hideForOtherTeams"), "team option aTeam deathMessageVisibility hideForOtherTeams"),
+                 (converter.decide("scoreboard teams option aTeam deathMessageVisibility hideForOwnTeam"), "team option aTeam deathMessageVisibility hideForOwnTeam"),
+                 (converter.decide("scoreboard teams option aTeam deathMessageVisibility always"), "team option aTeam deathMessageVisibility always"),
+                 (converter.decide("scoreboard teams option aTeam collisionRule always"), "team option aTeam collisionRule always"),
+                 (converter.decide("scoreboard teams option aTeam collisionRule never"), "team option aTeam collisionRule never"),
+                 (converter.decide("scoreboard teams option aTeam collisionRule pushOwnTeam"), "team option aTeam collisionRule pushOwnTeam"),
+                 (converter.decide("scoreboard teams option aTeam collisionRule pushOtherTeams"), "team option aTeam collisionRule pushOtherTeams"))
         for before, after in tests:
             self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
         self.assertStats()
