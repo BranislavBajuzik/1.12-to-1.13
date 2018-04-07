@@ -623,11 +623,11 @@ class Selector(object):
                     del self.data['c']
 
             if 'c' in self.data:
-                tmp = int(self.data['c'])
-                if tmp == 0:
+                tmpCount = int(self.data['c'])
+                if tmpCount == 0:
                     del self.data['c']
-                elif tmp < 0:
-                    self.data['c'] = str(-tmp)
+                elif tmpCount < 0:
+                    self.data['c'] = str(-tmpCount)
                     if self.target != 'r':
                         self.data["sort"] = "furthest"
                 else:
@@ -655,6 +655,14 @@ class Selector(object):
             return u"@{}".format(self.target)
         return u"@{}[{}]".format(self.target, u",".join(futurizeSelector(self.data)))
 
+    def isSingle(self):
+        if self.playerName or self.target in ("s", "p"):
+            return True
+
+        if "c" in self.data:
+            return self.data["c"] in ("1", "-1")
+        return self.target == "r"
+
     def __repr__(self):
         return self.__unicode__()
 
@@ -672,13 +680,13 @@ class Selector(object):
             return self.__unicode__()
 
     def copy(self):
-        ret = Selector("tmp")
-        ret.raw = self.raw
-        ret.canAt = self.canAt
-        ret.target = self.target
-        ret.data = dict(self.data)
-        ret.playerName = self.playerName
-        return ret
+        selectorCopy = Selector("tmp")
+        selectorCopy.raw = self.raw
+        selectorCopy.canAt = self.canAt
+        selectorCopy.target = self.target
+        selectorCopy.data = dict(self.data)
+        selectorCopy.playerName = self.playerName
+        return selectorCopy
 
 
 class Selectors(object):
@@ -721,14 +729,17 @@ class advancement(Master):
 
     def __unicode__(self):
         if "<(test" in self.data:
-            selectorCopy = self.data["<@player"].copy()
+            if self.data["<@player"].playerName:
+                selectorCopy = Selector(u"@p[name={}]".format(self.data["<@player"]))
+            else:
+                selectorCopy = self.data["<@player"].copy()
+
             if "[.criterion" not in self.data:
                 selectorCopy.data["advancements"] = u"{{{}=true}}".format(self.data["<.advancement"])
             else:
                 selectorCopy.data["advancements"] = u"{{{}={{{}=true}}}}".format(self.data["<.advancement"], self.data["[.criterion"])
 
             return u"execute if entity {}".format(selectorCopy)
-
         return Master.__unicode__(self)
 
 
@@ -817,16 +828,18 @@ class defaultgamemode(Master):
 
     def __unicode__(self):
         s = "<(0|1|2|3|s|c|a|sp|survival|creative|adventure|spectator"
-        if self.data[s] == '0' or self.data[s] == 's':
-            self.data[s] = "survival"
-        elif self.data[s] == '1' or self.data[s] == 'c':
-            self.data[s] = "creative"
-        elif self.data[s] == '2' or self.data[s] == 'a':
-            self.data[s] = "adventure"
+        if self.data[s] in ('0', 's'):
+            mode = "survival"
+        elif self.data[s] in ('1', 'c'):
+            mode = "creative"
+        elif self.data[s] in ('2', 'a'):
+            mode = "adventure"
         elif self.data[s] == '3' or self.data[s] == 'sp':
-            self.data[s] = "spectator"
+            mode = "spectator"
+        else:
+            mode = self.data[s]
 
-        return u"defaultgamemode {}".format(self.data[s])
+        return u"defaultgamemode {}".format(mode)
 
 
 class deop(Master):
@@ -844,17 +857,19 @@ class difficulty(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
 
     def __unicode__(self):
-        s = u"<(0|1|2|3|p|e|n|h|peaceful|easy|normal|hard"
-        if self.data[s] == '0' or self.data[s] == 'p':
-            self.data[s] = "peaceful"
-        elif self.data[s] == '1' or self.data[s] == 'e':
-            self.data[s] = "easy"
-        elif self.data[s] == '2' or self.data[s] == 'n':
-            self.data[s] = "normal"
-        elif self.data[s] == '3' or self.data[s] == 'h':
-            self.data[s] = "hard"
+        s = "<(0|1|2|3|p|e|n|h|peaceful|easy|normal|hard"
+        if self.data[s] in ('0', 'p'):
+            mode = "peaceful"
+        elif self.data[s] in ('1', 'e'):
+            mode = "easy"
+        elif self.data[s] in ('2', 'n'):
+            mode = "normal"
+        elif self.data[s] in ('3', 'h'):
+            mode = "hard"
+        else:
+            mode = self.data[s]
 
-        return u"difficulty {}".format(self.data[s])
+        return u"difficulty {}".format(mode)
 
 
 class effect(Master):
@@ -870,7 +885,7 @@ class effect(Master):
         constraints(self.data, {"[0seconds": (0, 1000000), "[0amplifier": (0, 255)})
 
     def __unicode__(self):
-        if self.syntax[1] == "<(clear":
+        if "<(clear" in self.data:
             return u"effect clear {}".format(self.data["<@player"])
 
         if "[0seconds" in self.data and self.data["[0seconds"] == "0":
@@ -920,7 +935,6 @@ class execute(Master):
         else:
             syntaxes = (("<@entity", "<~x", "<~y", "<~z", "<*command"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.s = not self.data["<@entity"].playerName and self.data["<@entity"].target == "s"
 
         self.data["<*command"] = self.data["<*command"][1:] if self.data["<*command"][0] == '/' else self.data["<*command"]
         self.data["<*command"] = decide(self.data["<*command"])
@@ -950,7 +964,7 @@ class execute(Master):
             else:
                 detect += u" if block {} {} {} {}".format(self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], self.block)
 
-        if not self.data["<@entity"].playerName and self.data["<@entity"].target == "s":
+        if not self.data["<@entity"].playerName and self.data["<@entity"].target == "s":  # ToDo position reset by execute @s ~ ~ ~
             selectorArgs = len(self.data["<@entity"].data)
 
             if self.canAt and self.canAs:
@@ -1044,8 +1058,14 @@ class function(Master):
         self.canAt, self.canAs = True, True
 
     def __unicode__(self):
-        if "<(if|unless" not in self.data or self.data["<@selector"] == Selector("@s"):
-            return u"function {}".format(self.data["<.function"])
+        if "<(if|unless" not in self.data:
+            return Master.__unicode__(self)
+
+        if self.data["<@selector"] == Selector("@s"):
+            if self.data["<(if|unless"] == "if":
+                return u"function {}".format(self.data["<.function"])
+            Globals.flags["commentedOut"] = True
+            return u"#~ {} ||| unless @s will always fail".format(Master.__unicode__(self))
         return u"execute {} entity {} run function {}".format(self.data["<(if|unless"], self.data["<@selector"], self.data["<.function"])
 
 
@@ -1059,16 +1079,18 @@ class gamemode(Master):
 
     def __unicode__(self):
         s = "<(0|1|2|3|s|c|a|sp|survival|creative|adventure|spectator"
-        if self.data[s] == '0' or self.data[s] == 's':
-            self.data[s] = "survival"
-        elif self.data[s] == '1' or self.data[s] == 'c':
-            self.data[s] = "creative"
-        elif self.data[s] == '2' or self.data[s] == 'a':
-            self.data[s] = "adventure"
+        if self.data[s] in ('0', 's'):
+            mode = "survival"
+        elif self.data[s] in ('1', 'c'):
+            mode = "creative"
+        elif self.data[s] in ('2', 'a'):
+            mode = "adventure"
         elif self.data[s] == '3' or self.data[s] == 'sp':
-            self.data[s] = "spectator"
+            mode = "spectator"
+        else:
+            mode = self.data[s]
 
-        return u"gamemode {}{}".format(self.data[s], " {}".format(self.data["[@player"]) if len(self.syntax) == 2 else "")
+        return u"gamemode {}{}".format(mode, u" {}".format(self.data["[@player"]) if len(self.syntax) == 2 else u"")
 
 
 class gamerule(Master):  # ToDo validate value
@@ -1157,7 +1179,8 @@ class locate(Master):
         if self.data[self.syntax[0]] != "Temple":
             return Master.__unicode__(self)
         Globals.flags["multiLine"] = True
-        return u"locate {}".format(u"\nlocate ".join(('Desert_Pyramid', 'Igloo', 'Jungle_Pyramid', 'Swamp_Hut')))
+        return u"#~ The splitting of this command can produce different results if used with stats\nlocate {}".format(
+            u"\nlocate ".join(('Desert_Pyramid', 'Igloo', 'Jungle_Pyramid', 'Swamp_Hut')))
 
 
 class me(Master):
@@ -1538,13 +1561,16 @@ class stats(Master):
                     ("<(entity", "<@selector2", "<(clear", stats.stat),
                     ("<(entity", "<@selector2", "<(set", stats.stat, "<@selector", "<.objective"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.canAt, self.canAs = True, True
 
     def __unicode__(self):
         Globals.flags["commentedOut"] = True
         if "<(clear" in self.data:
             return u"#~ {} ||| Clearing a stat is no longer needed".format(Master.__unicode__(self))
-        return u"#~ {} ||| Use \'execute store {} score {} {} run COMMAND\' on the commands that you want the stats from".format(Master.__unicode__(self), "success" if self.data[stats.stat] == "SuccessCount" else "result", self.data["<@selector"], self.data["<.objective"])
+        if "<@selector2" in self.data:
+            return u"#~ {} ||| Use \'execute as {} at @s store {} score {} {} run COMMAND\' on the commands that you want the stats from".format(
+                Master.__unicode__(self), self.data["<@selector2"], "success" if self.data[stats.stat] == "SuccessCount" else "result", self.data["<@selector"], self.data["<.objective"])
+        return u"#~ {} ||| Use \'execute store {} score {} {} run COMMAND\' on the commands that you want the stats from".format(
+            Master.__unicode__(self), "success" if self.data[stats.stat] == "SuccessCount" else "result", self.data["<@selector"], self.data["<.objective"])
 
 
 class stop(Master):
@@ -1578,13 +1604,10 @@ class teleport(Master):
         syntaxes = (("<@target", "<~x", "<~y", "<~z"),
                     ("<@target", "<~x", "<~y", "<~z", "<~yaw", "<~pitch"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.canAt, self.canAs = canAt(self.data, "<~x", "<~y", "<~z", "<~yaw", "<~pitch"), True
+        self.canAt, self.canAs = canAt(self.data, "<~x", "<~y", "<~z", "<~yaw", "<~pitch") or self.data["<@target"].canAt, True
 
         if self.data["<@target"] == Selector("@s"):
             self.syntax = self.syntax[1:]
-
-    def __unicode__(self):
-        return Master.__unicode__(self).replace("teleport", "tp", 1)
 
 
 class tp(Master):
@@ -1596,13 +1619,29 @@ class tp(Master):
                     ("<@target", "<~x", "<~y", "<~z"),
                     ("<@target", "<~x", "<~y", "<~z", "<~yaw", "<~pitch"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
-        self.canAt, self.canAs = False if len(self.syntax) < 3 else canAt(self.data, "<~x", "<~y", "<~z", "<~yaw", "<~pitch"), True
+        self.canAt, self.canAs = canAt(self.data, "<~x", "<~y", "<~z", "<~yaw", "<~pitch"), True
+        if "<@target" in self.data:
+            self.canAt = self.canAt or self.data["<@target"].canAt
 
-    def __unicode__(self):  # todo tp @p @e
-        if "<@target" not in self.data or (not self.data["<@target"].playerName and self.data["<@target"].target == 's') or "[@destination" in self.data:
-            return Master.__unicode__(self)
+            if "[@destination" in self.data:
+                if not self.data["[@destination"].isSingle():
+                    raise SyntaxError("Destination (\'{}\') can only target one entity.".format(self.data["[@destination"]))
+                self.canAt = self.canAt or self.data["[@destination"].canAt
 
-        s = u"execute as {}{} teleport {} {} {}".format(self.data["<@target"], u" at @s" if self.canAt else u"", self.data["<~x"], self.data["<~y"], self.data["<~z"])
+            if self.data["<@target"] == Selector("@s") and ("<~x" in self.data or "[@destination" in self.data):
+                self.syntax = self.syntax[1:]
+                del self.data["<@target"]
+
+    def __unicode__(self):
+        if "<@target" not in self.data or "<~x" not in self.data:
+            return Master.__unicode__(self).replace("tp", "teleport", 1)
+
+        s = u"execute as {}".format(self.data["<@target"])
+
+        if self.canAt:
+            s += u" at @s"
+
+        s += u" teleport {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"])
 
         if "<~yaw" in self.data:
             s += u" {} {}".format(self.data["<~yaw"], self.data["<~pitch"])
@@ -1718,16 +1757,19 @@ class w(Master):
         self.canAt, self.canAs = self.data["<@player"].canAt, True
 
 
-class weather(Master):  # todo warn if duration not specified (changed behaviour from random to 5 min)
+class weather(Master):
     def __init__(self, tokens):
         Master.__init__(self)
         syntaxes = (("<(clear|rain|thunder", "[0duration"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
 
-        if "[0duration" not in self.data:
-            Globals.flags['weather'] = True
-
         constraints(self.data, {"[0duration": (1, 1000000)})
+
+    def __unicode__(self):
+        if "[0duration" not in self.data:
+            Globals.flags['multiLine'] = True
+            return u"#~ \'{0}\' no longer has random duration. The duration is now 5 minutes\n{0}".format(Master.__unicode__(self))
+        return Master.__unicode__(self)
 
 
 class whitelist(Master):
@@ -1765,6 +1807,8 @@ class xp(Master):
 
         if self.data["<%amount"][-1] != "L":
             constraints(self.data, {"<%amount": (0, "*")})
+        else:
+            constraints({"<%amount": self.data["<%amount"][:-1]}, {"<%amount": ("*", "*")})
 
     def __unicode__(self):
         player = self.data["[@player"] if "[@player" in self.data else Selector("@s")

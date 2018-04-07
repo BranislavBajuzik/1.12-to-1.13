@@ -2,7 +2,7 @@ import re
 
 Globals = type("Dummy", (object, ), {})
 Globals.commandCounter = 0
-Globals.flags = {"commentedOut": False, "multiLine": False, "weather": False}
+Globals.flags = {"commentedOut": False, "multiLine": False}
 Globals.posArgs = ("x", "y", "z", "dx", "dy", "dz", "r", "rm", "c")
 Globals.statTags = ("AffectedBlocks", "AffectedEntities", "AffectedItems", "QueryResult", "SuccessCount")
 Globals.colors = ("aqua", "black", "blue", "dark_aqua", "dark_blue", "dark_gray", "dark_green", "dark_purple", "dark_red", "gold", "gray", "green", "light_purple", "red", "white", "yellow")
@@ -5449,6 +5449,6 @@ Globals.criteria = ["deathCount", "dummy", "playerKillCount", "totalKillCount", 
 Globals.selectorRe = re.compile(r"^(?:@[pears](?:\[(?:[a-z0-9_]+=(?:!?[a-z0-9_:/-]*)?(?:,[a-z0-9_]+=(?:!?[a-z0-9_:/-]*)?)*)?])?|[^@=\[\]*]+)$", re.I)
 Globals.blockStateSetRe = re.compile(r"^(?:(?:[a-z_]+=[a-z0-9_]+)(?:,[a-z_]+=[a-z0-9_]+)*|default)$")
 Globals.blockStateTestRe = re.compile(r"^(?:(?:[a-z_]+=[a-z0-9_]+)(?:,[a-z_]+=[a-z0-9_]+)*|default|\*)$")
-Globals.scoreRe = re.compile(r"^score_(.{1,16}?)(_min)?$")
+Globals.scoreRe = re.compile(r"^score_(?:.{1,16}?)(?:_min)?$")
 Globals.functionRe = re.compile(r"^.+?:[^/]+?(?:/[^/]+?)*$", re.I)
 Globals.keyRe = re.compile(r"^(?:[a-z0-9]+|\"[a-z0-9]+\")$", re.I)

@@ -69,7 +69,7 @@ def perform(level, box, options):
                         raise SyntaxError(u"Error in block at [{}, {}, {}]:\n{}".format(x, y, z, ex.message))
             validate(command, "Command")
 
-    for (chunk, _, _) in level.getChunkSlices(box):
+    for chunk, _, _ in level.getChunkSlices(box):
         for e in chunk.Entities:
             x, y, z = map(lambda x: x.value, e["Pos"].value)
             if (x, y, z) in box and e["id"].value == "minecraft:commandblock_minecart":
