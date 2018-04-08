@@ -6,9 +6,8 @@ Globals.flags = {"commentedOut": False, "multiLine": False}
 Globals.posArgs = ("x", "y", "z", "dx", "dy", "dz", "r", "rm", "c")
 Globals.statTags = ("AffectedBlocks", "AffectedEntities", "AffectedItems", "QueryResult", "SuccessCount")
 Globals.colors = ("aqua", "black", "blue", "dark_aqua", "dark_blue", "dark_gray", "dark_green", "dark_purple", "dark_red", "gold", "gray", "green", "light_purple", "red", "white", "yellow")
-Globals.selectorArgs = ("x", "y", "z", "dx", "dy", "dz", "type", "lm", "l", "m", "team", "score", "name", "tag", "nbt", "rm", "r", "rxm", "rx", "rym", "ry", "c")
-Globals.selectorArgsNew = (("x", "x", "x"), ("y", "y", "y"), ("z", "z", "z"), ("dx", "dx", "dx"), ("dy", "dy", "dy"), ("dz", "dz", "dz"), ("type", "type", "type"), ("level", "lm", "l"), ("gamemode", "m", "m"), ("team", "team", "team"), ("scores", "score", "score"), ("name", "name", "name"), ("tag", "tag", "tag"), ("advancements", "advancements", "advancements"), ("nbt", "nbt", "nbt"), ("distance", "rm", "r"), ("x_rotation", "rxm", "rx"), ("y_rotation", "rym", "ry"), ("limit", "c", "c"), ("sort", "sort", "sort"))
-Globals.gamerules = ("announceAdvancements", "commandBlockOutput", "disableElytraMovementCheck", "doDaylightCycle", "doEntityDrops", "doFireTick", "doLimitedCrafting", "doMobLoot", "doMobSpawning", "doTileDrops", "doWeatherCycle", "gameLoopFunction", "keepInventory", "logAdminCommands", "maxCommandChainLength", "maxEntityCramming", "mobGriefing", "naturalRegeneration", "randomTickSpeed", "reducedDebugInfo", "sendCommandFeedback", "showDeathMessages", "spawnRadius", "spectatorsGenerateChunks")
+Globals.selectorArgs = ("x", "y", "z", "dx", "dy", "dz", "type", "lm", "l", "m", "team", "score", "name", "tag", "rm", "r", "rxm", "rx", "rym", "ry", "c")
+Globals.selectorArgsNew = (("x", "x", "x"), ("y", "y", "y"), ("z", "z", "z"), ("dx", "dx", "dx"), ("dy", "dy", "dy"), ("dz", "dz", "dz"), ("type", "type", "type"), ("level", "lm", "l"), ("gamemode", "m", "m"), ("team", "team", "team"), ("scores", "score", "score"), ("name", "name", "name"), ("tag", "tag", "tag"), ("distance", "rm", "r"), ("x_rotation", "rxm", "rx"), ("y_rotation", "rym", "ry"), ("limit", "c", "c"), ("sort", "sort", "sort"), ("advancements", "advancements", "advancements"), ("nbt", "nbt", "nbt"))
 Globals.commands = ["advancement", "ban", "ban-ip", "blockdata", "clear", "clone", "debug", "defaultgamemode", "deop", "difficulty", "effect", "enchant", "entitydata", "execute", "fill", "function", "gamemode", "gamerule", "give", "help", "?", "kick", "kill", "list", "locate", "me", "msg", "op", "pardon", "pardon-ip", "particle", "playsound", "publish", "recipe", "reload", "replaceitem", "save-all", "save-off", "save-on", "say", "scoreboard", "seed", "setblock", "setidletimeout", "setworldspawn", "spawnpoint", "spreadplayers", "stats", "stop", "stopsound", "summon", "teleport", "tell", "tellraw", "testfor", "testforblock", "testforblocks", "time", "title", "toggledownfall", "tp", "trigger", "w", "weather", "whitelist", "worldborder", "xp"]
 Globals.summons = ("item", "xp_orb", "area_effect_cloud", "leash_knot", "painting", "item_frame", "armor_stand", "evocation_fangs", "ender_crystal", "egg", "arrow", "snowball", "fireball", "small_fireball", "ender_pearl", "eye_of_ender_signal", "potion", "xp_bottle", "wither_skull", "fireworks_rocket", "spectral_arrow", "shulker_bullet", "dragon_fireball", "llama_spit", "tnt", "falling_block", "commandblock_minecart", "boat", "minecart", "chest_minecart", "furnace_minecart", "tnt_minecart", "hopper_minecart", "spawner_minecart", "elder_guardian", "wither_skeleton", "stray", "husk", "zombie_villager", "evocation_illager", "vex", "vindication_illager", "illusion_illager", "creeper", "skeleton", "spider", "giant", "zombie", "slime", "ghast", "zombie_pigman", "enderman", "cave_spider", "silverfish", "blaze", "magma_cube", "ender_dragon", "wither", "witch", "endermite", "guardian", "shulker", "skeleton_horse", "zombie_horse", "donkey", "mule", "bat", "pig", "sheep", "cow", "chicken", "squid", "wolf", "mooshroom", "snowman", "ocelot", "villager_golem", "horse", "rabbit", "polar_bear", "llama", "parrot", "villager", "lightning_bolt")
 Globals.slots = ("slot.armor.chest", "slot.armor.feet", "slot.armor.head", "slot.armor.legs", "slot.weapon.mainhand", "slot.weapon.offhand", "slot.enderchest.0", "slot.enderchest.1", "slot.enderchest.2", "slot.enderchest.3", "slot.enderchest.4", "slot.enderchest.5", "slot.enderchest.6", "slot.enderchest.7", "slot.enderchest.8", "slot.enderchest.9", "slot.enderchest.10", "slot.enderchest.11", "slot.enderchest.12", "slot.enderchest.13", "slot.enderchest.14", "slot.enderchest.15", "slot.enderchest.16", "slot.enderchest.17", "slot.enderchest.18", "slot.enderchest.19", "slot.enderchest.20", "slot.enderchest.21", "slot.enderchest.22", "slot.enderchest.23", "slot.enderchest.24", "slot.enderchest.25", "slot.enderchest.26", "slot.hotbar.0", "slot.hotbar.1", "slot.hotbar.2", "slot.hotbar.3", "slot.hotbar.4", "slot.hotbar.5", "slot.hotbar.6", "slot.hotbar.7", "slot.hotbar.8", "slot.inventory.0", "slot.inventory.1", "slot.inventory.2", "slot.inventory.3", "slot.inventory.4", "slot.inventory.5", "slot.inventory.6", "slot.inventory.7", "slot.inventory.8", "slot.inventory.9", "slot.inventory.10", "slot.inventory.11", "slot.inventory.12", "slot.inventory.13", "slot.inventory.14", "slot.inventory.15", "slot.inventory.16", "slot.inventory.17", "slot.inventory.18", "slot.inventory.19", "slot.inventory.20", "slot.inventory.21", "slot.inventory.22", "slot.inventory.23", "slot.inventory.24", "slot.inventory.25", "slot.inventory.26", "slot.horse.saddle", "slot.horse.chest", "slot.horse.armor", "slot.horse.0", "slot.horse.1", "slot.horse.2", "slot.horse.3", "slot.horse.4", "slot.horse.5", "slot.horse.6", "slot.horse.7", "slot.horse.8", "slot.horse.9", "slot.horse.10", "slot.horse.11", "slot.horse.12", "slot.horse.13", "slot.horse.14", "slot.villager.0", "slot.villager.1", "slot.villager.2", "slot.villager.3", "slot.villager.4", "slot.villager.5", "slot.villager.6", "slot.villager.7")
@@ -5449,6 +5448,54 @@ Globals.criteria = ["deathCount", "dummy", "playerKillCount", "totalKillCount", 
 Globals.selectorRe = re.compile(r"^(?:@[pears](?:\[(?:[a-z0-9_]+=(?:!?[a-z0-9_:/-]*)?(?:,[a-z0-9_]+=(?:!?[a-z0-9_:/-]*)?)*)?])?|[^@=\[\]*]+)$", re.I)
 Globals.blockStateSetRe = re.compile(r"^(?:(?:[a-z_]+=[a-z0-9_]+)(?:,[a-z_]+=[a-z0-9_]+)*|default)$")
 Globals.blockStateTestRe = re.compile(r"^(?:(?:[a-z_]+=[a-z0-9_]+)(?:,[a-z_]+=[a-z0-9_]+)*|default|\*)$")
-Globals.scoreRe = re.compile(r"^score_(?:.{1,16}?)(?:_min)?$")
+Globals.scoreRe = re.compile(r"^score_(.{1,16}?)(_min)?$")
 Globals.functionRe = re.compile(r"^.+?:[^/]+?(?:/[^/]+?)*$", re.I)
 Globals.keyRe = re.compile(r"^(?:[a-z0-9]+|\"[a-z0-9]+\")$", re.I)
+
+
+def isBool(value):
+    if value.lower() not in ("true", "false"):
+        raise SyntaxError("{} must be true or false".format(value))
+    return value.lower()
+
+
+def isInt(value):
+    try:
+        int(value)
+    except ValueError:
+        raise SyntaxError("{} must be int".format(value))
+    return value
+
+
+def isFunction(value):
+    if not Globals.functionRe.match(value):
+        raise SyntaxError("{} must be a valid function name".format(value))
+    return value
+
+
+Globals.gamerules = {
+    "announceAdvancements": isBool,
+    "commandBlockOutput": isBool,
+    "disableElytraMovementCheck": isBool,
+    "doDaylightCycle": isBool,
+    "doEntityDrops": isBool,
+    "doFireTick": isBool,
+    "doLimitedCrafting": isBool,
+    "doMobLoot": isBool,
+    "doMobSpawning": isBool,
+    "doTileDrops": isBool,
+    "doWeatherCycle": isBool,
+    "gameLoopFunction": isFunction,
+    "keepInventory": isBool,
+    "logAdminCommands": isBool,
+    "maxCommandChainLength": isInt,
+    "maxEntityCramming": isInt,
+    "mobGriefing": isBool,
+    "naturalRegeneration": isBool,
+    "randomTickSpeed": isInt,
+    "reducedDebugInfo": isBool,
+    "sendCommandFeedback": isBool,
+    "showDeathMessages": isBool,
+    "spawnRadius": isInt,
+    "spectatorsGenerateChunks": isBool
+}

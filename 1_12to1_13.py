@@ -30,11 +30,11 @@ from time import time as getTime
 
 import json, sys, codecs, os, shutil
 
-_list = list
-Globals.python = 2
+_map = map
 if type(u"") is str:
+    import builtins
     Globals.python = 3
-    _map = map
+    _list = builtins.list
     _filter = filter
     xrange = range
     raw_input = input
@@ -42,6 +42,10 @@ if type(u"") is str:
     map = lambda x, y: _list(_map(x, y))
     filter = lambda x, y: _list(_filter(x, y))
     unicode = lambda x: x.__unicode__() if hasattr(x, '__unicode__') else str(x)
+else:
+    import __builtin__
+    Globals.python = 2
+    _list = __builtin__.list
 
 
 def escape(s):
@@ -88,21 +92,21 @@ def getData(s):
 
 
 def getString(s):
-    ret = u""
+    result = u""
     i = 0
     while True:
         if i == len(s):
             raise SyntaxError(u"Unbalanced brackets (more opened than closed)")
         if s[i] in (',', '}', ']'):
-            return ret.rstrip(), s[i:]
+            return result.rstrip(), s[i:]
         if s[i] in ('{', '[', '\"', ':'):
             raise SyntaxError(u"Unquoted value can't have '{{' or '[' or '\"' or : in them")
-        ret += s[i]
+        result += s[i]
         i += 1
 
 
 def getQString(s):
-    ret = u"\""
+    result = u"\""
     skip = False
     i = 0
     while True:
@@ -113,28 +117,28 @@ def getQString(s):
         elif s[i] == '\\':
             skip = True
         elif s[i] == '\"':
-            ret += '\"'
+            result += '\"'
             break
-        ret += s[i]
+        result += s[i]
         i += 1
     s = s[i+1:].lstrip()
     if s[0] in (',', '}', ']'):
-        return ret.rstrip(), s
+        return result.rstrip(), s
     raise SyntaxError(u"Expected ',' or '}}' or ']' but got: '{}'".format(s[0]))
 
 
 def getList(s):
-    ret = NBTList()
+    result = NBTList()
     if s[0] == "]":
-            return ret, s[1:].lstrip()
+            return result, s[1:].lstrip()
     if s[0] == 'I' and s[1:].lstrip() == ';':
         s = s[s.find(';')+1:]
-        ret = ["I;"]
+        result = ["I;"]
     while True:
         data, s = getData(s)
-        ret.append(data)
+        result.append(data)
         if s[0] == ']':
-            return ret, s[1:].lstrip()
+            return result, s[1:].lstrip()
         if s[0] == ',':
             s = s[1:].lstrip()
         else:
@@ -151,30 +155,30 @@ def signText(s):
 
 
 def getCompound(s):
-    ret = NBTCompound()
+    result = NBTCompound()
     if s[0] == "}":
-            return ret, s[1:].lstrip()
+            return result, s[1:].lstrip()
     while True:
         key, s = getKey(s)
         data, s = getData(s)
         if key == "Command":
             if data[0] == '"':
-                ret[key] = u"\"{}\"".format(escape(unicode(decide(unEscape(data[1:-1])))))
+                result[key] = u"\"{}\"".format(escape(unicode(decide(unEscape(data[1:-1])))))
             else:
-                ret[key] = unicode(decide(data))
+                result[key] = unicode(decide(data))
         elif key in ("Text1", "Text2", "Text3", "Text4"):
-            ret[key] = signText(data)
+            result[key] = signText(data)
         elif key == "pages":
             for i, page in enumerate(data.data):
-                tmp = json.JSONDecoder().decode(unEscape(page[1:-1].strip()))
-                walk(tmp)
-                data.data[i] = u"\"{}\"".format(escape(unicode(json.JSONEncoder(separators=(',', ':')).encode(tmp))))
-            ret[key] = data
+                tmpJSON = json.JSONDecoder().decode(unEscape(page[1:-1].strip()))
+                walk(tmpJSON)
+                data.data[i] = u"\"{}\"".format(escape(unicode(json.JSONEncoder(separators=(',', ':')).encode(tmpJSON))))
+            result[key] = data
         else:
-            ret[key] = data
+            result[key] = data
 
         if s[0] == '}':
-            return ret, s[1:].lstrip()
+            return result, s[1:].lstrip()
         if s[0] == ',':
             s = s[1:].lstrip()
         else:
@@ -186,10 +190,10 @@ def allBlocks(data, blockLabel, nbtLabel=None):
 
 
 def block(data, blockLabel, stateLabel=None, nbtLabel=None):
-    block = noPrefix(data[blockLabel])
+    userBlock = noPrefix(data[blockLabel])
 
-    if block not in Globals.data2states:
-        raise SyntaxError(u"{} is not a valid block".format(block))
+    if userBlock not in Globals.data2states:
+        raise SyntaxError(u"{} is not a valid block".format(userBlock))
 
     if stateLabel not in data:
         userStates = "default"
@@ -199,8 +203,8 @@ def block(data, blockLabel, stateLabel=None, nbtLabel=None):
         userStates = int(userStates)
         if not 0 <= userStates <= 15:
             raise SyntaxError(u"{} is outside of range 0..15".format(userStates))
-        if userStates in Globals.data2states[block]:
-            userStates = Globals.data2states[block][userStates].split(",")
+        if userStates in Globals.data2states[userBlock]:
+            userStates = Globals.data2states[userBlock][userStates].split(",")
         else:
             userStates = ["default"]
     except ValueError:
@@ -211,9 +215,9 @@ def block(data, blockLabel, stateLabel=None, nbtLabel=None):
     if userStates != ["default"] and len(set(map(lambda x: x.split("=")[0], userStates))) != len(userStates):
         raise SyntaxError(u"Block states \'{}\' contain duplicates".format(",".join(userStates)))
 
-    convDict = Globals.blockStates[block]
+    convDict = Globals.blockStates[userBlock]
     userNBT = data[nbtLabel].copy() if nbtLabel in data else NBTCompound()
-    ret = [convDict["default{"], [], userNBT]
+    result = [convDict["default{"], [], userNBT]
     userNBT.stripNumbers()
 
     for key in sorted(convDict, key=lambda x: len(x) if x != "default{" else 420, reverse=True):
@@ -226,16 +230,16 @@ def block(data, blockLabel, stateLabel=None, nbtLabel=None):
                 del userNBT[nbt]
             convToBlock, convToStates = convDict[key].split("[")
             if convToBlock:
-                ret[0] = convToBlock
+                result[0] = convToBlock
             if convToStates:
-                ret[1].extend(convToStates.split(","))
+                result[1].extend(convToStates.split(","))
 
     if userStates:
         if len(userStates) == 1:
-            raise SyntaxError(u"{} is not a valid block state of {}".format(userStates[0], block))
-        raise SyntaxError(u"{} are not valid block states of {}".format(array(userStates), block))
+            raise SyntaxError(u"{} is not a valid block state of {}".format(userStates[0], userBlock))
+        raise SyntaxError(u"{} are not valid block states of {}".format(array(userStates), userBlock))
 
-    return u"{}{}{}".format(ret[0], u"[{}]".format(u",".join(ret[1])) if ret[1] else "", ret[2] if ret[2] else "")
+    return u"{}{}{}".format(result[0], u"[{}]".format(u",".join(result[1])) if result[1] else "", result[2] if result[2] else "")
 
 
 def item(data, nameLabel, damageLabel=None, nbtLabel=None):
@@ -252,25 +256,31 @@ def item(data, nameLabel, damageLabel=None, nbtLabel=None):
 
 
 def selectorRange(data, low, high):
-    if low in data and high in data and data[low] == data[high]:
-        return data[low]
+    if low in data and high in data:
+        if data[low] == data[high]:
+            return data[low]
+        try:
+            if int(data[low]) > int(data[high]):
+                raise SyntaxError(u"Value of {} ({}) can\'t be greater than value of {} ({})".format(low, data[low], high, data[high]))
+        except ValueError:
+            pass
 
-    ret = u".."
+    result = u".."
     if low in data:
-        ret = data[low] + ret
+        result = data[low] + result
     if high in data:
-        ret += data[high]
+        result += data[high]
 
-    return ret
+    return result
 
 
 def futurizeSelector(data):
-    ret = []
+    result = []
     for future, low, high in Globals.selectorArgsNew:
         if future != 'scores':
-            tmp = selectorRange(data, low, high)
-            if tmp != "..":
-                ret.append(u"{}={}".format(future, tmp))
+            tmpRange = selectorRange(data, low, high)
+            if tmpRange != "..":
+                result.append(u"{}={}".format(future, tmpRange))
         else:
             scores = []
             for key in data.keys():
@@ -284,10 +294,8 @@ def futurizeSelector(data):
             scoreRet = u"scores={"
             while i < len(scores) - 1:
                 if scores[i][0] == scores[i+1][0]:
-                    if scores[i][1] is None:
-                        scoreRet += u"{}={},".format(scores[i][0], selectorRange({0: scores[i+1][2], 1: scores[i][2]}, 0, 1))
-                    else:
-                        scoreRet += u"{}={},".format(scores[i][0], selectorRange({0: scores[i+1][2], 1: scores[i][2]}, 1, 0))
+                    key1, key2 = u"score_{}".format(scores[i][0]), u"score_{}_min".format(scores[i][0])
+                    scoreRet += u"{}={},".format(scores[i][0], selectorRange({key1: scores[i+1][2], key2: scores[i][2]}, key1, key2))
                     i += 1
                 elif scores[i][1] is None:
                     scoreRet += u"{}=..{},".format(scores[i][0], scores[i][2])
@@ -295,9 +303,8 @@ def futurizeSelector(data):
                     scoreRet += u"{}={}..,".format(scores[i][0], scores[i][2])
                 i += 1
             if scoreRet != "scores={":
-                ret.append(scoreRet[:-1] + u'}')
-
-    return ret
+                result.append(scoreRet[:-1] + u'}')
+    return result
 
 
 def isXp(s):
@@ -340,17 +347,17 @@ def constraints(data, rules):
 
 def walk(node):
     if type(node) == dict:
-        for key, item in node.items():
-            if type(item) is dict or type(item) is _list:
-                walk(item)
+        for key, child in node.items():
+            if type(child) is dict or type(child) is _list:
+                walk(child)
             else:
-                if key == "action" and item == "run_command" and "value" in node:
+                if key == "action" and child == "run_command" and "value" in node:
                     if node["value"][0] == '/':
                         node["value"] = u"/{}".format(decide(node["value"]))
     else:
-        for item in node:
-            if type(item) is dict or type(item) is _list:
-                walk(item)
+        for child in node:
+            if type(child) is dict or type(child) is _list:
+                walk(child)
 
 
 def synt(caller, syntax):
@@ -421,8 +428,8 @@ def lex(caller, syntaxes, tokens):
                         workTokens[i] = json.JSONDecoder().decode(workTokens[i])
                         walk(workTokens[i])
                         break
-                    except ValueError as e:
-                        raise SyntaxError(u"Token '{}' is not valid JSON: {}".format(workTokens[i], e))
+                    except ValueError as ex:
+                        raise SyntaxError(u"Token '{}' is not valid JSON: {}".format(workTokens[i], ex))
                 elif word[1] == '.':
                     pass
                 else:
@@ -436,7 +443,7 @@ def lex(caller, syntaxes, tokens):
 
 
 def tokenize(raw):
-    ret = []
+    tokens = []
     token = u""
     doubleQ = False
     singleQ = False
@@ -455,19 +462,19 @@ def tokenize(raw):
         elif ch == '\'':
             singleQ = not singleQ
         elif ch == ' ' and not (singleQ or doubleQ):
-            ret.append(token)
+            tokens.append(token)
             token = u""
             continue
         token += ch
-    ret.append(token)
-    return ret
+    tokens.append(token)
+    return tokens
 
 
 def decide(raw):
     Globals.commandCounter += 1
     tokens = filter(lambda x: x != '', tokenize(raw.strip()))
     if not tokens:
-        raise SyntaxError("An empty string was provided")
+        raise SyntaxError(u"An empty string was provided")
 
     command = tokens[0].lower()
     tokens[0] = tokens[0].lower().replace("?", "help").replace("msg", "w")
@@ -574,7 +581,7 @@ class Selector(object):
                         raise SyntaxError(u"\'{}\' is not a valid selector because {}'s value is empty".format(raw, key))
                     self.data[key] = val
 
-                for key in self.data.keys():
+                for key in self.data:
                     if key in ('m', "type"):
                         self.data[key] = self.data[key].lower()
                     if not (Globals.scoreRe.match(key) or key in Globals.selectorArgs):
@@ -593,6 +600,15 @@ class Selector(object):
                         int(self.data[key])
                     except ValueError:
                         raise SyntaxError(u"Value of \'{}\' in \'{}\' has to be integer".format(key, self.raw))
+
+            for key in ("rm", "r"):
+                if key in self.data:
+                    if int(self.data[key]) < 0:
+                        self.data[key] = u"0"
+
+            for key in ("rxm", "rx", "rym", "ry"):
+                if key in self.data:
+                    self.data[key] = unicode(((int(self.data[key])+180) % 360) - 180)
 
             if 'x' in self.data:
                 self.data['x'] = int(self.data['x']) + 0.5
@@ -624,7 +640,7 @@ class Selector(object):
 
             if 'c' in self.data:
                 tmpCount = int(self.data['c'])
-                if tmpCount == 0:
+                if tmpCount == 0 or (self.target == 'r' and tmpCount in (-1, 1)):
                     del self.data['c']
                 elif tmpCount < 0:
                     self.data['c'] = str(-tmpCount)
@@ -647,6 +663,9 @@ class Selector(object):
                 if posArg in self.data:
                     self.canAt = True
                     break
+
+            # validate ranges
+            futurizeSelector(self.data)
 
     def __unicode__(self):
         if self.playerName:
@@ -964,27 +983,13 @@ class execute(Master):
             else:
                 detect += u" if block {} {} {} {}".format(self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], self.block)
 
-        if not self.data["<@entity"].playerName and self.data["<@entity"].target == "s":  # ToDo position reset by execute @s ~ ~ ~
+        if not self.data["<@entity"].playerName and self.data["<@entity"].target == "s":
             selectorArgs = len(self.data["<@entity"].data)
 
-            if self.canAt and self.canAs:
-                if position and selectorArgs:
-                    s = u"execute as {}{}".format(self.data["<@entity"], position)
-                elif position and not selectorArgs:
-                    s = u"execute{}".format(position)
-                elif not position and selectorArgs:
-                    s = u"execute as {}".format(self.data["<@entity"])
-                else:
-                    s = u"execute"
-            elif self.canAt and not self.canAs:
-                if position and selectorArgs:
-                    s = u"execute at {}{}".format(self.data["<@entity"], position)
-                elif position and not selectorArgs:
-                    s = u"execute{}".format(position)
-                elif not position and selectorArgs:
-                    s = u"execute at {}".format(self.data["<@entity"])
-                else:
-                    s = u"execute"
+            if self.canAt:
+                s = u"execute at {}".format(self.data["<@entity"])
+                if position:
+                    s += position
             else:
                 if selectorArgs:
                     s = u"execute as {}".format(self.data["<@entity"])
@@ -993,6 +998,14 @@ class execute(Master):
 
             if detect:
                 s += detect
+
+            if command[:7] == "execute":
+                new, old = s.split(" ")[-2:], command.split(" ", 3)[1:3]
+                if new[0] == old[0] == "at" and new[1][:2] == old[1][:2] == "@s":
+                    if new[1] == "@s":
+                        s = s[:-6]
+                    elif old[1] == "@s":
+                        command = u"execute {}".format(command[14:])
 
             if s == u"execute":
                 return command
@@ -1054,7 +1067,7 @@ class function(Master):
                     ("<.function", "<(if|unless", "<@selector"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         if not Globals.functionRe.match(self.data["<.function"]):
-            raise SyntaxError("Invalid format of function name: {}".format(self.data["<.function"]))
+            raise SyntaxError(u"Invalid format of function name: {}".format(self.data["<.function"]))
         self.canAt, self.canAs = True, True
 
     def __unicode__(self):
@@ -1093,7 +1106,7 @@ class gamemode(Master):
         return u"gamemode {}{}".format(mode, u" {}".format(self.data["[@player"]) if len(self.syntax) == 2 else u"")
 
 
-class gamerule(Master):  # ToDo validate value
+class gamerule(Master):
     def __init__(self, tokens):
         Master.__init__(self)
         syntaxes = (("<.rule", "[.value"), )
@@ -1101,8 +1114,11 @@ class gamerule(Master):  # ToDo validate value
         self.custom = True
         lowered = map(lambda x: x.lower(), Globals.gamerules)
         if self.data["<.rule"].lower() in lowered:
-            self.data["<.rule"] = Globals.gamerules[lowered.index(self.data["<.rule"].lower())]
+            self.data["<.rule"] = _list(Globals.gamerules)[lowered.index(self.data["<.rule"].lower())]
             self.custom = False
+
+            if "[.value" in self.data:
+                self.data["[.value"] = Globals.gamerules[self.data['<.rule']](self.data['[.value'])
 
     def __unicode__(self):
         if self.custom:
@@ -1240,57 +1256,72 @@ class particle(Master):
             if self.syntax[-1] == "[.mode" and self.data["[.mode"] == "normal":
                 self.syntax = self.syntax[:-1]
 
-        if len(self.syntax) < 10 and self.data["<0xd"] == self.data["<0yd"] == self.data["<0zd"] == self.data["<0speed"] == "0" and ("[0count" not in self.data or self.data["[0count"] == "0"):
+        if "[0count" not in self.data:
+            self.data["[0count"] = "0"
+            self.syntax = self.syntax + ("[0count", )
+
+        if len(self.syntax) < 10 and self.data["<0xd"] == self.data["<0yd"] == self.data["<0zd"] == self.data["<0speed"] == "0" and self.data["[0count"] == "0":
             self.syntax = self.syntax[:4]
 
-        if self.data[self.syntax[0]] in ("blockdust", "blockcrack", "fallingdust") and "[*params" in self.data:
-            if len(self.data["[*params"].split(" ")) != 1:
-                raise SyntaxError(u"Only one param is allowed when using the {} particle".format(self.data[self.syntax[0]]))
-            try:
-                params = int(self.data["[*params"])
-            except ValueError:
-                raise SyntaxError(u"The param '{}' must be an integer".format(self.data["[*params"]))
+        if "[*params" in self.data:
+            if self.data[self.syntax[0]] in ("blockdust", "blockcrack", "fallingdust"):
+                if len(self.data["[*params"].split(" ")) != 1:
+                    raise SyntaxError(u"Only one param is allowed when using the {} particle".format(self.data[self.syntax[0]]))
+                try:
+                    params = int(self.data["[*params"])
+                except ValueError:
+                    raise SyntaxError(u"The param '{}' must be an integer".format(self.data["[*params"]))
 
-            modulo = params % 4096
-            if modulo not in Globals.value2block:
-                raise SyntaxError(u"There is no block with block value {} ({} % 4096)".format(modulo, self.data["[*params"]))
-            self.particleArg = block({"block": Globals.value2block[modulo], "state": str((params - modulo) / 4096)}, "block", "state")
+                modulo = params % 4096
+                if modulo not in Globals.value2block:
+                    raise SyntaxError(u"There is no block with block value {} ({} % 4096)".format(modulo, self.data["[*params"]))
+                self.particleArg = block({"block": Globals.value2block[modulo], "state": str((params - modulo) / 4096)}, "block", "state")
 
-        elif self.data[self.syntax[0]] == "iconcrack" and "[*params" in self.data:
-            params = self.data["[*params"].split(" ")
-            if len(params) > 2:
-                raise SyntaxError(u"Only up to two params allowed when using the iconcrack particle")
-            try:
-                params = tuple(map(int, self.data["[*params"].split(" ")))
-            except ValueError:
-                raise SyntaxError(u"The params '{}' and '{}' must be integers".format(*params))
+            elif self.data[particle.particles] == "iconcrack":
+                params = self.data["[*params"].split(" ")
+                if len(params) > 2:
+                    raise SyntaxError(u"Only up to two params allowed when using the iconcrack particle")
+                try:
+                    params = tuple(map(int, self.data["[*params"].split(" ")))
+                except ValueError:
+                    raise SyntaxError(u"The params '{}' and '{}' must be integers".format(*params))
 
-            if params[0] < 256:
-                if params[0] not in Globals.value2block:
-                    raise SyntaxError(u"There is no block with block value {}".format(params[0]))
-                self.particleArg = block({"block": Globals.value2block[params[0]], "state": str(params[1]) if len(params) == 2 else "0"}, "block", "state")
-            else:  # todo items
-                if params[0] not in Globals.value2item:
-                    raise SyntaxError(u"There is no item with item value {}".format(params[0]))
+                if params[0] < 256:
+                    if params[0] not in Globals.value2block:
+                        raise SyntaxError(u"There is no block with block value {}".format(params[0]))
+                    self.particleArg = block({"block": Globals.value2block[params[0]], "state": unicode(params[1]) if len(params) == 2 else "0"}, "block", "state")
+                else:  # todo items
+                    if params[0] not in Globals.value2item:
+                        raise SyntaxError(u"There is no item with item value {}".format(params[0]))
 
     def __unicode__(self):
-        particleName = self.data[self.syntax[0]]
+        particleName = self.data[particle.particles]
         if Globals.particles[particleName] is None:
             Globals.flags["commentedOut"] = True
             return u"#~ {} ||| The particle {} was removed".format(Master.__unicode__(self), particleName)
 
         if particleName in ("blockdust", "blockcrack", "fallingdust", "iconcrack") and "[*params" in self.data:
-            return u"particle {} {} {}".format(Globals.particles[particleName], self.particleArg, u" ".join((unicode(self.data[word]) for word in self.syntax[1:])))
+            return u"particle {} {} {}".format(Globals.particles[particleName], self.particleArg, u" ".join(unicode(self.data[word]) for word in self.syntax[1:]))
 
-        elif self.data[self.syntax[0]] in ("mobSpell", "mobSpellAmbient") and self.data["<0speed"] != "0" and ("[0count" not in self.data or self.data["[0count"] == "0"):
-            r, g, b = map(lambda x: float(self.data[x]) * float(self.data["<0speed"]), ("<0xd", "<0yd", "<0zd"))
-            r, g, b = map(lambda x: 0 if x < 0 else 1 if x > 1 else x, (r, g, b))
-            # return u"particle {} {} {} {} 1".format(Globals.particles[particleName], r, g, b)
+        elif self.data[particle.particles] in ("mobSpell", "mobSpellAmbient") and self.data["<0speed"] != "0" and self.data["[0count"] == "0":
+            s = u"particle {} {} {} {} ".format(Globals.particles[particleName], self.data["<~x"], self.data["<~y"], self.data["<~z"])
+            s += u" ".join(_map(self.number, _map(lambda x: float(self.data[x]) * float(self.data["<0speed"]), ("<0xd", "<0yd", "<0zd"))))
+            return u"{} {}".format(s, u" ".join(unicode(self.data[word]) for word in self.syntax[7:]))
 
-        elif self.data[self.syntax[0]] == "reddust" and self.data["<0speed"] != "0" and ("[0count" not in self.data or self.data["[0count"] == "0"):
-            pass  # todo reddust
+        elif self.data[particle.particles] == "reddust" and self.data["<0speed"] != "0" and self.data["[0count"] == "0":
+            return u"particle dust {} {} {} 1 {}".format(self.data["<0xd"], self.data["<0yd"], self.data["<0zd"], u" ".join(unicode(self.data[word]) for word in self.syntax[1:]))
 
         return Master.__unicode__(self)
+
+    @staticmethod
+    def number(value):
+        if value < 0:
+            return "0"
+        elif value > 1:
+            return "1"
+        if int(value) == value:
+            return str(int(value))
+        return str(value)
 
 
 class playsound(Master):
@@ -1424,6 +1455,8 @@ class scoreboard(Master):
                     ("<(teams", "<(option", "<.team", "<(collisionRule", "<(always|never|pushOwnTeam|pushOtherTeams"))
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
 
+        constraints(self.data, {"<0score": ("*", "*")})
+
         if "<.criteria" in self.data:
             lowered = map(lambda x: x.lower(), Globals.criteria)
             if self.data["<.criteria"].lower() not in lowered:
@@ -1546,7 +1579,7 @@ class spreadplayers(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = True, True
 
-        constraints(self.data, {"<0spreadDistance": (0., "*"), "<0maxRange": (float(self.data["<0spreadDistance"])+1., "*")})
+        constraints(self.data, {"<0spreadDistance": (0., "*"), "<0maxRange": (float(self.data["<0spreadDistance"])+1, "*")})
 
         self.data["<*player"] = Selectors(self.data["<*player"])
 
@@ -1625,7 +1658,7 @@ class tp(Master):
 
             if "[@destination" in self.data:
                 if not self.data["[@destination"].isSingle():
-                    raise SyntaxError("Destination (\'{}\') can only target one entity.".format(self.data["[@destination"]))
+                    raise SyntaxError(u"Destination (\'{}\') can only target one entity.".format(self.data["[@destination"]))
                 self.canAt = self.canAt or self.data["[@destination"].canAt
 
             if self.data["<@target"] == Selector("@s") and ("<~x" in self.data or "[@destination" in self.data):

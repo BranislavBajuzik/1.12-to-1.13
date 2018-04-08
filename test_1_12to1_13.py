@@ -1,11 +1,11 @@
 from unittest import TestCase, skip
-from itertools import permutations
+from itertools import permutations, combinations, product
 import random, inspect, atexit
 converter = __import__("1_12to1_13")
 
+_map = map
+_filter = filter
 if type(u"") is str:
-    _map = map
-    _filter = filter
     xrange = range
     raw_input = input
     map = lambda x, y: list(_map(x, y))
@@ -70,8 +70,7 @@ class TestBase(TestCase):
         reload(converter)
 
     def assertStats(self):
-        stack = inspect.stack()
-        print("\t{} assertion{} made in {}".format(self.assertStat, 's' if self.assertStat != 1 else '', stack[1][0].f_code.co_name))
+        print("\t{} assertion{} made in {}.{}".format(self.assertStat, 's' if self.assertStat != 1 else '', self.__class__.__name__, inspect.stack()[1][0].f_code.co_name))
 
     def decide(self, raw):
         ret = converter.decide(raw)
@@ -125,7 +124,8 @@ class Selector(TestBase):
         self.assertStats()
 
     def test_syntax_nok(self):
-        cases = ("@", "*", "=", "[", "]", "@c", "@a[", "@s]", "@a[c =3]", "@a][", "@a[c=1][")
+        cases = ("@", "*", "=", "[", "]", "@c", "@a[", "@s]", "@a[c =3]", "@a][", "@a[c=1][", "@s[lm=2,l=1]",
+                 "@s[score_a_min=2,score_a=1]", "@s[rm=2,r=1]", "@s[rxm=2,rx=1]", "@s[rym=2,ry=1]", "@s[rxm=-181,rx=-179]", "@s[rym=-181,ry=-179]")
 
         for case in cases:
             self.assertRaises(SyntaxError, lambda: converter.Selector(case), True)
@@ -140,21 +140,55 @@ class Selector(TestBase):
         for sType in ("p", "e", "a", "r", "s"):
             for n in (1, 2, 3):
                 for argPairsPerm in permutations(argPairs, n):
-                    self.assertRaises(SyntaxError, lambda: converter.Selector("@{}[{}]".format(sType, ",".join(map(lambda x: "{}={}".format(x[0], x[1]), argPairsPerm)))), True)
+                    self.assertRaises(SyntaxError, lambda: converter.Selector("@{}[{}]".format(sType, ",".join(_map(lambda x: "{}={}".format(x[0], x[1]), argPairsPerm)))), True)
         self.assertStats()
 
-    @skip("Not implemented")
     def test_syntax_convert(self):
-        tests = ((converter.decide(""), ""),
-                 (converter.decide(""), ""),
-                 (converter.decide(""), ""),
-                 (converter.decide(""), ""),
-                 (converter.decide(""), ""),
-                 (converter.decide(""), ""),
-                 (converter.decide(""), ""),
-                 (converter.decide(""), ""))
-        for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+        argPairs = [(("x=1", "x=1.5"), ("x=-1", "x=-0.5")),
+                    (("y=1", "y=1"), ),
+                    (("z=1", "z=1.5"), ("z=-1", "z=-0.5")),
+                    (("dx=1", "dx=1"), ),
+                    (("dy=1", "dy=1"), ),
+                    (("dz=1", "dz=1"), ),
+                    (("type=Cow", "type=cow"), ),
+                    (("lm=1", "level=1.."), ("l=1", "level=..1"), ("lm=0,l=1", "level=0..1"), ("lm=1,l=1", "level=1")),
+                    (("m=1", "gamemode=creative"), ("m=!c", "gamemode=!creative")),
+                    (("team=red", "team=red"), ("team=!red", "team=!red"), ("team=", "team="), ("team=!", "team=!")),
+                    (("score_a=1", "scores={a=..1}"), ("score_a_min=1", "scores={a=1..}"), ("score_a_min=1,score_a=2", "scores={a=1..2}"),
+                     ("score_a_min=1,score_a=1", "scores={a=1}"), ("score_a=1,score_b=2", "scores={a=..1,b=..2}"),
+                     ("score_a=1,score_b=2,score_c_min=3,score_d=4,score_a_min=0,score_d_min=4", "scores={a=0..1,b=..2,c=3..,d=4}")),
+                    (("name=Carl", "name=Carl"), ),
+                    (("tag=abc", "tag=abc"), ("tag=!abc", "tag=!abc"), ("tag=", "tag="), ("tag=!", "tag=!")),
+                    (("rm=1", "distance=1.."), ("r=1", "distance=..1"), ("rm=0,r=1", "distance=0..1"), ("rm=1,r=1", "distance=1")),
+                    (("rxm=1", "x_rotation=1.."), ("rx=1", "x_rotation=..1"), ("rxm=0,rx=1", "x_rotation=0..1"), ("rxm=1,rx=1", "x_rotation=1")),
+                    (("rym=1", "y_rotation=1.."), ("ry=1", "y_rotation=..1"), ("rym=0,ry=1", "y_rotation=0..1"), ("rym=1,ry=1", "y_rotation=1")),
+                    (("c=1", "limit=1,sort=nearest"), ("c=-1", "limit=1,sort=furthest"))]
+
+        for sType in ("e", "a", "r", "s", "p"):
+            if sType == "r":
+                argPairs.pop()
+                c = [("@{}[c=1]", "@{}"), ("@{}[c=-1]", "@{}"), ("@{}[c=2]", "@{}[limit=2]"), ("@{}[c=-2]", "@{}[limit=2]")]
+            elif sType in ("s", "p"):
+                c = [("@{}[c=1]", "@{}"), ("@{}[c=-1]", "@{}"), ("@{}[c=2]", "@{}"), ("@{}[c=-2]", "@{}")]
+            else:
+                c = [("@{}[c=1]", "@{}[limit=1,sort=nearest]"), ("@{}[c=-1]", "@{}[limit=1,sort=furthest]"), ("@{}[c=2]", "@{}[limit=2,sort=nearest]"), ("@{}[c=-2]", "@{}[limit=2,sort=furthest]")]
+
+            tests = [("@{}", "@{}"), ("@{}[]", "@{}"), ("@{}[c=0]", "@{}"),
+                     ("@{}[r=-1]", "@{}[distance=..0]"), ("@{}[rm=-1]", "@{}[distance=0..]"), ("@{}[r=-1,rm=-1]", "@{}[distance=0]"),
+                     ("@{}[rx=181]", "@{}[x_rotation=..-179]"), ("@{}[rx=-181]", "@{}[x_rotation=..179]"), ("@{}[rxm=181]", "@{}[x_rotation=-179..]"), ("@{}[rxm=-181]", "@{}[x_rotation=179..]"),
+                     ("@{}[rx=181,rxm=-179]", "@{}[x_rotation=-179]"),
+                     ("@{}[ry=181]", "@{}[y_rotation=..-179]"), ("@{}[ry=-181]", "@{}[y_rotation=..179]"), ("@{}[rym=181]", "@{}[y_rotation=-179..]"), ("@{}[rym=-181]", "@{}[y_rotation=179..]"),
+                     ("@{}[ry=181,rym=-179]", "@{}[y_rotation=-179]")] + c
+            tests = map(lambda test: (test[0].format(sType), test[1].format(sType)), tests)
+
+            for n in (1, 2, 3):
+                for argPairsComb in combinations(argPairs, n):
+                    for argPairsProd in product(*argPairsComb):
+                        before, after = zip(*argPairsProd)
+                        tests.append(("@{}[{}]".format(sType, ",".join(before)), "@{}[{}]".format(sType, ",".join(after))))
+
+            for before, after in tests:
+                self.assertEqual(after, unicode(converter.Selector(before)), "source: \'{}\'".format(before))
         self.assertStats()
         
     def test_is_single(self):
@@ -174,6 +208,7 @@ class Selector(TestBase):
         self.assertFalse(converter.Selector("@a[c=-2]").isSingle())
         self.assertFalse(converter.Selector("@r[c=2]").isSingle())
         self.assertFalse(converter.Selector("@r[c=-2]").isSingle())
+        self.assertStats()
 
 
 class Advancement(TestBase):
@@ -197,24 +232,24 @@ class Advancement(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("advancement grant @s only adv_name crit"), "advancement grant @s only adv_name crit"),
-                 (converter.decide("advancement grant @s from adv_name"), "advancement grant @s from adv_name"),
-                 (converter.decide("advancement revoke @s from adv_name crit"), "advancement revoke @s from adv_name crit"),
-                 (converter.decide("advancement grant @s only adv_name crit"), "advancement grant @s only adv_name crit"),
-                 (converter.decide("advancement grant @s until adv_name"), "advancement grant @s until adv_name"),
-                 (converter.decide("advancement revoke @s through adv_name crit"), "advancement revoke @s through adv_name crit"),
-                 (converter.decide("advancement grant @s only adv_name"), "advancement grant @s only adv_name"),
-                 (converter.decide("advancement revoke @s until adv_name crit"), "advancement revoke @s until adv_name crit"),
-                 (converter.decide("advancement revoke @s through adv_name"), "advancement revoke @s through adv_name"),
-                 (converter.decide("advancement grant @s through adv_name"), "advancement grant @s through adv_name"),
-                 (converter.decide("advancement revoke @s from adv_name"), "advancement revoke @s from adv_name"),
-                 (converter.decide("advancement revoke @s until adv_name"), "advancement revoke @s until adv_name"),
-                 (converter.decide("advancement revoke @s only adv_name crit"), "advancement revoke @s only adv_name crit"),
-                 (converter.decide("advancement grant @s from adv_name crit"), "advancement grant @s from adv_name crit"),
-                 (converter.decide("advancement revoke @s only adv_name"), "advancement revoke @s only adv_name"),
-                 (converter.decide("advancement grant @s through adv_name crit"), "advancement grant @s through adv_name crit"))
+        tests = (("advancement grant @s only adv_name crit", "advancement grant @s only adv_name crit"),
+                 ("advancement grant @s from adv_name", "advancement grant @s from adv_name"),
+                 ("advancement revoke @s from adv_name crit", "advancement revoke @s from adv_name crit"),
+                 ("advancement grant @s only adv_name crit", "advancement grant @s only adv_name crit"),
+                 ("advancement grant @s until adv_name", "advancement grant @s until adv_name"),
+                 ("advancement revoke @s through adv_name crit", "advancement revoke @s through adv_name crit"),
+                 ("advancement grant @s only adv_name", "advancement grant @s only adv_name"),
+                 ("advancement revoke @s until adv_name crit", "advancement revoke @s until adv_name crit"),
+                 ("advancement revoke @s through adv_name", "advancement revoke @s through adv_name"),
+                 ("advancement grant @s through adv_name", "advancement grant @s through adv_name"),
+                 ("advancement revoke @s from adv_name", "advancement revoke @s from adv_name"),
+                 ("advancement revoke @s until adv_name", "advancement revoke @s until adv_name"),
+                 ("advancement revoke @s only adv_name crit", "advancement revoke @s only adv_name crit"),
+                 ("advancement grant @s from adv_name crit", "advancement grant @s from adv_name crit"),
+                 ("advancement revoke @s only adv_name", "advancement revoke @s only adv_name"),
+                 ("advancement grant @s through adv_name crit", "advancement grant @s through adv_name crit"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -236,10 +271,10 @@ class Advancement(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("advancement grant @s everything"), "advancement grant @s everything"),
-                 (converter.decide("advancement revoke @s everything"), "advancement revoke @s everything"))
+        tests = (("advancement grant @s everything", "advancement grant @s everything"),
+                 ("advancement revoke @s everything", "advancement revoke @s everything"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax3_ok(self):
@@ -260,12 +295,12 @@ class Advancement(TestBase):
         self.assertStats()
 
     def test_syntax3_convert(self):
-        tests = ((converter.decide("advancement test @s adv_name crit"), "execute if entity @s[advancements={adv_name={crit=true}}]"),
-                 (converter.decide("advancement test @s adv_name"), "execute if entity @s[advancements={adv_name=true}]"),
-                 (converter.decide("advancement test Carl adv_name crit"), "execute if entity @p[name=Carl,advancements={adv_name={crit=true}}]"),
-                 (converter.decide("advancement test Carl adv_name"), "execute if entity @p[name=Carl,advancements={adv_name=true}]"))
+        tests = (("advancement test @s adv_name crit", "execute if entity @s[advancements={adv_name={crit=true}}]"),
+                 ("advancement test @s adv_name", "execute if entity @s[advancements={adv_name=true}]"),
+                 ("advancement test Carl adv_name crit", "execute if entity @p[name=Carl,advancements={adv_name={crit=true}}]"),
+                 ("advancement test Carl adv_name", "execute if entity @p[name=Carl,advancements={adv_name=true}]"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -283,11 +318,11 @@ class Ban(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("ban p_name Because"), "ban p_name Because"),
-                 (converter.decide("ban p_name Because I said so"), "ban p_name Because I said so"),
-                 (converter.decide("ban p_name"), "ban p_name"))
+        tests = (("ban p_name Because", "ban p_name Because"),
+                 ("ban p_name Because I said so", "ban p_name Because I said so"),
+                 ("ban p_name", "ban p_name"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -305,11 +340,11 @@ class Ban_IP(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("ban-ip p_name Because"), "ban-ip p_name Because"),
-                 (converter.decide("ban-ip p_name Because I said so"), "ban-ip p_name Because I said so"),
-                 (converter.decide("ban-ip p_name"), "ban-ip p_name"))
+        tests = (("ban-ip p_name Because", "ban-ip p_name Because"),
+                 ("ban-ip p_name Because I said so", "ban-ip p_name Because I said so"),
+                 ("ban-ip p_name", "ban-ip p_name"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -335,9 +370,9 @@ class BlockData(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("blockdata 1 ~ ~3 {abc:def}"), "data merge block 1 ~ ~3 {abc:def}"), )
+        tests = (("blockdata 1 ~ ~3 {abc:def}", "data merge block 1 ~ ~3 {abc:def}"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -364,14 +399,14 @@ class Clear(TestBase):
 
     @skip("Not implemented")
     def test_syntax1_convert(self):
-        tests = ((converter.decide("clear"), "clear"),
-                 (converter.decide("clear @s"), "clear @s"),
-                 (converter.decide("clear @s minecraft:stone"), "clear @s stone"),
-                 (converter.decide("clear @s minecraft:stone 1"), "clear @s granite"),
-                 (converter.decide("clear @s minecraft:stone 1 42"), "clear @s granite 42"),
-                 (converter.decide("clear @s minecraft:stone 1 42 {abc:def}"), "clear @s granite{abc:def} 42"))
+        tests = (("clear", "clear"),
+                 ("clear @s", "clear @s"),
+                 ("clear @s minecraft:stone", "clear @s stone"),
+                 ("clear @s minecraft:stone 1", "clear @s granite"),
+                 ("clear @s minecraft:stone 1 42", "clear @s granite 42"),
+                 ("clear @s minecraft:stone 1 42 {abc:def}", "clear @s granite{abc:def} 42"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -410,17 +445,17 @@ class Clone(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1"),
-                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked"),
-                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked force"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked force"),
-                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked move"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked move"),
-                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked normal"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked normal"),
-                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace"),
-                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace force"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace force"),
-                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace move"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace move"),
-                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace normal"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace normal"))
+        tests = (("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked force", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked force"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked move", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked move"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked normal", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked normal"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace force", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace force"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace move", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace move"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace normal", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace normal"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -443,14 +478,14 @@ class Clone(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone 1"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite force"),
-                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone force"),
-                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone 1"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite move"),
-                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone move"),
-                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone 1"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite normal"),
-                 (converter.decide("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone"), "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone normal"))
+        tests = (("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone 1", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite force"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone force"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone 1", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite move"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone move"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone 1", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite normal"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone normal"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -470,10 +505,10 @@ class Debug(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("debug start"), "debug start"),
-                 (converter.decide("debug stop"), "debug stop"))
+        tests = (("debug start", "debug start"),
+                 ("debug stop", "debug stop"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -493,20 +528,20 @@ class DefaultGameMode(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("defaultgamemode 0"), "defaultgamemode survival"),
-                 (converter.decide("defaultgamemode 1"), "defaultgamemode creative"),
-                 (converter.decide("defaultgamemode 2"), "defaultgamemode adventure"),
-                 (converter.decide("defaultgamemode 3"), "defaultgamemode spectator"),
-                 (converter.decide("defaultgamemode s"), "defaultgamemode survival"),
-                 (converter.decide("defaultgamemode c"), "defaultgamemode creative"),
-                 (converter.decide("defaultgamemode a"), "defaultgamemode adventure"),
-                 (converter.decide("defaultgamemode sp"), "defaultgamemode spectator"),
-                 (converter.decide("defaultgamemode survival"), "defaultgamemode survival"),
-                 (converter.decide("defaultgamemode creative"), "defaultgamemode creative"),
-                 (converter.decide("defaultgamemode adventure"), "defaultgamemode adventure"),
-                 (converter.decide("defaultgamemode spectator"), "defaultgamemode spectator"))
+        tests = (("defaultgamemode 0", "defaultgamemode survival"),
+                 ("defaultgamemode 1", "defaultgamemode creative"),
+                 ("defaultgamemode 2", "defaultgamemode adventure"),
+                 ("defaultgamemode 3", "defaultgamemode spectator"),
+                 ("defaultgamemode s", "defaultgamemode survival"),
+                 ("defaultgamemode c", "defaultgamemode creative"),
+                 ("defaultgamemode a", "defaultgamemode adventure"),
+                 ("defaultgamemode sp", "defaultgamemode spectator"),
+                 ("defaultgamemode survival", "defaultgamemode survival"),
+                 ("defaultgamemode creative", "defaultgamemode creative"),
+                 ("defaultgamemode adventure", "defaultgamemode adventure"),
+                 ("defaultgamemode spectator", "defaultgamemode spectator"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -526,9 +561,9 @@ class Deop(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("deop @s"), "deop @s"), )
+        tests = (("deop @s", "deop @s"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -548,20 +583,20 @@ class Difficulty(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("difficulty 0"), "difficulty peaceful"),
-                 (converter.decide("difficulty 1"), "difficulty easy"),
-                 (converter.decide("difficulty 2"), "difficulty normal"),
-                 (converter.decide("difficulty 3"), "difficulty hard"),
-                 (converter.decide("difficulty p"), "difficulty peaceful"),
-                 (converter.decide("difficulty e"), "difficulty easy"),
-                 (converter.decide("difficulty n"), "difficulty normal"),
-                 (converter.decide("difficulty h"), "difficulty hard"),
-                 (converter.decide("difficulty peaceful"), "difficulty peaceful"),
-                 (converter.decide("difficulty easy"), "difficulty easy"),
-                 (converter.decide("difficulty normal"), "difficulty normal"),
-                 (converter.decide("difficulty hard"), "difficulty hard"))
+        tests = (("difficulty 0", "difficulty peaceful"),
+                 ("difficulty 1", "difficulty easy"),
+                 ("difficulty 2", "difficulty normal"),
+                 ("difficulty 3", "difficulty hard"),
+                 ("difficulty p", "difficulty peaceful"),
+                 ("difficulty e", "difficulty easy"),
+                 ("difficulty n", "difficulty normal"),
+                 ("difficulty h", "difficulty hard"),
+                 ("difficulty peaceful", "difficulty peaceful"),
+                 ("difficulty easy", "difficulty easy"),
+                 ("difficulty normal", "difficulty normal"),
+                 ("difficulty hard", "difficulty hard"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -581,9 +616,9 @@ class Effect(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("effect @s clear"), "effect clear @s"), )
+        tests = (("effect @s clear", "effect clear @s"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -610,14 +645,14 @@ class Effect(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("effect @s speed"), "effect give @s speed"),
-                 (converter.decide("effect @s speed 0"), "effect clear @s speed"),
-                 (converter.decide("effect @s speed 11"), "effect give @s speed 11"),
-                 (converter.decide("effect @s speed 11 22"), "effect give @s speed 11 22"),
-                 (converter.decide("effect @s speed 11 22 true"), "effect give @s speed 11 22 true"),
-                 (converter.decide("effect @s speed 11 22 false"), "effect give @s speed 11 22 false"))
+        tests = (("effect @s speed", "effect give @s speed"),
+                 ("effect @s speed 0", "effect clear @s speed"),
+                 ("effect @s speed 11", "effect give @s speed 11"),
+                 ("effect @s speed 11 22", "effect give @s speed 11 22"),
+                 ("effect @s speed 11 22 true", "effect give @s speed 11 22 true"),
+                 ("effect @s speed 11 22 false", "effect give @s speed 11 22 false"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -642,203 +677,203 @@ class Enchant(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("enchant @s 0"), "enchant @s protection"),
-                 (converter.decide("enchant @s 0 1"), "enchant @s protection"),
-                 (converter.decide("enchant @s 0 2"), "enchant @s protection 2"),
-                 (converter.decide("enchant @s protection"), "enchant @s protection"),
-                 (converter.decide("enchant @s protection 1"), "enchant @s protection"),
-                 (converter.decide("enchant @s protection 2"), "enchant @s protection 2"),
+        tests = (("enchant @s 0", "enchant @s protection"),
+                 ("enchant @s 0 1", "enchant @s protection"),
+                 ("enchant @s 0 2", "enchant @s protection 2"),
+                 ("enchant @s protection", "enchant @s protection"),
+                 ("enchant @s protection 1", "enchant @s protection"),
+                 ("enchant @s protection 2", "enchant @s protection 2"),
                 
-                 (converter.decide("enchant @s 1"), "enchant @s fire_protection"),
-                 (converter.decide("enchant @s 1 1"), "enchant @s fire_protection"),
-                 (converter.decide("enchant @s 1 2"), "enchant @s fire_protection 2"),
-                 (converter.decide("enchant @s fire_protection"), "enchant @s fire_protection"),
-                 (converter.decide("enchant @s fire_protection 1"), "enchant @s fire_protection"),
-                 (converter.decide("enchant @s fire_protection 2"), "enchant @s fire_protection 2"),
+                 ("enchant @s 1", "enchant @s fire_protection"),
+                 ("enchant @s 1 1", "enchant @s fire_protection"),
+                 ("enchant @s 1 2", "enchant @s fire_protection 2"),
+                 ("enchant @s fire_protection", "enchant @s fire_protection"),
+                 ("enchant @s fire_protection 1", "enchant @s fire_protection"),
+                 ("enchant @s fire_protection 2", "enchant @s fire_protection 2"),
 
-                 (converter.decide("enchant @s 2"), "enchant @s feather_falling"),
-                 (converter.decide("enchant @s 2 1"), "enchant @s feather_falling"),
-                 (converter.decide("enchant @s 2 2"), "enchant @s feather_falling 2"),
-                 (converter.decide("enchant @s feather_falling"), "enchant @s feather_falling"),
-                 (converter.decide("enchant @s feather_falling 1"), "enchant @s feather_falling"),
-                 (converter.decide("enchant @s feather_falling 2"), "enchant @s feather_falling 2"),
+                 ("enchant @s 2", "enchant @s feather_falling"),
+                 ("enchant @s 2 1", "enchant @s feather_falling"),
+                 ("enchant @s 2 2", "enchant @s feather_falling 2"),
+                 ("enchant @s feather_falling", "enchant @s feather_falling"),
+                 ("enchant @s feather_falling 1", "enchant @s feather_falling"),
+                 ("enchant @s feather_falling 2", "enchant @s feather_falling 2"),
 
-                 (converter.decide("enchant @s 3"), "enchant @s blast_protection"),
-                 (converter.decide("enchant @s 3 1"), "enchant @s blast_protection"),
-                 (converter.decide("enchant @s 3 2"), "enchant @s blast_protection 2"),
-                 (converter.decide("enchant @s blast_protection"), "enchant @s blast_protection"),
-                 (converter.decide("enchant @s blast_protection 1"), "enchant @s blast_protection"),
-                 (converter.decide("enchant @s blast_protection 2"), "enchant @s blast_protection 2"),
+                 ("enchant @s 3", "enchant @s blast_protection"),
+                 ("enchant @s 3 1", "enchant @s blast_protection"),
+                 ("enchant @s 3 2", "enchant @s blast_protection 2"),
+                 ("enchant @s blast_protection", "enchant @s blast_protection"),
+                 ("enchant @s blast_protection 1", "enchant @s blast_protection"),
+                 ("enchant @s blast_protection 2", "enchant @s blast_protection 2"),
 
-                 (converter.decide("enchant @s 4"), "enchant @s projectile_protection"),
-                 (converter.decide("enchant @s 4 1"), "enchant @s projectile_protection"),
-                 (converter.decide("enchant @s 4 2"), "enchant @s projectile_protection 2"),
-                 (converter.decide("enchant @s projectile_protection"), "enchant @s projectile_protection"),
-                 (converter.decide("enchant @s projectile_protection 1"), "enchant @s projectile_protection"),
-                 (converter.decide("enchant @s projectile_protection 2"), "enchant @s projectile_protection 2"),
+                 ("enchant @s 4", "enchant @s projectile_protection"),
+                 ("enchant @s 4 1", "enchant @s projectile_protection"),
+                 ("enchant @s 4 2", "enchant @s projectile_protection 2"),
+                 ("enchant @s projectile_protection", "enchant @s projectile_protection"),
+                 ("enchant @s projectile_protection 1", "enchant @s projectile_protection"),
+                 ("enchant @s projectile_protection 2", "enchant @s projectile_protection 2"),
 
-                 (converter.decide("enchant @s 5"), "enchant @s respiration"),
-                 (converter.decide("enchant @s 5 1"), "enchant @s respiration"),
-                 (converter.decide("enchant @s 5 2"), "enchant @s respiration 2"),
-                 (converter.decide("enchant @s respiration"), "enchant @s respiration"),
-                 (converter.decide("enchant @s respiration 1"), "enchant @s respiration"),
-                 (converter.decide("enchant @s respiration 2"), "enchant @s respiration 2"),
+                 ("enchant @s 5", "enchant @s respiration"),
+                 ("enchant @s 5 1", "enchant @s respiration"),
+                 ("enchant @s 5 2", "enchant @s respiration 2"),
+                 ("enchant @s respiration", "enchant @s respiration"),
+                 ("enchant @s respiration 1", "enchant @s respiration"),
+                 ("enchant @s respiration 2", "enchant @s respiration 2"),
 
-                 (converter.decide("enchant @s 6"), "enchant @s aqua_affinity"),
-                 (converter.decide("enchant @s 6 1"), "enchant @s aqua_affinity"),
-                 (converter.decide("enchant @s aqua_affinity"), "enchant @s aqua_affinity"),
-                 (converter.decide("enchant @s aqua_affinity 1"), "enchant @s aqua_affinity"),
+                 ("enchant @s 6", "enchant @s aqua_affinity"),
+                 ("enchant @s 6 1", "enchant @s aqua_affinity"),
+                 ("enchant @s aqua_affinity", "enchant @s aqua_affinity"),
+                 ("enchant @s aqua_affinity 1", "enchant @s aqua_affinity"),
 
-                 (converter.decide("enchant @s 7"), "enchant @s thorns"),
-                 (converter.decide("enchant @s 7 1"), "enchant @s thorns"),
-                 (converter.decide("enchant @s 7 2"), "enchant @s thorns 2"),
-                 (converter.decide("enchant @s thorns"), "enchant @s thorns"),
-                 (converter.decide("enchant @s thorns 1"), "enchant @s thorns"),
-                 (converter.decide("enchant @s thorns 2"), "enchant @s thorns 2"),
+                 ("enchant @s 7", "enchant @s thorns"),
+                 ("enchant @s 7 1", "enchant @s thorns"),
+                 ("enchant @s 7 2", "enchant @s thorns 2"),
+                 ("enchant @s thorns", "enchant @s thorns"),
+                 ("enchant @s thorns 1", "enchant @s thorns"),
+                 ("enchant @s thorns 2", "enchant @s thorns 2"),
 
-                 (converter.decide("enchant @s 8"), "enchant @s depth_strider"),
-                 (converter.decide("enchant @s 8 1"), "enchant @s depth_strider"),
-                 (converter.decide("enchant @s 8 2"), "enchant @s depth_strider 2"),
-                 (converter.decide("enchant @s depth_strider"), "enchant @s depth_strider"),
-                 (converter.decide("enchant @s depth_strider 1"), "enchant @s depth_strider"),
-                 (converter.decide("enchant @s depth_strider 2"), "enchant @s depth_strider 2"),
+                 ("enchant @s 8", "enchant @s depth_strider"),
+                 ("enchant @s 8 1", "enchant @s depth_strider"),
+                 ("enchant @s 8 2", "enchant @s depth_strider 2"),
+                 ("enchant @s depth_strider", "enchant @s depth_strider"),
+                 ("enchant @s depth_strider 1", "enchant @s depth_strider"),
+                 ("enchant @s depth_strider 2", "enchant @s depth_strider 2"),
 
-                 (converter.decide("enchant @s 9"), "enchant @s frost_walker"),
-                 (converter.decide("enchant @s 9 1"), "enchant @s frost_walker"),
-                 (converter.decide("enchant @s 9 2"), "enchant @s frost_walker 2"),
-                 (converter.decide("enchant @s frost_walker"), "enchant @s frost_walker"),
-                 (converter.decide("enchant @s frost_walker 1"), "enchant @s frost_walker"),
-                 (converter.decide("enchant @s frost_walker 2"), "enchant @s frost_walker 2"),
+                 ("enchant @s 9", "enchant @s frost_walker"),
+                 ("enchant @s 9 1", "enchant @s frost_walker"),
+                 ("enchant @s 9 2", "enchant @s frost_walker 2"),
+                 ("enchant @s frost_walker", "enchant @s frost_walker"),
+                 ("enchant @s frost_walker 1", "enchant @s frost_walker"),
+                 ("enchant @s frost_walker 2", "enchant @s frost_walker 2"),
 
-                 (converter.decide("enchant @s 10"), "enchant @s binding_curse"),
-                 (converter.decide("enchant @s 10 1"), "enchant @s binding_curse"),
-                 (converter.decide("enchant @s binding_curse"), "enchant @s binding_curse"),
-                 (converter.decide("enchant @s binding_curse 1"), "enchant @s binding_curse"),
+                 ("enchant @s 10", "enchant @s binding_curse"),
+                 ("enchant @s 10 1", "enchant @s binding_curse"),
+                 ("enchant @s binding_curse", "enchant @s binding_curse"),
+                 ("enchant @s binding_curse 1", "enchant @s binding_curse"),
 
-                 (converter.decide("enchant @s 16"), "enchant @s sharpness"),
-                 (converter.decide("enchant @s 16 1"), "enchant @s sharpness"),
-                 (converter.decide("enchant @s 16 2"), "enchant @s sharpness 2"),
-                 (converter.decide("enchant @s sharpness"), "enchant @s sharpness"),
-                 (converter.decide("enchant @s sharpness 1"), "enchant @s sharpness"),
-                 (converter.decide("enchant @s sharpness 2"), "enchant @s sharpness 2"),
+                 ("enchant @s 16", "enchant @s sharpness"),
+                 ("enchant @s 16 1", "enchant @s sharpness"),
+                 ("enchant @s 16 2", "enchant @s sharpness 2"),
+                 ("enchant @s sharpness", "enchant @s sharpness"),
+                 ("enchant @s sharpness 1", "enchant @s sharpness"),
+                 ("enchant @s sharpness 2", "enchant @s sharpness 2"),
 
-                 (converter.decide("enchant @s 17"), "enchant @s smite"),
-                 (converter.decide("enchant @s 17 1"), "enchant @s smite"),
-                 (converter.decide("enchant @s 17 2"), "enchant @s smite 2"),
-                 (converter.decide("enchant @s smite"), "enchant @s smite"),
-                 (converter.decide("enchant @s smite 1"), "enchant @s smite"),
-                 (converter.decide("enchant @s smite 2"), "enchant @s smite 2"),
+                 ("enchant @s 17", "enchant @s smite"),
+                 ("enchant @s 17 1", "enchant @s smite"),
+                 ("enchant @s 17 2", "enchant @s smite 2"),
+                 ("enchant @s smite", "enchant @s smite"),
+                 ("enchant @s smite 1", "enchant @s smite"),
+                 ("enchant @s smite 2", "enchant @s smite 2"),
 
-                 (converter.decide("enchant @s 18"), "enchant @s bane_of_arthropods"),
-                 (converter.decide("enchant @s 18 1"), "enchant @s bane_of_arthropods"),
-                 (converter.decide("enchant @s 18 2"), "enchant @s bane_of_arthropods 2"),
-                 (converter.decide("enchant @s bane_of_arthropods"), "enchant @s bane_of_arthropods"),
-                 (converter.decide("enchant @s bane_of_arthropods 1"), "enchant @s bane_of_arthropods"),
-                 (converter.decide("enchant @s bane_of_arthropods 2"), "enchant @s bane_of_arthropods 2"),
+                 ("enchant @s 18", "enchant @s bane_of_arthropods"),
+                 ("enchant @s 18 1", "enchant @s bane_of_arthropods"),
+                 ("enchant @s 18 2", "enchant @s bane_of_arthropods 2"),
+                 ("enchant @s bane_of_arthropods", "enchant @s bane_of_arthropods"),
+                 ("enchant @s bane_of_arthropods 1", "enchant @s bane_of_arthropods"),
+                 ("enchant @s bane_of_arthropods 2", "enchant @s bane_of_arthropods 2"),
 
-                 (converter.decide("enchant @s 19"), "enchant @s knockback"),
-                 (converter.decide("enchant @s 19 1"), "enchant @s knockback"),
-                 (converter.decide("enchant @s 19 2"), "enchant @s knockback 2"),
-                 (converter.decide("enchant @s knockback"), "enchant @s knockback"),
-                 (converter.decide("enchant @s knockback 1"), "enchant @s knockback"),
-                 (converter.decide("enchant @s knockback 2"), "enchant @s knockback 2"),
+                 ("enchant @s 19", "enchant @s knockback"),
+                 ("enchant @s 19 1", "enchant @s knockback"),
+                 ("enchant @s 19 2", "enchant @s knockback 2"),
+                 ("enchant @s knockback", "enchant @s knockback"),
+                 ("enchant @s knockback 1", "enchant @s knockback"),
+                 ("enchant @s knockback 2", "enchant @s knockback 2"),
 
-                 (converter.decide("enchant @s 20"), "enchant @s fire_aspect"),
-                 (converter.decide("enchant @s 20 1"), "enchant @s fire_aspect"),
-                 (converter.decide("enchant @s 20 2"), "enchant @s fire_aspect 2"),
-                 (converter.decide("enchant @s fire_aspect"), "enchant @s fire_aspect"),
-                 (converter.decide("enchant @s fire_aspect 1"), "enchant @s fire_aspect"),
-                 (converter.decide("enchant @s fire_aspect 2"), "enchant @s fire_aspect 2"),
+                 ("enchant @s 20", "enchant @s fire_aspect"),
+                 ("enchant @s 20 1", "enchant @s fire_aspect"),
+                 ("enchant @s 20 2", "enchant @s fire_aspect 2"),
+                 ("enchant @s fire_aspect", "enchant @s fire_aspect"),
+                 ("enchant @s fire_aspect 1", "enchant @s fire_aspect"),
+                 ("enchant @s fire_aspect 2", "enchant @s fire_aspect 2"),
 
-                 (converter.decide("enchant @s 21"), "enchant @s looting"),
-                 (converter.decide("enchant @s 21 1"), "enchant @s looting"),
-                 (converter.decide("enchant @s 21 2"), "enchant @s looting 2"),
-                 (converter.decide("enchant @s looting"), "enchant @s looting"),
-                 (converter.decide("enchant @s looting 1"), "enchant @s looting"),
-                 (converter.decide("enchant @s looting 2"), "enchant @s looting 2"),
+                 ("enchant @s 21", "enchant @s looting"),
+                 ("enchant @s 21 1", "enchant @s looting"),
+                 ("enchant @s 21 2", "enchant @s looting 2"),
+                 ("enchant @s looting", "enchant @s looting"),
+                 ("enchant @s looting 1", "enchant @s looting"),
+                 ("enchant @s looting 2", "enchant @s looting 2"),
 
-                 (converter.decide("enchant @s 22"), "enchant @s sweeping"),
-                 (converter.decide("enchant @s 22 1"), "enchant @s sweeping"),
-                 (converter.decide("enchant @s 22 2"), "enchant @s sweeping 2"),
-                 (converter.decide("enchant @s sweeping"), "enchant @s sweeping"),
-                 (converter.decide("enchant @s sweeping 1"), "enchant @s sweeping"),
-                 (converter.decide("enchant @s sweeping 2"), "enchant @s sweeping 2"),
+                 ("enchant @s 22", "enchant @s sweeping"),
+                 ("enchant @s 22 1", "enchant @s sweeping"),
+                 ("enchant @s 22 2", "enchant @s sweeping 2"),
+                 ("enchant @s sweeping", "enchant @s sweeping"),
+                 ("enchant @s sweeping 1", "enchant @s sweeping"),
+                 ("enchant @s sweeping 2", "enchant @s sweeping 2"),
 
-                 (converter.decide("enchant @s 32"), "enchant @s efficiency"),
-                 (converter.decide("enchant @s 32 1"), "enchant @s efficiency"),
-                 (converter.decide("enchant @s 32 2"), "enchant @s efficiency 2"),
-                 (converter.decide("enchant @s efficiency"), "enchant @s efficiency"),
-                 (converter.decide("enchant @s efficiency 1"), "enchant @s efficiency"),
-                 (converter.decide("enchant @s efficiency 2"), "enchant @s efficiency 2"),
+                 ("enchant @s 32", "enchant @s efficiency"),
+                 ("enchant @s 32 1", "enchant @s efficiency"),
+                 ("enchant @s 32 2", "enchant @s efficiency 2"),
+                 ("enchant @s efficiency", "enchant @s efficiency"),
+                 ("enchant @s efficiency 1", "enchant @s efficiency"),
+                 ("enchant @s efficiency 2", "enchant @s efficiency 2"),
 
-                 (converter.decide("enchant @s 33"), "enchant @s silk_touch"),
-                 (converter.decide("enchant @s 33 1"), "enchant @s silk_touch"),
-                 (converter.decide("enchant @s silk_touch"), "enchant @s silk_touch"),
-                 (converter.decide("enchant @s silk_touch 1"), "enchant @s silk_touch"),
+                 ("enchant @s 33", "enchant @s silk_touch"),
+                 ("enchant @s 33 1", "enchant @s silk_touch"),
+                 ("enchant @s silk_touch", "enchant @s silk_touch"),
+                 ("enchant @s silk_touch 1", "enchant @s silk_touch"),
 
-                 (converter.decide("enchant @s 34"), "enchant @s unbreaking"),
-                 (converter.decide("enchant @s 34 1"), "enchant @s unbreaking"),
-                 (converter.decide("enchant @s 34 2"), "enchant @s unbreaking 2"),
-                 (converter.decide("enchant @s unbreaking"), "enchant @s unbreaking"),
-                 (converter.decide("enchant @s unbreaking 1"), "enchant @s unbreaking"),
-                 (converter.decide("enchant @s unbreaking 2"), "enchant @s unbreaking 2"),
+                 ("enchant @s 34", "enchant @s unbreaking"),
+                 ("enchant @s 34 1", "enchant @s unbreaking"),
+                 ("enchant @s 34 2", "enchant @s unbreaking 2"),
+                 ("enchant @s unbreaking", "enchant @s unbreaking"),
+                 ("enchant @s unbreaking 1", "enchant @s unbreaking"),
+                 ("enchant @s unbreaking 2", "enchant @s unbreaking 2"),
 
-                 (converter.decide("enchant @s 35"), "enchant @s fortune"),
-                 (converter.decide("enchant @s 35 1"), "enchant @s fortune"),
-                 (converter.decide("enchant @s 35 2"), "enchant @s fortune 2"),
-                 (converter.decide("enchant @s fortune"), "enchant @s fortune"),
-                 (converter.decide("enchant @s fortune 1"), "enchant @s fortune"),
-                 (converter.decide("enchant @s fortune 2"), "enchant @s fortune 2"),
+                 ("enchant @s 35", "enchant @s fortune"),
+                 ("enchant @s 35 1", "enchant @s fortune"),
+                 ("enchant @s 35 2", "enchant @s fortune 2"),
+                 ("enchant @s fortune", "enchant @s fortune"),
+                 ("enchant @s fortune 1", "enchant @s fortune"),
+                 ("enchant @s fortune 2", "enchant @s fortune 2"),
 
-                 (converter.decide("enchant @s 48"), "enchant @s power"),
-                 (converter.decide("enchant @s 48 1"), "enchant @s power"),
-                 (converter.decide("enchant @s 48 2"), "enchant @s power 2"),
-                 (converter.decide("enchant @s power"), "enchant @s power"),
-                 (converter.decide("enchant @s power 1"), "enchant @s power"),
-                 (converter.decide("enchant @s power 2"), "enchant @s power 2"),
+                 ("enchant @s 48", "enchant @s power"),
+                 ("enchant @s 48 1", "enchant @s power"),
+                 ("enchant @s 48 2", "enchant @s power 2"),
+                 ("enchant @s power", "enchant @s power"),
+                 ("enchant @s power 1", "enchant @s power"),
+                 ("enchant @s power 2", "enchant @s power 2"),
 
-                 (converter.decide("enchant @s 49"), "enchant @s punch"),
-                 (converter.decide("enchant @s 49 1"), "enchant @s punch"),
-                 (converter.decide("enchant @s 49 2"), "enchant @s punch 2"),
-                 (converter.decide("enchant @s punch"), "enchant @s punch"),
-                 (converter.decide("enchant @s punch 1"), "enchant @s punch"),
-                 (converter.decide("enchant @s punch 2"), "enchant @s punch 2"),
+                 ("enchant @s 49", "enchant @s punch"),
+                 ("enchant @s 49 1", "enchant @s punch"),
+                 ("enchant @s 49 2", "enchant @s punch 2"),
+                 ("enchant @s punch", "enchant @s punch"),
+                 ("enchant @s punch 1", "enchant @s punch"),
+                 ("enchant @s punch 2", "enchant @s punch 2"),
 
-                 (converter.decide("enchant @s 50"), "enchant @s flame"),
-                 (converter.decide("enchant @s 50 1"), "enchant @s flame"),
-                 (converter.decide("enchant @s flame"), "enchant @s flame"),
-                 (converter.decide("enchant @s flame 1"), "enchant @s flame"),
+                 ("enchant @s 50", "enchant @s flame"),
+                 ("enchant @s 50 1", "enchant @s flame"),
+                 ("enchant @s flame", "enchant @s flame"),
+                 ("enchant @s flame 1", "enchant @s flame"),
 
-                 (converter.decide("enchant @s 51"), "enchant @s infinity"),
-                 (converter.decide("enchant @s 51 1"), "enchant @s infinity"),
-                 (converter.decide("enchant @s infinity"), "enchant @s infinity"),
-                 (converter.decide("enchant @s infinity 1"), "enchant @s infinity"),
+                 ("enchant @s 51", "enchant @s infinity"),
+                 ("enchant @s 51 1", "enchant @s infinity"),
+                 ("enchant @s infinity", "enchant @s infinity"),
+                 ("enchant @s infinity 1", "enchant @s infinity"),
 
-                 (converter.decide("enchant @s 61"), "enchant @s luck_of_the_sea"),
-                 (converter.decide("enchant @s 61 1"), "enchant @s luck_of_the_sea"),
-                 (converter.decide("enchant @s 61 2"), "enchant @s luck_of_the_sea 2"),
-                 (converter.decide("enchant @s luck_of_the_sea"), "enchant @s luck_of_the_sea"),
-                 (converter.decide("enchant @s luck_of_the_sea 1"), "enchant @s luck_of_the_sea"),
-                 (converter.decide("enchant @s luck_of_the_sea 2"), "enchant @s luck_of_the_sea 2"),
+                 ("enchant @s 61", "enchant @s luck_of_the_sea"),
+                 ("enchant @s 61 1", "enchant @s luck_of_the_sea"),
+                 ("enchant @s 61 2", "enchant @s luck_of_the_sea 2"),
+                 ("enchant @s luck_of_the_sea", "enchant @s luck_of_the_sea"),
+                 ("enchant @s luck_of_the_sea 1", "enchant @s luck_of_the_sea"),
+                 ("enchant @s luck_of_the_sea 2", "enchant @s luck_of_the_sea 2"),
 
-                 (converter.decide("enchant @s 62"), "enchant @s lure"),
-                 (converter.decide("enchant @s 62 1"), "enchant @s lure"),
-                 (converter.decide("enchant @s 62 2"), "enchant @s lure 2"),
-                 (converter.decide("enchant @s lure"), "enchant @s lure"),
-                 (converter.decide("enchant @s lure 1"), "enchant @s lure"),
-                 (converter.decide("enchant @s lure 2"), "enchant @s lure 2"),
+                 ("enchant @s 62", "enchant @s lure"),
+                 ("enchant @s 62 1", "enchant @s lure"),
+                 ("enchant @s 62 2", "enchant @s lure 2"),
+                 ("enchant @s lure", "enchant @s lure"),
+                 ("enchant @s lure 1", "enchant @s lure"),
+                 ("enchant @s lure 2", "enchant @s lure 2"),
 
-                 (converter.decide("enchant @s 70"), "enchant @s mending"),
-                 (converter.decide("enchant @s 70 1"), "enchant @s mending"),
-                 (converter.decide("enchant @s mending"), "enchant @s mending"),
-                 (converter.decide("enchant @s mending 1"), "enchant @s mending"),
+                 ("enchant @s 70", "enchant @s mending"),
+                 ("enchant @s 70 1", "enchant @s mending"),
+                 ("enchant @s mending", "enchant @s mending"),
+                 ("enchant @s mending 1", "enchant @s mending"),
 
-                 (converter.decide("enchant @s 71"), "enchant @s vanishing_curse"),
-                 (converter.decide("enchant @s 71 1"), "enchant @s vanishing_curse"),
-                 (converter.decide("enchant @s vanishing_curse"), "enchant @s vanishing_curse"),
-                 (converter.decide("enchant @s vanishing_curse 1"), "enchant @s vanishing_curse"))
+                 ("enchant @s 71", "enchant @s vanishing_curse"),
+                 ("enchant @s 71 1", "enchant @s vanishing_curse"),
+                 ("enchant @s vanishing_curse", "enchant @s vanishing_curse"),
+                 ("enchant @s vanishing_curse 1", "enchant @s vanishing_curse"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -860,9 +895,9 @@ class EntityData(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("entitydata @s {abc:def}"), "data merge entity @s {abc:def}"), )
+        tests = (("entitydata @s {abc:def}", "data merge entity @s {abc:def}"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -889,383 +924,223 @@ class Execute(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("execute @e[name=Carl] 1 ~-1 1 toggledownfall"),
-                                   "#~ execute as @e[name=Carl] run toggledownfall ||| This command was removed"),
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 toggledownfall"),
-                                   "#~ execute as @e[tag=Carl] as @e[name=Carl] run toggledownfall ||| This command was removed"),
+        tests = (("execute @e[name=Carl] 1 ~-1 1 toggledownfall",
+                  "#~ execute as @e[name=Carl] run toggledownfall ||| This command was removed"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 toggledownfall",
+                  "#~ execute as @e[tag=Carl] as @e[name=Carl] run toggledownfall ||| This command was removed"),
 
 
                  # @s
                  # not canAs and not canAt
-                 (converter.decide("execute @s ~ ~ ~ seed"),
-                                   "seed"),
-                 (converter.decide("execute @s[name=Carl] ~ ~ ~ seed"),
-                                   "execute as @s[name=Carl] run seed"),
-                 (converter.decide("execute @s 1 ~-1 1 seed"),
-                                   "seed"),
-                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 seed"),
-                                   "execute as @s[name=Carl] run seed"),
+                 ("execute @s ~ ~ ~ seed", "seed"),
+                 ("execute @s[name=Carl] ~ ~ ~ seed", "execute as @s[name=Carl] run seed"),
+                 ("execute @s 1 ~-1 1 seed", "seed"),
+                 ("execute @s[name=Carl] 1 ~-1 1 seed", "execute as @s[name=Carl] run seed"),
 
-                 (converter.decide("execute @s ~ ~ ~ execute @s ~ ~ ~ seed"),
-                                   "seed"),
-                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] ~ ~ ~ seed"),
-                                   "execute as @s[name=Carl] run seed"),
-                 (converter.decide("execute @s ~ ~ ~ execute @s 1 ~-1 1 seed"),
-                                   "seed"),
-                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 seed"),
-                                   "execute as @s[name=Carl] run seed"),
+                 ("execute @s ~ ~ ~ execute @s ~ ~ ~ seed", "seed"),
+                 ("execute @s ~ ~ ~ execute @s[name=Carl] ~ ~ ~ seed", "execute as @s[name=Carl] run seed"),
+                 ("execute @s ~ ~ ~ execute @s 1 ~-1 1 seed", "seed"),
+                 ("execute @s ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 seed", "execute as @s[name=Carl] run seed"),
 
-                 (converter.decide("execute @s 1 ~-1 1 execute @s ~ ~ ~ seed"),
-                                   "seed"),
-                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ seed"),
-                                   "execute as @s[name=Carl] run seed"),
-                 (converter.decide("execute @s 1 ~-1 1 execute @s 1 ~-1 1 seed"),
-                                   "seed"),
-                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 seed"),
-                                   "execute as @s[name=Carl] run seed"),
+                 ("execute @s 1 ~-1 1 execute @s ~ ~ ~ seed", "seed"),
+                 ("execute @s 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ seed", "execute as @s[name=Carl] run seed"),
+                 ("execute @s 1 ~-1 1 execute @s 1 ~-1 1 seed", "seed"),
+                 ("execute @s 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 seed", "execute as @s[name=Carl] run seed"),
 
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s ~ ~ ~ seed"),
-                                   "execute as @s[tag=Carl] run seed"),
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] ~ ~ ~ seed"),
-                                   "execute as @s[tag=Carl] as @s[name=Carl] run seed"),
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s 1 ~-1 1 seed"),
-                                   "execute as @s[tag=Carl] run seed"),
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 seed"),
-                                   "execute as @s[tag=Carl] as @s[name=Carl] run seed"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s ~ ~ ~ seed", "execute as @s[tag=Carl] run seed"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] ~ ~ ~ seed", "execute as @s[tag=Carl] as @s[name=Carl] run seed"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s 1 ~-1 1 seed", "execute as @s[tag=Carl] run seed"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 seed", "execute as @s[tag=Carl] as @s[name=Carl] run seed"),
 
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ seed"),
-                                   "execute as @s[tag=Carl] run seed"),
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ seed"),
-                                   "execute as @s[tag=Carl] as @s[name=Carl] run seed"),
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 seed"),
-                                   "execute as @s[tag=Carl] run seed"),
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 seed"),
-                                   "execute as @s[tag=Carl] as @s[name=Carl] run seed"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ seed", "execute as @s[tag=Carl] run seed"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ seed", "execute as @s[tag=Carl] as @s[name=Carl] run seed"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 seed", "execute as @s[tag=Carl] run seed"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 seed", "execute as @s[tag=Carl] as @s[name=Carl] run seed"),
 
                  # canAs and not canAt
-                 (converter.decide("execute @s ~ ~ ~ say hi"),
-                                   "say hi"),
-                 (converter.decide("execute @s[name=Carl] ~ ~ ~ say hi"),
-                                   "execute as @s[name=Carl] run say hi"),
-                 (converter.decide("execute @s 1 ~-1 1 say hi"),
-                                   "say hi"),
-                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 say hi"),
-                                   "execute as @s[name=Carl] run say hi"),
+                 ("execute @s ~ ~ ~ say hi", "say hi"),
+                 ("execute @s[name=Carl] ~ ~ ~ say hi", "execute as @s[name=Carl] run say hi"),
+                 ("execute @s 1 ~-1 1 say hi", "say hi"),
+                 ("execute @s[name=Carl] 1 ~-1 1 say hi", "execute as @s[name=Carl] run say hi"),
 
-                 (converter.decide("execute @s ~ ~ ~ execute @s ~ ~ ~ say hi"),
-                                   "say hi"),
-                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] ~ ~ ~ say hi"),
-                                   "execute as @s[name=Carl] run say hi"),
-                 (converter.decide("execute @s ~ ~ ~ execute @s 1 ~-1 1 say hi"),
-                                   "say hi"),
-                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 say hi"),
-                                   "execute as @s[name=Carl] run say hi"),
+                 ("execute @s ~ ~ ~ execute @s ~ ~ ~ say hi", "say hi"),
+                 ("execute @s ~ ~ ~ execute @s[name=Carl] ~ ~ ~ say hi", "execute as @s[name=Carl] run say hi"),
+                 ("execute @s ~ ~ ~ execute @s 1 ~-1 1 say hi", "say hi"),
+                 ("execute @s ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 say hi", "execute as @s[name=Carl] run say hi"),
 
-                 (converter.decide("execute @s 1 ~-1 1 execute @s ~ ~ ~ say hi"),
-                                   "say hi"),
-                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ say hi"),
-                                   "execute as @s[name=Carl] run say hi"),
-                 (converter.decide("execute @s 1 ~-1 1 execute @s 1 ~-1 1 say hi"),
-                                   "say hi"),
-                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 say hi"),
-                                   "execute as @s[name=Carl] run say hi"),
+                 ("execute @s 1 ~-1 1 execute @s ~ ~ ~ say hi", "say hi"),
+                 ("execute @s 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ say hi", "execute as @s[name=Carl] run say hi"),
+                 ("execute @s 1 ~-1 1 execute @s 1 ~-1 1 say hi", "say hi"),
+                 ("execute @s 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 say hi", "execute as @s[name=Carl] run say hi"),
 
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s ~ ~ ~ say hi"),
-                                   "execute as @s[tag=Carl] run say hi"),
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] ~ ~ ~ say hi"),
-                                   "execute as @s[tag=Carl] as @s[name=Carl] run say hi"),
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s 1 ~-1 1 say hi"),
-                                   "execute as @s[tag=Carl] run say hi"),
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 say hi"),
-                                   "execute as @s[tag=Carl] as @s[name=Carl] run say hi"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s ~ ~ ~ say hi", "execute as @s[tag=Carl] run say hi"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] ~ ~ ~ say hi", "execute as @s[tag=Carl] as @s[name=Carl] run say hi"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s 1 ~-1 1 say hi", "execute as @s[tag=Carl] run say hi"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 say hi", "execute as @s[tag=Carl] as @s[name=Carl] run say hi"),
 
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ say hi"),
-                                   "execute as @s[tag=Carl] run say hi"),
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ say hi"),
-                                   "execute as @s[tag=Carl] as @s[name=Carl] run say hi"),
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 say hi"),
-                                   "execute as @s[tag=Carl] run say hi"),
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 say hi"),
-                                   "execute as @s[tag=Carl] as @s[name=Carl] run say hi"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ say hi", "execute as @s[tag=Carl] run say hi"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ say hi", "execute as @s[tag=Carl] as @s[name=Carl] run say hi"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 say hi", "execute as @s[tag=Carl] run say hi"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 say hi", "execute as @s[tag=Carl] as @s[name=Carl] run say hi"),
 
                  # not canAs and canAt
-                 (converter.decide("execute @s ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @s[name=Carl] run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @s ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s run setblock ~ ~ ~ stone"),
+                 ("execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s[name=Carl] run setblock ~ ~ ~ stone"),
+                 ("execute @s 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
 
-                 (converter.decide("execute @s ~ ~ ~ execute @s ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @s[name=Carl] run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s ~ ~ ~ execute @s 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @s ~ ~ ~ execute @s ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s run setblock ~ ~ ~ stone"),
+                 ("execute @s ~ ~ ~ execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s[name=Carl] run setblock ~ ~ ~ stone"),
+                 ("execute @s ~ ~ ~ execute @s 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @s ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
 
-                 (converter.decide("execute @s 1 ~-1 1 execute @s ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute positioned 1 ~-1 1 at @s[name=Carl] run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s 1 ~-1 1 execute @s 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute positioned 1 ~-1 1 positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute positioned 1 ~-1 1 at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @s 1 ~-1 1 execute @s ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s positioned 1 ~-1 1 at @s run setblock ~ ~ ~ stone"),
+                 ("execute @s 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s positioned 1 ~-1 1 at @s[name=Carl] run setblock ~ ~ ~ stone"),
+                 ("execute @s 1 ~-1 1 execute @s 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s positioned 1 ~-1 1 at @s positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @s 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s positioned 1 ~-1 1 at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
 
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @s[tag=Carl] run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @s[tag=Carl] at @s[name=Carl] run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @s[tag=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @s[tag=Carl] at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s[tag=Carl] run setblock ~ ~ ~ stone"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s[tag=Carl] at @s[name=Carl] run setblock ~ ~ ~ stone"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s[tag=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s[tag=Carl] at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
 
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @s[tag=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s[name=Carl] run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @s[tag=Carl] positioned 1 ~-1 1 positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s run setblock ~ ~ ~ stone"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s[name=Carl] run setblock ~ ~ ~ stone"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
 
                  # canAs and canAt
-                 (converter.decide("execute @s ~ ~ ~ function abc:def"),
-                                   "function abc:def"),
-                 (converter.decide("execute @s[name=Carl] ~ ~ ~ function abc:def"),
-                                   "execute as @s[name=Carl] run function abc:def"),
-                 (converter.decide("execute @s 1 ~-1 1 function abc:def"),
-                                   "execute positioned 1 ~-1 1 run function abc:def"),
-                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 function abc:def"),
-                                   "execute as @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @s ~ ~ ~ function abc:def", "execute at @s run function abc:def"),
+                 ("execute @s[name=Carl] ~ ~ ~ function abc:def", "execute at @s[name=Carl] run function abc:def"),
+                 ("execute @s 1 ~-1 1 function abc:def", "execute at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @s[name=Carl] 1 ~-1 1 function abc:def", "execute at @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
 
-                 (converter.decide("execute @s ~ ~ ~ execute @s ~ ~ ~ function abc:def"),
-                                   "function abc:def"),
-                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] ~ ~ ~ function abc:def"),
-                                   "execute as @s[name=Carl] run function abc:def"),
-                 (converter.decide("execute @s ~ ~ ~ execute @s 1 ~-1 1 function abc:def"),
-                                   "execute positioned 1 ~-1 1 run function abc:def"),
-                 (converter.decide("execute @s ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 function abc:def"),
-                                   "execute as @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @s ~ ~ ~ execute @s ~ ~ ~ function abc:def", "execute at @s run function abc:def"),
+                 ("execute @s ~ ~ ~ execute @s[name=Carl] ~ ~ ~ function abc:def", "execute at @s[name=Carl] run function abc:def"),
+                 ("execute @s ~ ~ ~ execute @s 1 ~-1 1 function abc:def", "execute at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @s ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 function abc:def", "execute at @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
 
-                 (converter.decide("execute @s 1 ~-1 1 execute @s ~ ~ ~ function abc:def"),
-                                   "execute positioned 1 ~-1 1 run function abc:def"),
-                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ function abc:def"),
-                                   "execute positioned 1 ~-1 1 as @s[name=Carl] run function abc:def"),
-                 (converter.decide("execute @s 1 ~-1 1 execute @s 1 ~-1 1 function abc:def"),
-                                   "execute positioned 1 ~-1 1 positioned 1 ~-1 1 run function abc:def"),
-                 (converter.decide("execute @s 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 function abc:def"),
-                                   "execute positioned 1 ~-1 1 as @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @s 1 ~-1 1 execute @s ~ ~ ~ function abc:def", "execute at @s positioned 1 ~-1 1 at @s run function abc:def"),
+                 ("execute @s 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ function abc:def", "execute at @s positioned 1 ~-1 1 at @s[name=Carl] run function abc:def"),
+                 ("execute @s 1 ~-1 1 execute @s 1 ~-1 1 function abc:def", "execute at @s positioned 1 ~-1 1 at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @s 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 function abc:def", "execute at @s positioned 1 ~-1 1 at @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
 
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s ~ ~ ~ function abc:def"),
-                                   "execute as @s[tag=Carl] run function abc:def"),
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] ~ ~ ~ function abc:def"),
-                                   "execute as @s[tag=Carl] as @s[name=Carl] run function abc:def"),
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s 1 ~-1 1 function abc:def"),
-                                   "execute as @s[tag=Carl] positioned 1 ~-1 1 run function abc:def"),
-                 (converter.decide("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 function abc:def"),
-                                   "execute as @s[tag=Carl] as @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s ~ ~ ~ function abc:def", "execute at @s[tag=Carl] run function abc:def"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] ~ ~ ~ function abc:def", "execute at @s[tag=Carl] at @s[name=Carl] run function abc:def"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s 1 ~-1 1 function abc:def", "execute at @s[tag=Carl] positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 function abc:def", "execute at @s[tag=Carl] at @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
 
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ function abc:def"),
-                                   "execute as @s[tag=Carl] positioned 1 ~-1 1 run function abc:def"),
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ function abc:def"),
-                                   "execute as @s[tag=Carl] positioned 1 ~-1 1 as @s[name=Carl] run function abc:def"),
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 function abc:def"),
-                                   "execute as @s[tag=Carl] positioned 1 ~-1 1 positioned 1 ~-1 1 run function abc:def"),
-                 (converter.decide("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 function abc:def"),
-                                   "execute as @s[tag=Carl] positioned 1 ~-1 1 as @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ function abc:def", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s run function abc:def"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ function abc:def", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s[name=Carl] run function abc:def"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 function abc:def", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 function abc:def", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
 
                  # @e
                  # not canAs and not canAt
-                 (converter.decide("execute @e ~ ~ ~ seed"),
-                                   "execute as @e run seed"),
-                 (converter.decide("execute @e[name=Carl] ~ ~ ~ seed"),
-                                   "execute as @e[name=Carl] run seed"),
-                 (converter.decide("execute @e 1 ~-1 1 seed"),
-                                   "execute as @e run seed"),
-                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 seed"),
-                                   "execute as @e[name=Carl] run seed"),
+                 ("execute @e ~ ~ ~ seed", "execute as @e run seed"),
+                 ("execute @e[name=Carl] ~ ~ ~ seed", "execute as @e[name=Carl] run seed"),
+                 ("execute @e 1 ~-1 1 seed", "execute as @e run seed"),
+                 ("execute @e[name=Carl] 1 ~-1 1 seed", "execute as @e[name=Carl] run seed"),
 
-                 (converter.decide("execute @e ~ ~ ~ execute @e ~ ~ ~ seed"),
-                                   "execute as @e as @e run seed"),
-                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] ~ ~ ~ seed"),
-                                   "execute as @e as @e[name=Carl] run seed"),
-                 (converter.decide("execute @e ~ ~ ~ execute @e 1 ~-1 1 seed"),
-                                   "execute as @e as @e run seed"),
-                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 seed"),
-                                   "execute as @e as @e[name=Carl] run seed"),
+                 ("execute @e ~ ~ ~ execute @e ~ ~ ~ seed", "execute as @e as @e run seed"),
+                 ("execute @e ~ ~ ~ execute @e[name=Carl] ~ ~ ~ seed", "execute as @e as @e[name=Carl] run seed"),
+                 ("execute @e ~ ~ ~ execute @e 1 ~-1 1 seed", "execute as @e as @e run seed"),
+                 ("execute @e ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 seed", "execute as @e as @e[name=Carl] run seed"),
 
-                 (converter.decide("execute @e 1 ~-1 1 execute @e ~ ~ ~ seed"),
-                                   "execute as @e as @e run seed"),
-                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ seed"),
-                                   "execute as @e as @e[name=Carl] run seed"),
-                 (converter.decide("execute @e 1 ~-1 1 execute @e 1 ~-1 1 seed"),
-                                   "execute as @e as @e run seed"),
-                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 seed"),
-                                   "execute as @e as @e[name=Carl] run seed"),
+                 ("execute @e 1 ~-1 1 execute @e ~ ~ ~ seed", "execute as @e as @e run seed"),
+                 ("execute @e 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ seed", "execute as @e as @e[name=Carl] run seed"),
+                 ("execute @e 1 ~-1 1 execute @e 1 ~-1 1 seed", "execute as @e as @e run seed"),
+                 ("execute @e 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 seed", "execute as @e as @e[name=Carl] run seed"),
 
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e ~ ~ ~ seed"),
-                                   "execute as @e[tag=Carl] as @e run seed"),
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] ~ ~ ~ seed"),
-                                   "execute as @e[tag=Carl] as @e[name=Carl] run seed"),
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e 1 ~-1 1 seed"),
-                                   "execute as @e[tag=Carl] as @e run seed"),
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 seed"),
-                                   "execute as @e[tag=Carl] as @e[name=Carl] run seed"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e ~ ~ ~ seed", "execute as @e[tag=Carl] as @e run seed"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] ~ ~ ~ seed", "execute as @e[tag=Carl] as @e[name=Carl] run seed"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e 1 ~-1 1 seed", "execute as @e[tag=Carl] as @e run seed"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 seed", "execute as @e[tag=Carl] as @e[name=Carl] run seed"),
 
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e ~ ~ ~ seed"),
-                                   "execute as @e[tag=Carl] as @e run seed"),
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ seed"),
-                                   "execute as @e[tag=Carl] as @e[name=Carl] run seed"),
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e 1 ~-1 1 seed"),
-                                   "execute as @e[tag=Carl] as @e run seed"),
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 seed"),
-                                   "execute as @e[tag=Carl] as @e[name=Carl] run seed"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e ~ ~ ~ seed", "execute as @e[tag=Carl] as @e run seed"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ seed", "execute as @e[tag=Carl] as @e[name=Carl] run seed"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e 1 ~-1 1 seed", "execute as @e[tag=Carl] as @e run seed"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 seed", "execute as @e[tag=Carl] as @e[name=Carl] run seed"),
 
                  # canAs and not canAt
-                 (converter.decide("execute @e ~ ~ ~ say hi"),
-                                   "execute as @e run say hi"),
-                 (converter.decide("execute @e[name=Carl] ~ ~ ~ say hi"),
-                                   "execute as @e[name=Carl] run say hi"),
-                 (converter.decide("execute @e 1 ~-1 1 say hi"),
-                                   "execute as @e run say hi"),
-                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 say hi"),
-                                   "execute as @e[name=Carl] run say hi"),
+                 ("execute @e ~ ~ ~ say hi", "execute as @e run say hi"),
+                 ("execute @e[name=Carl] ~ ~ ~ say hi", "execute as @e[name=Carl] run say hi"),
+                 ("execute @e 1 ~-1 1 say hi", "execute as @e run say hi"),
+                 ("execute @e[name=Carl] 1 ~-1 1 say hi", "execute as @e[name=Carl] run say hi"),
 
-                 (converter.decide("execute @e ~ ~ ~ execute @e ~ ~ ~ say hi"),
-                                   "execute as @e as @e run say hi"),
-                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] ~ ~ ~ say hi"),
-                                   "execute as @e as @e[name=Carl] run say hi"),
-                 (converter.decide("execute @e ~ ~ ~ execute @e 1 ~-1 1 say hi"),
-                                   "execute as @e as @e run say hi"),
-                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 say hi"),
-                                   "execute as @e as @e[name=Carl] run say hi"),
+                 ("execute @e ~ ~ ~ execute @e ~ ~ ~ say hi", "execute as @e as @e run say hi"),
+                 ("execute @e ~ ~ ~ execute @e[name=Carl] ~ ~ ~ say hi", "execute as @e as @e[name=Carl] run say hi"),
+                 ("execute @e ~ ~ ~ execute @e 1 ~-1 1 say hi", "execute as @e as @e run say hi"),
+                 ("execute @e ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 say hi", "execute as @e as @e[name=Carl] run say hi"),
 
-                 (converter.decide("execute @e 1 ~-1 1 execute @e ~ ~ ~ say hi"),
-                                   "execute as @e as @e run say hi"),
-                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ say hi"),
-                                   "execute as @e as @e[name=Carl] run say hi"),
-                 (converter.decide("execute @e 1 ~-1 1 execute @e 1 ~-1 1 say hi"),
-                                   "execute as @e as @e run say hi"),
-                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 say hi"),
-                                   "execute as @e as @e[name=Carl] run say hi"),
+                 ("execute @e 1 ~-1 1 execute @e ~ ~ ~ say hi", "execute as @e as @e run say hi"),
+                 ("execute @e 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ say hi", "execute as @e as @e[name=Carl] run say hi"),
+                 ("execute @e 1 ~-1 1 execute @e 1 ~-1 1 say hi", "execute as @e as @e run say hi"),
+                 ("execute @e 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 say hi", "execute as @e as @e[name=Carl] run say hi"),
 
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e ~ ~ ~ say hi"),
-                                   "execute as @e[tag=Carl] as @e run say hi"),
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] ~ ~ ~ say hi"),
-                                   "execute as @e[tag=Carl] as @e[name=Carl] run say hi"),
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e 1 ~-1 1 say hi"),
-                                   "execute as @e[tag=Carl] as @e run say hi"),
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 say hi"),
-                                   "execute as @e[tag=Carl] as @e[name=Carl] run say hi"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e ~ ~ ~ say hi", "execute as @e[tag=Carl] as @e run say hi"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] ~ ~ ~ say hi", "execute as @e[tag=Carl] as @e[name=Carl] run say hi"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e 1 ~-1 1 say hi", "execute as @e[tag=Carl] as @e run say hi"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 say hi", "execute as @e[tag=Carl] as @e[name=Carl] run say hi"),
 
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e ~ ~ ~ say hi"),
-                                   "execute as @e[tag=Carl] as @e run say hi"),
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ say hi"),
-                                   "execute as @e[tag=Carl] as @e[name=Carl] run say hi"),
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e 1 ~-1 1 say hi"),
-                                   "execute as @e[tag=Carl] as @e run say hi"),
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 say hi"),
-                                   "execute as @e[tag=Carl] as @e[name=Carl] run say hi"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e ~ ~ ~ say hi", "execute as @e[tag=Carl] as @e run say hi"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ say hi", "execute as @e[tag=Carl] as @e[name=Carl] run say hi"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e 1 ~-1 1 say hi", "execute as @e[tag=Carl] as @e run say hi"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 say hi", "execute as @e[tag=Carl] as @e[name=Carl] run say hi"),
 
                  # not canAs and canAt
-                 (converter.decide("execute @e ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @e run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @e[name=Carl] run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @e ~ ~ ~ setblock ~ ~ ~ stone", "execute at @e run setblock ~ ~ ~ stone"),
+                 ("execute @e[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone", "execute at @e[name=Carl] run setblock ~ ~ ~ stone"),
+                 ("execute @e 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @e positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @e[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @e[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
 
-                 (converter.decide("execute @e ~ ~ ~ execute @e ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @e at @e run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @e at @e[name=Carl] run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e ~ ~ ~ execute @e 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e at @e positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e at @e[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @e ~ ~ ~ execute @e ~ ~ ~ setblock ~ ~ ~ stone", "execute at @e at @e run setblock ~ ~ ~ stone"),
+                 ("execute @e ~ ~ ~ execute @e[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone", "execute at @e at @e[name=Carl] run setblock ~ ~ ~ stone"),
+                 ("execute @e ~ ~ ~ execute @e 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @e at @e positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @e ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @e at @e[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
 
-                 (converter.decide("execute @e 1 ~-1 1 execute @e ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @e positioned 1 ~-1 1 at @e run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @e positioned 1 ~-1 1 at @e[name=Carl] run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e 1 ~-1 1 execute @e 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e positioned 1 ~-1 1 at @e positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e positioned 1 ~-1 1 at @e[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @e 1 ~-1 1 execute @e ~ ~ ~ setblock ~ ~ ~ stone", "execute at @e positioned 1 ~-1 1 at @e run setblock ~ ~ ~ stone"),
+                 ("execute @e 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone", "execute at @e positioned 1 ~-1 1 at @e[name=Carl] run setblock ~ ~ ~ stone"),
+                 ("execute @e 1 ~-1 1 execute @e 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @e positioned 1 ~-1 1 at @e positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @e 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @e positioned 1 ~-1 1 at @e[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
 
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @e[tag=Carl] at @e run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @e[tag=Carl] at @e[name=Carl] run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e[tag=Carl] at @e positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e[tag=Carl] at @e[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e ~ ~ ~ setblock ~ ~ ~ stone", "execute at @e[tag=Carl] at @e run setblock ~ ~ ~ stone"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone", "execute at @e[tag=Carl] at @e[name=Carl] run setblock ~ ~ ~ stone"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @e[tag=Carl] at @e positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @e[tag=Carl] at @e[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
 
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @e[tag=Carl] positioned 1 ~-1 1 at @e run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone"),
-                                   "execute at @e[tag=Carl] positioned 1 ~-1 1 at @e[name=Carl] run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e[tag=Carl] positioned 1 ~-1 1 at @e positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e[tag=Carl] positioned 1 ~-1 1 at @e[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e ~ ~ ~ setblock ~ ~ ~ stone", "execute at @e[tag=Carl] positioned 1 ~-1 1 at @e run setblock ~ ~ ~ stone"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone", "execute at @e[tag=Carl] positioned 1 ~-1 1 at @e[name=Carl] run setblock ~ ~ ~ stone"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @e[tag=Carl] positioned 1 ~-1 1 at @e positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @e[tag=Carl] positioned 1 ~-1 1 at @e[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
 
                  # canAs and canAt
-                 (converter.decide("execute @e ~ ~ ~ function abc:def"),
-                                   "execute as @e at @s run function abc:def"),
-                 (converter.decide("execute @e[name=Carl] ~ ~ ~ function abc:def"),
-                                   "execute as @e[name=Carl] at @s run function abc:def"),
-                 (converter.decide("execute @e 1 ~-1 1 function abc:def"),
-                                   "execute as @e at @s positioned 1 ~-1 1 run function abc:def"),
-                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 function abc:def"),
-                                   "execute as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e ~ ~ ~ function abc:def", "execute as @e at @s run function abc:def"),
+                 ("execute @e[name=Carl] ~ ~ ~ function abc:def", "execute as @e[name=Carl] at @s run function abc:def"),
+                 ("execute @e 1 ~-1 1 function abc:def", "execute as @e at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e[name=Carl] 1 ~-1 1 function abc:def", "execute as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
 
-                 (converter.decide("execute @e ~ ~ ~ execute @e ~ ~ ~ function abc:def"),
-                                   "execute as @e at @s as @e at @s run function abc:def"),
-                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] ~ ~ ~ function abc:def"),
-                                   "execute as @e at @s as @e[name=Carl] at @s run function abc:def"),
-                 (converter.decide("execute @e ~ ~ ~ execute @e 1 ~-1 1 function abc:def"),
-                                   "execute as @e at @s as @e at @s positioned 1 ~-1 1 run function abc:def"),
-                 (converter.decide("execute @e ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 function abc:def"),
-                                   "execute as @e at @s as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e ~ ~ ~ execute @e ~ ~ ~ function abc:def", "execute as @e at @s as @e at @s run function abc:def"),
+                 ("execute @e ~ ~ ~ execute @e[name=Carl] ~ ~ ~ function abc:def", "execute as @e at @s as @e[name=Carl] at @s run function abc:def"),
+                 ("execute @e ~ ~ ~ execute @e 1 ~-1 1 function abc:def", "execute as @e at @s as @e at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 function abc:def", "execute as @e at @s as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
 
-                 (converter.decide("execute @e 1 ~-1 1 execute @e ~ ~ ~ function abc:def"),
-                                   "execute as @e at @s positioned 1 ~-1 1 as @e at @s run function abc:def"),
-                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ function abc:def"),
-                                   "execute as @e at @s positioned 1 ~-1 1 as @e[name=Carl] at @s run function abc:def"),
-                 (converter.decide("execute @e 1 ~-1 1 execute @e 1 ~-1 1 function abc:def"),
-                                   "execute as @e at @s positioned 1 ~-1 1 as @e at @s positioned 1 ~-1 1 run function abc:def"),
-                 (converter.decide("execute @e 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 function abc:def"),
-                                   "execute as @e at @s positioned 1 ~-1 1 as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e 1 ~-1 1 execute @e ~ ~ ~ function abc:def", "execute as @e at @s positioned 1 ~-1 1 as @e at @s run function abc:def"),
+                 ("execute @e 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ function abc:def", "execute as @e at @s positioned 1 ~-1 1 as @e[name=Carl] at @s run function abc:def"),
+                 ("execute @e 1 ~-1 1 execute @e 1 ~-1 1 function abc:def", "execute as @e at @s positioned 1 ~-1 1 as @e at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 function abc:def", "execute as @e at @s positioned 1 ~-1 1 as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
 
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e ~ ~ ~ function abc:def"),
-                                   "execute as @e[tag=Carl] at @s as @e at @s run function abc:def"),
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] ~ ~ ~ function abc:def"),
-                                   "execute as @e[tag=Carl] at @s as @e[name=Carl] at @s run function abc:def"),
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e 1 ~-1 1 function abc:def"),
-                                   "execute as @e[tag=Carl] at @s as @e at @s positioned 1 ~-1 1 run function abc:def"),
-                 (converter.decide("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 function abc:def"),
-                                   "execute as @e[tag=Carl] at @s as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e ~ ~ ~ function abc:def", "execute as @e[tag=Carl] at @s as @e at @s run function abc:def"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] ~ ~ ~ function abc:def", "execute as @e[tag=Carl] at @s as @e[name=Carl] at @s run function abc:def"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e 1 ~-1 1 function abc:def", "execute as @e[tag=Carl] at @s as @e at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 function abc:def", "execute as @e[tag=Carl] at @s as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
 
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e ~ ~ ~ function abc:def"),
-                                   "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e at @s run function abc:def"),
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ function abc:def"),
-                                   "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e[name=Carl] at @s run function abc:def"),
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e 1 ~-1 1 function abc:def"),
-                                   "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e at @s positioned 1 ~-1 1 run function abc:def"),
-                 (converter.decide("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 function abc:def"),
-                                   "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"))
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e ~ ~ ~ function abc:def", "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e at @s run function abc:def"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ function abc:def", "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e[name=Carl] at @s run function abc:def"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e 1 ~-1 1 function abc:def", "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 function abc:def", "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -1303,167 +1178,103 @@ class Execute(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 toggledownfall"),
-                                   "#~ execute at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run toggledownfall ||| This command was removed"),
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 toggledownfall"),
-                                   "#~ execute at @e if block ~ ~ ~ diorite at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run toggledownfall ||| This command was removed"),
+        tests = (("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 toggledownfall",
+                  "#~ execute at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run toggledownfall ||| This command was removed"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 toggledownfall",
+                  "#~ execute at @e if block ~ ~ ~ diorite at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run toggledownfall ||| This command was removed"),
 
 
                  # @s
                  # not canAs and not canAt
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
-                                   "execute if block ~ ~ ~ granite run seed"),
-                 (converter.decide("execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
-                                   "execute at @s[name=Carl] if block ~ ~ ~ granite run seed"),
-                 (converter.decide("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
-                                   "execute positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
-                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
-                                   "execute at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 1 seed", "execute at @s if block ~ ~ ~ granite run seed"),
+                 ("execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 seed", "execute at @s[name=Carl] if block ~ ~ ~ granite run seed"),
+                 ("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 seed", "execute at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+                 ("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 seed", "execute at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
 
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
-                                   "execute if block ~ ~ ~ diorite if block ~ ~ ~ granite run seed"),
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
-                                   "execute if block ~ ~ ~ diorite at @s[name=Carl] if block ~ ~ ~ granite run seed"),
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
-                                   "execute if block ~ ~ ~ diorite positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
-                                   "execute if block ~ ~ ~ diorite at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 seed", "execute at @s if block ~ ~ ~ diorite at @s if block ~ ~ ~ granite run seed"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 seed", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] if block ~ ~ ~ granite run seed"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 seed", "execute at @s if block ~ ~ ~ diorite at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 seed", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
 
                  # canAs and not canAt
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
-                                   "execute if block ~ ~ ~ granite run say hi"),
-                 (converter.decide("execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
-                                   "execute as @s[name=Carl] if block ~ ~ ~ granite run say hi"),
-                 (converter.decide("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
-                                   "execute positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
-                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
-                                   "execute as @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 1 say hi", "execute at @s if block ~ ~ ~ granite run say hi"),
+                 ("execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 say hi", "execute at @s[name=Carl] if block ~ ~ ~ granite run say hi"),
+                 ("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+                 ("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
 
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
-                                   "execute if block ~ ~ ~ diorite if block ~ ~ ~ granite run say hi"),
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
-                                   "execute if block ~ ~ ~ diorite as @s[name=Carl] if block ~ ~ ~ granite run say hi"),
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
-                                   "execute if block ~ ~ ~ diorite positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
-                                   "execute if block ~ ~ ~ diorite as @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 say hi", "execute at @s if block ~ ~ ~ diorite at @s if block ~ ~ ~ granite run say hi"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 say hi", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] if block ~ ~ ~ granite run say hi"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute at @s if block ~ ~ ~ diorite at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
 
                  # not canAs and canAt
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
-                                   "execute if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
-                                   "execute at @s[name=Carl] if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
-                                   "execute positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
-                                   "execute at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone", "execute at @s if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 ("execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone", "execute at @s[name=Carl] if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 ("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone", "execute at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+                 ("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone", "execute at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
 
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
-                                   "execute if block ~ ~ ~ diorite if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
-                                   "execute if block ~ ~ ~ diorite at @s[name=Carl] if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
-                                   "execute if block ~ ~ ~ diorite positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
-                                   "execute if block ~ ~ ~ diorite at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone", "execute at @s if block ~ ~ ~ diorite at @s if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone", "execute at @s if block ~ ~ ~ diorite at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
 
                  # canAs and canAt
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
-                                   "execute if block ~ ~ ~ granite run function abc:def"),
-                 (converter.decide("execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
-                                   "execute as @s[name=Carl] if block ~ ~ ~ granite run function abc:def"),
-                 (converter.decide("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
-                                   "execute positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
-                 (converter.decide("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
-                                   "execute as @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def", "execute at @s if block ~ ~ ~ granite run function abc:def"),
+                 ("execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def", "execute at @s[name=Carl] if block ~ ~ ~ granite run function abc:def"),
+                 ("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+                 ("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
 
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
-                                   "execute if block ~ ~ ~ diorite if block ~ ~ ~ granite run function abc:def"),
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
-                                   "execute if block ~ ~ ~ diorite as @s[name=Carl] if block ~ ~ ~ granite run function abc:def"),
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
-                                   "execute if block ~ ~ ~ diorite positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
-                 (converter.decide("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
-                                   "execute if block ~ ~ ~ diorite as @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def", "execute at @s if block ~ ~ ~ diorite at @s if block ~ ~ ~ granite run function abc:def"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] if block ~ ~ ~ granite run function abc:def"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute at @s if block ~ ~ ~ diorite at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
 
                  # @e
                  # not canAs and not canAt
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
-                                   "execute at @e if block ~ ~ ~ granite run seed"),
-                 (converter.decide("execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
-                                   "execute at @e[name=Carl] if block ~ ~ ~ granite run seed"),
-                 (converter.decide("execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
-                                   "execute at @e positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
-                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
-                                   "execute at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 1 seed", "execute at @e if block ~ ~ ~ granite run seed"),
+                 ("execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 seed", "execute at @e[name=Carl] if block ~ ~ ~ granite run seed"),
+                 ("execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 seed", "execute at @e positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+                 ("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 seed", "execute at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
 
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
-                                   "execute at @e if block ~ ~ ~ diorite at @e if block ~ ~ ~ granite run seed"),
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 seed"),
-                                   "execute at @e if block ~ ~ ~ diorite at @e[name=Carl] if block ~ ~ ~ granite run seed"),
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
-                                   "execute at @e if block ~ ~ ~ diorite at @e positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 seed"),
-                                   "execute at @e if block ~ ~ ~ diorite at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 seed", "execute at @e if block ~ ~ ~ diorite at @e if block ~ ~ ~ granite run seed"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 seed", "execute at @e if block ~ ~ ~ diorite at @e[name=Carl] if block ~ ~ ~ granite run seed"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 seed", "execute at @e if block ~ ~ ~ diorite at @e positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 seed", "execute at @e if block ~ ~ ~ diorite at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
 
                  # canAs and not canAt
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
-                                   "execute as @e at @s if block ~ ~ ~ granite run say hi"),
-                 (converter.decide("execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
-                                   "execute as @e[name=Carl] at @s if block ~ ~ ~ granite run say hi"),
-                 (converter.decide("execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
-                                   "execute as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
-                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
-                                   "execute as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 1 say hi", "execute as @e at @s if block ~ ~ ~ granite run say hi"),
+                 ("execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 say hi", "execute as @e[name=Carl] at @s if block ~ ~ ~ granite run say hi"),
+                 ("execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+                 ("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
 
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
-                                   "execute as @e at @s if block ~ ~ ~ diorite as @e at @s if block ~ ~ ~ granite run say hi"),
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 say hi"),
-                                   "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s if block ~ ~ ~ granite run say hi"),
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
-                                   "execute as @e at @s if block ~ ~ ~ diorite as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi"),
-                                   "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 say hi", "execute as @e at @s if block ~ ~ ~ diorite as @e at @s if block ~ ~ ~ granite run say hi"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 say hi", "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s if block ~ ~ ~ granite run say hi"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute as @e at @s if block ~ ~ ~ diorite as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
 
                  # not canAs and canAt
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e[name=Carl] if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone", "execute at @e if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 ("execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone", "execute at @e[name=Carl] if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 ("execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone", "execute at @e positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+                 ("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone", "execute at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
 
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e if block ~ ~ ~ diorite at @e if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e if block ~ ~ ~ diorite at @e[name=Carl] if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e if block ~ ~ ~ diorite at @e positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone"),
-                                   "execute at @e if block ~ ~ ~ diorite at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone", "execute at @e if block ~ ~ ~ diorite at @e if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone", "execute at @e if block ~ ~ ~ diorite at @e[name=Carl] if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone", "execute at @e if block ~ ~ ~ diorite at @e positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone", "execute at @e if block ~ ~ ~ diorite at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
 
                  # canAs and canAt
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
-                                   "execute as @e at @s if block ~ ~ ~ granite run function abc:def"),
-                 (converter.decide("execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
-                                   "execute as @e[name=Carl] at @s if block ~ ~ ~ granite run function abc:def"),
-                 (converter.decide("execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
-                                   "execute as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
-                 (converter.decide("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
-                                   "execute as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def", "execute as @e at @s if block ~ ~ ~ granite run function abc:def"),
+                 ("execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def", "execute as @e[name=Carl] at @s if block ~ ~ ~ granite run function abc:def"),
+                 ("execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+                 ("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
 
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
-                                   "execute as @e at @s if block ~ ~ ~ diorite as @e at @s if block ~ ~ ~ granite run function abc:def"),
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def"),
-                                   "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s if block ~ ~ ~ granite run function abc:def"),
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
-                                   "execute as @e at @s if block ~ ~ ~ diorite as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
-                 (converter.decide("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def"),
-                                   "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"))
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def", "execute as @e at @s if block ~ ~ ~ diorite as @e at @s if block ~ ~ ~ granite run function abc:def"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def", "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s if block ~ ~ ~ granite run function abc:def"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute as @e at @s if block ~ ~ ~ diorite as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -1501,18 +1312,18 @@ class Fill(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone"), "fill 1 ~-1 ~1 1 ~-1 ~1 stone"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 destroy"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite destroy"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 destroy {abc:def}"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite{abc:def} destroy"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 hollow"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite hollow"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 hollow {abc:def}"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite{abc:def} hollow"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 keep"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite keep"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 keep {abc:def}"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite{abc:def} keep"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 outline"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite outline"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 outline {abc:def}"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite{abc:def} outline"))
+        tests = (("fill 1 ~-1 ~1 1 ~-1 ~1 stone", "fill 1 ~-1 ~1 1 ~-1 ~1 stone"),
+                 ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1", "fill 1 ~-1 ~1 1 ~-1 ~1 granite"),
+                 ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 destroy", "fill 1 ~-1 ~1 1 ~-1 ~1 granite destroy"),
+                 ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 destroy {abc:def}", "fill 1 ~-1 ~1 1 ~-1 ~1 granite{abc:def} destroy"),
+                 ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 hollow", "fill 1 ~-1 ~1 1 ~-1 ~1 granite hollow"),
+                 ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 hollow {abc:def}", "fill 1 ~-1 ~1 1 ~-1 ~1 granite{abc:def} hollow"),
+                 ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 keep", "fill 1 ~-1 ~1 1 ~-1 ~1 granite keep"),
+                 ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 keep {abc:def}", "fill 1 ~-1 ~1 1 ~-1 ~1 granite{abc:def} keep"),
+                 ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 outline", "fill 1 ~-1 ~1 1 ~-1 ~1 granite outline"),
+                 ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 outline {abc:def}", "fill 1 ~-1 ~1 1 ~-1 ~1 granite{abc:def} outline"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -1550,11 +1361,11 @@ class Fill(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace stone"),
-                 (converter.decide("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone 2"), "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace polished_granite"))
+        tests = (("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace", "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace"),
+                 ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone", "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace stone"),
+                 ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone 2", "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace polished_granite"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -1574,9 +1385,9 @@ class Function(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("function custom:example/test"), "function custom:example/test"), )
+        tests = (("function custom:example/test", "function custom:example/test"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -1597,12 +1408,12 @@ class Function(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("function custom:example/test if @s"), "function custom:example/test"),
-                 (converter.decide("function custom:example/test unless @s"), "#~ function custom:example/test unless @s ||| unless @s will always fail"),
-                 (converter.decide("function custom:example/test if @e"), "execute if entity @e run function custom:example/test"),
-                 (converter.decide("function custom:example/test unless @e"), "execute unless entity @e run function custom:example/test"))
+        tests = (("function custom:example/test if @s", "function custom:example/test"),
+                 ("function custom:example/test unless @s", "#~ function custom:example/test unless @s ||| unless @s will always fail"),
+                 ("function custom:example/test if @e", "execute if entity @e run function custom:example/test"),
+                 ("function custom:example/test unless @e", "execute unless entity @e run function custom:example/test"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -1623,56 +1434,86 @@ class GameMode(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("gamemode 0"), "gamemode survival"),
-                 (converter.decide("gamemode 1"), "gamemode creative"),
-                 (converter.decide("gamemode 2"), "gamemode adventure"),
-                 (converter.decide("gamemode 3"), "gamemode spectator"),
-                 (converter.decide("gamemode 0 @s"), "gamemode survival @s"),
-                 (converter.decide("gamemode 1 @s"), "gamemode creative @s"),
-                 (converter.decide("gamemode 2 @s"), "gamemode adventure @s"),
-                 (converter.decide("gamemode 3 @s"), "gamemode spectator @s"),
-                 (converter.decide("gamemode s"), "gamemode survival"),
-                 (converter.decide("gamemode c"), "gamemode creative"),
-                 (converter.decide("gamemode a"), "gamemode adventure"),
-                 (converter.decide("gamemode sp"), "gamemode spectator"),
-                 (converter.decide("gamemode s @s"), "gamemode survival @s"),
-                 (converter.decide("gamemode c @s"), "gamemode creative @s"),
-                 (converter.decide("gamemode a @s"), "gamemode adventure @s"),
-                 (converter.decide("gamemode sp @s"), "gamemode spectator @s"),
-                 (converter.decide("gamemode survival"), "gamemode survival"),
-                 (converter.decide("gamemode creative"), "gamemode creative"),
-                 (converter.decide("gamemode adventure"), "gamemode adventure"),
-                 (converter.decide("gamemode spectator"), "gamemode spectator"),
-                 (converter.decide("gamemode survival @s"), "gamemode survival @s"),
-                 (converter.decide("gamemode creative @s"), "gamemode creative @s"),
-                 (converter.decide("gamemode adventure @s"), "gamemode adventure @s"),
-                 (converter.decide("gamemode spectator @s"), "gamemode spectator @s"))
+        tests = (("gamemode 0", "gamemode survival"),
+                 ("gamemode 1", "gamemode creative"),
+                 ("gamemode 2", "gamemode adventure"),
+                 ("gamemode 3", "gamemode spectator"),
+                 ("gamemode 0 @s", "gamemode survival @s"),
+                 ("gamemode 1 @s", "gamemode creative @s"),
+                 ("gamemode 2 @s", "gamemode adventure @s"),
+                 ("gamemode 3 @s", "gamemode spectator @s"),
+                 ("gamemode s", "gamemode survival"),
+                 ("gamemode c", "gamemode creative"),
+                 ("gamemode a", "gamemode adventure"),
+                 ("gamemode sp", "gamemode spectator"),
+                 ("gamemode s @s", "gamemode survival @s"),
+                 ("gamemode c @s", "gamemode creative @s"),
+                 ("gamemode a @s", "gamemode adventure @s"),
+                 ("gamemode sp @s", "gamemode spectator @s"),
+                 ("gamemode survival", "gamemode survival"),
+                 ("gamemode creative", "gamemode creative"),
+                 ("gamemode adventure", "gamemode adventure"),
+                 ("gamemode spectator", "gamemode spectator"),
+                 ("gamemode survival @s", "gamemode survival @s"),
+                 ("gamemode creative @s", "gamemode creative @s"),
+                 ("gamemode adventure @s", "gamemode adventure @s"),
+                 ("gamemode spectator @s", "gamemode spectator @s"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
 class GameRule(TestBase):
     def test_syntax1_ok(self):
-        perms = generate_perms(["gamerule", "gameLoopFunction", "true"], optional=1)
+        perms = generate_perms(["gamerule", ["announceAdvancements", "commandBlockOutput", "disableElytraMovementCheck", "doDaylightCycle", "doEntityDrops", "doFireTick", "doLimitedCrafting", "doMobLoot", "doMobSpawning", "doTileDrops", "doWeatherCycle", "keepInventory", "logAdminCommands", "mobGriefing", "naturalRegeneration", "reducedDebugInfo", "sendCommandFeedback", "showDeathMessages", "spectatorsGenerateChunks"], ["true", "false"]], optional=1)
+        perms.update(generate_perms(["gamerule", ["maxCommandChainLength", "maxEntityCramming", "randomTickSpeed", "spawnRadius"], "42"], optional=1))
+        perms.update(generate_perms(["gamerule", "gameLoopFunction", "main:main"], optional=1))
         for perm in perms:
             self.decide(perm)
         self.assertStats()
 
     def test_syntax1_nok(self):
         perms = ("gamerule",
-                 "gamerule gameLoopFunction true ImNotSupposedToBeHere")
+                 "gamerule aaaaaaaaaaaaaaaa"
+                 "gamerule gameLoopFunction aaaaaaaaa"
+                 "gamerule gameLoopFunction main:main ImNotSupposedToBeHere",
+
+                 "gamerule announceAdvancements 42",
+                 "gamerule commandBlockOutput 42",
+                 "gamerule disableElytraMovementCheck 42",
+                 "gamerule doDaylightCycle 42",
+                 "gamerule doEntityDrops 42",
+                 "gamerule doFireTick 42",
+                 "gamerule doLimitedCrafting 42",
+                 "gamerule doMobLoot 42",
+                 "gamerule doMobSpawning 42",
+                 "gamerule doTileDrops 42",
+                 "gamerule doWeatherCycle 42",
+                 "gamerule keepInventory 42",
+                 "gamerule logAdminCommands 42",
+                 "gamerule mobGriefing 42",
+                 "gamerule naturalRegeneration 42",
+                 "gamerule reducedDebugInfo 42",
+                 "gamerule sendCommandFeedback 42",
+                 "gamerule showDeathMessages 42",
+                 "gamerule spectatorsGenerateChunks 42",
+
+                 "gamerule maxCommandChainLength true",
+                 "gamerule maxEntityCramming true",
+                 "gamerule randomTickSpeed true",
+                 "gamerule spawnRadius true")
         for perm in perms:
             self.assertRaises(SyntaxError, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("gamerule gameLoopFunction"), "gamerule gameLoopFunction"),
-                 (converter.decide("gamerule gameLoopFunction true"), "gamerule gameLoopFunction true"),
-                 (converter.decide("gamerule custom"), "#~ gamerule custom ||| Custom gamerules are no longer supported"),
-                 (converter.decide("gamerule custom val"), "#~ gamerule custom val ||| Custom gamerules are no longer supported"))
+        tests = (("gamerule gameLoopFunction", "gamerule gameLoopFunction"),
+                 ("gamerule sendcoMMandfeedback TrUe", "gamerule sendCommandFeedback true"),
+                 ("gamerule gameloopFunction main:main", "gamerule gameLoopFunction main:main"),
+                 ("gamerule custom", "#~ gamerule custom ||| Custom gamerules are no longer supported"),
+                 ("gamerule custom val", "#~ gamerule custom val ||| Custom gamerules are no longer supported"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -1700,12 +1541,12 @@ class Give(TestBase):
 
     @skip("Not implemented")
     def test_syntax1_convert(self):
-        tests = ((converter.decide("give @s stone"), "give @s stone"),
-                 (converter.decide("give @s stone 11"), "give @s stone 11"),
-                 (converter.decide("give @s stone 11 1"), "give @s granite 11"),
-                 (converter.decide("give @s stone 11 1 {abc:def}"), "give @s granite{abc:def} 11"))
+        tests = (("give @s stone", "give @s stone"),
+                 ("give @s stone 11", "give @s stone 11"),
+                 ("give @s stone 11 1", "give @s granite 11"),
+                 ("give @s stone 11 1 {abc:def}", "give @s granite{abc:def} 11"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -1723,10 +1564,10 @@ class Help(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("?"), "help"),
-                 (converter.decide("help"), "help"),)
+        tests = (("?", "help"),
+                 ("help", "help"),)
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -1743,9 +1584,9 @@ class Help(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = [(converter.decide("{} {}".format(command, arg)), "help {}".format(arg)) for arg in converter.Globals.commands+map(str, xrange(1, 9)) for command in ("help", "?")]
+        tests = [("{} {}".format(command, arg), "help {}".format(arg)) for arg in converter.Globals.commands+map(str, xrange(1, 9)) for command in ("help", "?")]
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -1763,11 +1604,11 @@ class Kick(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("kick p_name Because"), "kick p_name Because"),
-                 (converter.decide("kick p_name Because I said so"), "kick p_name Because I said so"),
-                 (converter.decide("kick p_name"), "kick p_name"))
+        tests = (("kick p_name Because", "kick p_name Because"),
+                 ("kick p_name Because I said so", "kick p_name Because I said so"),
+                 ("kick p_name", "kick p_name"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -1785,10 +1626,10 @@ class Kill(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("kill p_name"), "kill p_name"),
-                 (converter.decide("kill"), "kill @s"))
+        tests = (("kill p_name", "kill p_name"),
+                 ("kill", "kill @s"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -1807,10 +1648,10 @@ class List(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("list uuids"), "list uuids"),
-                 (converter.decide("list"), "list"))
+        tests = (("list uuids", "list uuids"),
+                 ("list", "list"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -1830,17 +1671,17 @@ class Locate(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("locate Monument"), "locate Monument"),
-                 (converter.decide("locate Mansion"), "locate Mansion"),
-                 (converter.decide("locate Village"), "locate Village"),
-                 (converter.decide("locate Mineshaft"), "locate Mineshaft"),
-                 (converter.decide("locate Fortress"), "locate Fortress"),
-                 (converter.decide("locate EndCity"), "locate EndCity"),
-                 (converter.decide("locate Stronghold"), "locate Stronghold"),
-                 (converter.decide("locate Temple"), "#~ The splitting of this command can produce different results if used with stats\n"
-                                                     "locate Desert_Pyramid\nlocate Igloo\nlocate Jungle_Pyramid\nlocate Swamp_Hut"))
+        tests = (("locate Monument", "locate Monument"),
+                 ("locate Mansion", "locate Mansion"),
+                 ("locate Village", "locate Village"),
+                 ("locate Mineshaft", "locate Mineshaft"),
+                 ("locate Fortress", "locate Fortress"),
+                 ("locate EndCity", "locate EndCity"),
+                 ("locate Stronghold", "locate Stronghold"),
+                 ("locate Temple", "#~ The splitting of this command can produce different results if used with stats\n"
+                                   "locate Desert_Pyramid\nlocate Igloo\nlocate Jungle_Pyramid\nlocate Swamp_Hut"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -1858,10 +1699,10 @@ class Me(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("me action"), "me action"),
-                 (converter.decide("me more actions"), "me more actions"))
+        tests = (("me action", "me action"),
+                 ("me more actions", "me more actions"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -1880,9 +1721,9 @@ class Op(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("op @s"), "op @s"), )
+        tests = (("op @s", "op @s"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -1901,9 +1742,9 @@ class Pardon(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("pardon p_name"), "pardon p_name"), )
+        tests = (("pardon p_name", "pardon p_name"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -1922,9 +1763,9 @@ class Pardon_IP(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("pardon-ip 127.0.0.1"), "pardon-ip 127.0.0.1"), )
+        tests = (("pardon-ip 127.0.0.1", "pardon-ip 127.0.0.1"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -1947,9 +1788,9 @@ class Particle(TestBase):
 
     @skip("Not implemented")
     def test_syntax1_convert(self):
-        tests = ((converter.decide(""), ""), )
+        tests = (("", ""), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -1972,18 +1813,18 @@ class PlaySound(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("playsound sound master @s"), "playsound sound master @s"),
-                 (converter.decide("playsound sound music @s"), "playsound sound music @s"),
-                 (converter.decide("playsound sound record @s"), "playsound sound record @s"),
-                 (converter.decide("playsound sound weather @s"), "playsound sound weather @s"),
-                 (converter.decide("playsound sound block @s"), "playsound sound block @s"),
-                 (converter.decide("playsound sound hostile @s"), "playsound sound hostile @s"),
-                 (converter.decide("playsound sound neutral @s"), "playsound sound neutral @s"),
-                 (converter.decide("playsound sound player @s"), "playsound sound player @s"),
-                 (converter.decide("playsound sound ambient @s"), "playsound sound ambient @s"),
-                 (converter.decide("playsound sound voice @s"), "playsound sound voice @s"))
+        tests = (("playsound sound master @s", "playsound sound master @s"),
+                 ("playsound sound music @s", "playsound sound music @s"),
+                 ("playsound sound record @s", "playsound sound record @s"),
+                 ("playsound sound weather @s", "playsound sound weather @s"),
+                 ("playsound sound block @s", "playsound sound block @s"),
+                 ("playsound sound hostile @s", "playsound sound hostile @s"),
+                 ("playsound sound neutral @s", "playsound sound neutral @s"),
+                 ("playsound sound player @s", "playsound sound player @s"),
+                 ("playsound sound ambient @s", "playsound sound ambient @s"),
+                 ("playsound sound voice @s", "playsound sound voice @s"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -2017,38 +1858,38 @@ class PlaySound(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("playsound sound master @s 1 ~-1 ~1 0.5"), "playsound sound master @s 1 ~-1 ~1 0.5"),
-                 (converter.decide("playsound sound master @s 1 ~-1 ~1 0.5 0.6"), "playsound sound master @s 1 ~-1 ~1 0.5 0.6"),
-                 (converter.decide("playsound sound master @s 1 ~-1 ~1 0.5 0.6 0.7"), "playsound sound master @s 1 ~-1 ~1 0.5 0.6 0.7"),
-                 (converter.decide("playsound sound music @s 1 ~-1 ~1 0.5"), "playsound sound music @s 1 ~-1 ~1 0.5"),
-                 (converter.decide("playsound sound music @s 1 ~-1 ~1 0.5 0.6"), "playsound sound music @s 1 ~-1 ~1 0.5 0.6"),
-                 (converter.decide("playsound sound music @s 1 ~-1 ~1 0.5 0.6 0.7"), "playsound sound music @s 1 ~-1 ~1 0.5 0.6 0.7"),
-                 (converter.decide("playsound sound record @s 1 ~-1 ~1 0.5"), "playsound sound record @s 1 ~-1 ~1 0.5"),
-                 (converter.decide("playsound sound record @s 1 ~-1 ~1 0.5 0.6"), "playsound sound record @s 1 ~-1 ~1 0.5 0.6"),
-                 (converter.decide("playsound sound record @s 1 ~-1 ~1 0.5 0.6 0.7"), "playsound sound record @s 1 ~-1 ~1 0.5 0.6 0.7"),
-                 (converter.decide("playsound sound weather @s 1 ~-1 ~1 0.5"), "playsound sound weather @s 1 ~-1 ~1 0.5"),
-                 (converter.decide("playsound sound weather @s 1 ~-1 ~1 0.5 0.6"), "playsound sound weather @s 1 ~-1 ~1 0.5 0.6"),
-                 (converter.decide("playsound sound weather @s 1 ~-1 ~1 0.5 0.6 0.7"), "playsound sound weather @s 1 ~-1 ~1 0.5 0.6 0.7"),
-                 (converter.decide("playsound sound block @s 1 ~-1 ~1 0.5"), "playsound sound block @s 1 ~-1 ~1 0.5"),
-                 (converter.decide("playsound sound block @s 1 ~-1 ~1 0.5 0.6"), "playsound sound block @s 1 ~-1 ~1 0.5 0.6"),
-                 (converter.decide("playsound sound block @s 1 ~-1 ~1 0.5 0.6 0.7"), "playsound sound block @s 1 ~-1 ~1 0.5 0.6 0.7"),
-                 (converter.decide("playsound sound hostile @s 1 ~-1 ~1 0.5"), "playsound sound hostile @s 1 ~-1 ~1 0.5"),
-                 (converter.decide("playsound sound hostile @s 1 ~-1 ~1 0.5 0.6"), "playsound sound hostile @s 1 ~-1 ~1 0.5 0.6"),
-                 (converter.decide("playsound sound hostile @s 1 ~-1 ~1 0.5 0.6 0.7"), "playsound sound hostile @s 1 ~-1 ~1 0.5 0.6 0.7"),
-                 (converter.decide("playsound sound neutral @s 1 ~-1 ~1 0.5"), "playsound sound neutral @s 1 ~-1 ~1 0.5"),
-                 (converter.decide("playsound sound neutral @s 1 ~-1 ~1 0.5 0.6"), "playsound sound neutral @s 1 ~-1 ~1 0.5 0.6"),
-                 (converter.decide("playsound sound neutral @s 1 ~-1 ~1 0.5 0.6 0.7"), "playsound sound neutral @s 1 ~-1 ~1 0.5 0.6 0.7"),
-                 (converter.decide("playsound sound player @s 1 ~-1 ~1 0.5"), "playsound sound player @s 1 ~-1 ~1 0.5"),
-                 (converter.decide("playsound sound player @s 1 ~-1 ~1 0.5 0.6"), "playsound sound player @s 1 ~-1 ~1 0.5 0.6"),
-                 (converter.decide("playsound sound player @s 1 ~-1 ~1 0.5 0.6 0.7"), "playsound sound player @s 1 ~-1 ~1 0.5 0.6 0.7"),
-                 (converter.decide("playsound sound ambient @s 1 ~-1 ~1 0.5"), "playsound sound ambient @s 1 ~-1 ~1 0.5"),
-                 (converter.decide("playsound sound ambient @s 1 ~-1 ~1 0.5 0.6"), "playsound sound ambient @s 1 ~-1 ~1 0.5 0.6"),
-                 (converter.decide("playsound sound ambient @s 1 ~-1 ~1 0.5 0.6 0.7"), "playsound sound ambient @s 1 ~-1 ~1 0.5 0.6 0.7"),
-                 (converter.decide("playsound sound voice @s 1 ~-1 ~1 0.5"), "playsound sound voice @s 1 ~-1 ~1 0.5"),
-                 (converter.decide("playsound sound voice @s 1 ~-1 ~1 0.5 0.6"), "playsound sound voice @s 1 ~-1 ~1 0.5 0.6"),
-                 (converter.decide("playsound sound voice @s 1 ~-1 ~1 0.5 0.6 0.7"), "playsound sound voice @s 1 ~-1 ~1 0.5 0.6 0.7"))
+        tests = (("playsound sound master @s 1 ~-1 ~1 0.5", "playsound sound master @s 1 ~-1 ~1 0.5"),
+                 ("playsound sound master @s 1 ~-1 ~1 0.5 0.6", "playsound sound master @s 1 ~-1 ~1 0.5 0.6"),
+                 ("playsound sound master @s 1 ~-1 ~1 0.5 0.6 0.7", "playsound sound master @s 1 ~-1 ~1 0.5 0.6 0.7"),
+                 ("playsound sound music @s 1 ~-1 ~1 0.5", "playsound sound music @s 1 ~-1 ~1 0.5"),
+                 ("playsound sound music @s 1 ~-1 ~1 0.5 0.6", "playsound sound music @s 1 ~-1 ~1 0.5 0.6"),
+                 ("playsound sound music @s 1 ~-1 ~1 0.5 0.6 0.7", "playsound sound music @s 1 ~-1 ~1 0.5 0.6 0.7"),
+                 ("playsound sound record @s 1 ~-1 ~1 0.5", "playsound sound record @s 1 ~-1 ~1 0.5"),
+                 ("playsound sound record @s 1 ~-1 ~1 0.5 0.6", "playsound sound record @s 1 ~-1 ~1 0.5 0.6"),
+                 ("playsound sound record @s 1 ~-1 ~1 0.5 0.6 0.7", "playsound sound record @s 1 ~-1 ~1 0.5 0.6 0.7"),
+                 ("playsound sound weather @s 1 ~-1 ~1 0.5", "playsound sound weather @s 1 ~-1 ~1 0.5"),
+                 ("playsound sound weather @s 1 ~-1 ~1 0.5 0.6", "playsound sound weather @s 1 ~-1 ~1 0.5 0.6"),
+                 ("playsound sound weather @s 1 ~-1 ~1 0.5 0.6 0.7", "playsound sound weather @s 1 ~-1 ~1 0.5 0.6 0.7"),
+                 ("playsound sound block @s 1 ~-1 ~1 0.5", "playsound sound block @s 1 ~-1 ~1 0.5"),
+                 ("playsound sound block @s 1 ~-1 ~1 0.5 0.6", "playsound sound block @s 1 ~-1 ~1 0.5 0.6"),
+                 ("playsound sound block @s 1 ~-1 ~1 0.5 0.6 0.7", "playsound sound block @s 1 ~-1 ~1 0.5 0.6 0.7"),
+                 ("playsound sound hostile @s 1 ~-1 ~1 0.5", "playsound sound hostile @s 1 ~-1 ~1 0.5"),
+                 ("playsound sound hostile @s 1 ~-1 ~1 0.5 0.6", "playsound sound hostile @s 1 ~-1 ~1 0.5 0.6"),
+                 ("playsound sound hostile @s 1 ~-1 ~1 0.5 0.6 0.7", "playsound sound hostile @s 1 ~-1 ~1 0.5 0.6 0.7"),
+                 ("playsound sound neutral @s 1 ~-1 ~1 0.5", "playsound sound neutral @s 1 ~-1 ~1 0.5"),
+                 ("playsound sound neutral @s 1 ~-1 ~1 0.5 0.6", "playsound sound neutral @s 1 ~-1 ~1 0.5 0.6"),
+                 ("playsound sound neutral @s 1 ~-1 ~1 0.5 0.6 0.7", "playsound sound neutral @s 1 ~-1 ~1 0.5 0.6 0.7"),
+                 ("playsound sound player @s 1 ~-1 ~1 0.5", "playsound sound player @s 1 ~-1 ~1 0.5"),
+                 ("playsound sound player @s 1 ~-1 ~1 0.5 0.6", "playsound sound player @s 1 ~-1 ~1 0.5 0.6"),
+                 ("playsound sound player @s 1 ~-1 ~1 0.5 0.6 0.7", "playsound sound player @s 1 ~-1 ~1 0.5 0.6 0.7"),
+                 ("playsound sound ambient @s 1 ~-1 ~1 0.5", "playsound sound ambient @s 1 ~-1 ~1 0.5"),
+                 ("playsound sound ambient @s 1 ~-1 ~1 0.5 0.6", "playsound sound ambient @s 1 ~-1 ~1 0.5 0.6"),
+                 ("playsound sound ambient @s 1 ~-1 ~1 0.5 0.6 0.7", "playsound sound ambient @s 1 ~-1 ~1 0.5 0.6 0.7"),
+                 ("playsound sound voice @s 1 ~-1 ~1 0.5", "playsound sound voice @s 1 ~-1 ~1 0.5"),
+                 ("playsound sound voice @s 1 ~-1 ~1 0.5 0.6", "playsound sound voice @s 1 ~-1 ~1 0.5 0.6"),
+                 ("playsound sound voice @s 1 ~-1 ~1 0.5 0.6 0.7", "playsound sound voice @s 1 ~-1 ~1 0.5 0.6 0.7"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -2067,9 +1908,9 @@ class Publish(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("publish"), "publish"), )
+        tests = (("publish", "publish"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -2092,12 +1933,12 @@ class Recipe(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("recipe give @s recipeName"), "recipe give @s recipeName"),
-                 (converter.decide("recipe give @s *"), "recipe give @s *"),
-                 (converter.decide("recipe take @s recipeName"), "recipe take @s recipeName"),
-                 (converter.decide("recipe take @s *"), "recipe take @s *"))
+        tests = (("recipe give @s recipeName", "recipe give @s recipeName"),
+                 ("recipe give @s *", "recipe give @s *"),
+                 ("recipe take @s recipeName", "recipe take @s recipeName"),
+                 ("recipe take @s *", "recipe take @s *"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -2116,9 +1957,9 @@ class Reload(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("reload"), "reload"), )
+        tests = (("reload", "reload"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -2154,9 +1995,9 @@ class ReplaceItem(TestBase):
 
     @skip("Not implemented")
     def test_syntax1_convert(self):
-        tests = ((converter.decide(""), ""), )
+        tests = (("", ""), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -2174,10 +2015,10 @@ class Save_all(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("save-all"), "save-all"),
-                 (converter.decide("save-all flush"), "save-all flush"))
+        tests = (("save-all", "save-all"),
+                 ("save-all flush", "save-all flush"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -2196,9 +2037,9 @@ class Save_off(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("save-off"), "save-off"), )
+        tests = (("save-off", "save-off"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -2217,9 +2058,9 @@ class Save_on(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("save-on"), "save-on"), )
+        tests = (("save-on", "save-on"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -2237,12 +2078,12 @@ class Say(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("say hi"), "say hi"),
-                 (converter.decide("say hi hi"), "say hi hi"),
-                 (converter.decide("say hi @e[c=1]"), "say hi @e[limit=1,sort=nearest]"),
-                 (converter.decide("say hi @e[k=1]"), "say hi @e[k=1]"))
+        tests = (("say hi", "say hi"),
+                 ("say hi hi", "say hi hi"),
+                 ("say hi @e[c=1]", "say hi @e[limit=1,sort=nearest]"),
+                 ("say hi @e[k=1]", "say hi @e[k=1]"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -2264,9 +2105,9 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("scoreboard objectives list"), "scoreboard objectives list"), )
+        tests = (("scoreboard objectives list", "scoreboard objectives list"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -2290,9 +2131,9 @@ class Scoreboard(TestBase):
 
     @skip("Not implemented")
     def test_syntax2_convert(self):
-        tests = ((converter.decide(""), ""), )
+        tests = (("", ""), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax3_ok(self):
@@ -2313,9 +2154,9 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax3_convert(self):
-        tests = ((converter.decide("scoreboard objectives remove anObjective"), "scoreboard objectives remove anObjective"), )
+        tests = (("scoreboard objectives remove anObjective", "scoreboard objectives remove anObjective"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     sidebars = ["list", "sidebar", "belowName"] + map(lambda x: "sidebar.team.{}".format(x), converter.Globals.colors)
@@ -2339,9 +2180,9 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax4_convert(self):
-        tests = [(converter.decide("scoreboard objectives setdisplay {}{}".format(bar, option)), "scoreboard objectives setdisplay {}{}".format(bar, option)) for bar in Scoreboard.sidebars for option in ("", " anObjective")]
+        tests = [("scoreboard objectives setdisplay {}{}".format(bar, option), "scoreboard objectives setdisplay {}{}".format(bar, option)) for bar in Scoreboard.sidebars for option in ("", " anObjective")]
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax5_ok(self):
@@ -2362,11 +2203,11 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax5_convert(self):
-        tests = ((converter.decide("scoreboard players list"), "scoreboard players list"),
-                 (converter.decide("scoreboard players list @s"), "scoreboard players list @s"),
-                 (converter.decide("scoreboard players list *"), "#~ There is no way to convert \'scoreboard players list *\' because of the \'*\'"))
+        tests = (("scoreboard players list", "scoreboard players list"),
+                 ("scoreboard players list @s", "scoreboard players list @s"),
+                 ("scoreboard players list *", "#~ There is no way to convert \'scoreboard players list *\' because of the \'*\'"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax6_ok(self):
@@ -2398,24 +2239,24 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax6_convert(self):
-        tests = ((converter.decide("scoreboard players set @s anObjective 1"), "scoreboard players set @s anObjective 1"),
-                 (converter.decide("scoreboard players set @s anObjective 1 {abc:def}"), "scoreboard players set @s[nbt={abc:def}] anObjective 1"),
-                 (converter.decide("scoreboard players set Carl anObjective 1 {abc:def}"), "scoreboard players set @p[name=Carl,nbt={abc:def}] anObjective 1"),
-                 (converter.decide("scoreboard players add @s anObjective 1"), "scoreboard players add @s anObjective 1"),
-                 (converter.decide("scoreboard players add @s anObjective 1 {abc:def}"), "scoreboard players add @s[nbt={abc:def}] anObjective 1"),
-                 (converter.decide("scoreboard players add Carl anObjective 1 {abc:def}"), "scoreboard players add @p[name=Carl,nbt={abc:def}] anObjective 1"),
-                 (converter.decide("scoreboard players remove @s anObjective 1"), "scoreboard players remove @s anObjective 1"),
-                 (converter.decide("scoreboard players remove @s anObjective 1 {abc:def}"), "scoreboard players remove @s[nbt={abc:def}] anObjective 1"),
-                 (converter.decide("scoreboard players remove Carl anObjective 1 {abc:def}"), "scoreboard players remove @p[name=Carl,nbt={abc:def}] anObjective 1"),
+        tests = (("scoreboard players set @s anObjective 1", "scoreboard players set @s anObjective 1"),
+                 ("scoreboard players set @s anObjective 1 {abc:def}", "scoreboard players set @s[nbt={abc:def}] anObjective 1"),
+                 ("scoreboard players set Carl anObjective 1 {abc:def}", "scoreboard players set @p[name=Carl,nbt={abc:def}] anObjective 1"),
+                 ("scoreboard players add @s anObjective 1", "scoreboard players add @s anObjective 1"),
+                 ("scoreboard players add @s anObjective 1 {abc:def}", "scoreboard players add @s[nbt={abc:def}] anObjective 1"),
+                 ("scoreboard players add Carl anObjective 1 {abc:def}", "scoreboard players add @p[name=Carl,nbt={abc:def}] anObjective 1"),
+                 ("scoreboard players remove @s anObjective 1", "scoreboard players remove @s anObjective 1"),
+                 ("scoreboard players remove @s anObjective 1 {abc:def}", "scoreboard players remove @s[nbt={abc:def}] anObjective 1"),
+                 ("scoreboard players remove Carl anObjective 1 {abc:def}", "scoreboard players remove @p[name=Carl,nbt={abc:def}] anObjective 1"),
 
-                 (converter.decide("scoreboard players set * anObjective 1"), "scoreboard players set * anObjective 1"),
-                 (converter.decide("scoreboard players set * anObjective 1 {abc:def}"), "#~ There is no way to convert \'scoreboard players set * anObjective 1 {abc:def}\' because of the \'*\'"),
-                 (converter.decide("scoreboard players add * anObjective 1"), "scoreboard players add * anObjective 1"),
-                 (converter.decide("scoreboard players add * anObjective 1 {abc:def}"), "#~ There is no way to convert \'scoreboard players add * anObjective 1 {abc:def}\' because of the \'*\'"),
-                 (converter.decide("scoreboard players remove * anObjective 1"), "scoreboard players remove * anObjective 1"),
-                 (converter.decide("scoreboard players remove * anObjective 1 {abc:def}"), "#~ There is no way to convert \'scoreboard players remove * anObjective 1 {abc:def}\' because of the \'*\'"))
+                 ("scoreboard players set * anObjective 1", "scoreboard players set * anObjective 1"),
+                 ("scoreboard players set * anObjective 1 {abc:def}", "#~ There is no way to convert \'scoreboard players set * anObjective 1 {abc:def}\' because of the \'*\'"),
+                 ("scoreboard players add * anObjective 1", "scoreboard players add * anObjective 1"),
+                 ("scoreboard players add * anObjective 1 {abc:def}", "#~ There is no way to convert \'scoreboard players add * anObjective 1 {abc:def}\' because of the \'*\'"),
+                 ("scoreboard players remove * anObjective 1", "scoreboard players remove * anObjective 1"),
+                 ("scoreboard players remove * anObjective 1 {abc:def}", "#~ There is no way to convert \'scoreboard players remove * anObjective 1 {abc:def}\' because of the \'*\'"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax7_ok(self):
@@ -2440,12 +2281,12 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax7_convert(self):
-        tests = ((converter.decide("scoreboard players reset @s"), "scoreboard players reset @s"),
-                 (converter.decide("scoreboard players reset @s anObjective"), "scoreboard players reset @s anObjective"),
-                 (converter.decide("scoreboard players reset *"), "scoreboard players reset *"),
-                 (converter.decide("scoreboard players reset * anObjective"), "scoreboard players reset * anObjective"))
+        tests = (("scoreboard players reset @s", "scoreboard players reset @s"),
+                 ("scoreboard players reset @s anObjective", "scoreboard players reset @s anObjective"),
+                 ("scoreboard players reset *", "scoreboard players reset *"),
+                 ("scoreboard players reset * anObjective", "scoreboard players reset * anObjective"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax8_ok(self):
@@ -2471,10 +2312,10 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax8_convert(self):
-        tests = ((converter.decide("scoreboard players enable @s anObjective"), "scoreboard players enable @s anObjective"),
-                 (converter.decide("scoreboard players enable * anObjective"), "scoreboard players enable * anObjective"))
+        tests = (("scoreboard players enable @s anObjective", "scoreboard players enable @s anObjective"),
+                 ("scoreboard players enable * anObjective", "scoreboard players enable * anObjective"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax9_ok(self):
@@ -2505,15 +2346,15 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax9_convert(self):
-        tests = ((converter.decide("scoreboard players test @s anObjective 1"), "execute if score @s anObjective matches 1.."),
-                 (converter.decide("scoreboard players test @s anObjective 1 *"), "execute if score @s anObjective matches 1.."),
-                 (converter.decide("scoreboard players test @s anObjective 1 2"), "execute if score @s anObjective matches 1..2"),
-                 (converter.decide("scoreboard players test @s anObjective * 2"), "execute if score @s anObjective matches ..2"),
-                 (converter.decide("scoreboard players test @s anObjective * *"), "execute if score @s anObjective matches -2147483648.."),
-                 (converter.decide("scoreboard players test @s anObjective *"), "execute if score @s anObjective matches -2147483648.."),
-                 (converter.decide("scoreboard players test * anObjective 1 2"), "#~ There is no way to convert \'scoreboard players test * anObjective 1 2\' because of the \'*\'"))
+        tests = (("scoreboard players test @s anObjective 1", "execute if score @s anObjective matches 1.."),
+                 ("scoreboard players test @s anObjective 1 *", "execute if score @s anObjective matches 1.."),
+                 ("scoreboard players test @s anObjective 1 2", "execute if score @s anObjective matches 1..2"),
+                 ("scoreboard players test @s anObjective * 2", "execute if score @s anObjective matches ..2"),
+                 ("scoreboard players test @s anObjective * *", "execute if score @s anObjective matches -2147483648.."),
+                 ("scoreboard players test @s anObjective *", "execute if score @s anObjective matches -2147483648.."),
+                 ("scoreboard players test * anObjective 1 2", "#~ There is no way to convert \'scoreboard players test * anObjective 1 2\' because of the \'*\'"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax10_ok(self):
@@ -2553,11 +2394,11 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax10_convert(self):
-        tests = ((converter.decide("scoreboard players operation @s anObjective += @s aObjective"), "scoreboard players operation @s anObjective += @s aObjective"),
-                 (converter.decide("scoreboard players operation * anObjective += @s aObjective"), "#~ There is no way to convert \'scoreboard players operation * anObjective += @s aObjective\' because of the \'*\'"),
-                 (converter.decide("scoreboard players operation @s anObjective += * aObjective"), "#~ There is no way to convert \'scoreboard players operation @s anObjective += * aObjective\' because of the \'*\'"))
+        tests = (("scoreboard players operation @s anObjective += @s aObjective", "scoreboard players operation @s anObjective += @s aObjective"),
+                 ("scoreboard players operation * anObjective += @s aObjective", "#~ There is no way to convert \'scoreboard players operation * anObjective += @s aObjective\' because of the \'*\'"),
+                 ("scoreboard players operation @s anObjective += * aObjective", "#~ There is no way to convert \'scoreboard players operation @s anObjective += * aObjective\' because of the \'*\'"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax11_ok(self):
@@ -2588,13 +2429,13 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax11_convert(self):
-        tests = ((converter.decide("scoreboard players tag @s add aTag"), "tag @s add aTag"),
-                 (converter.decide("scoreboard players tag * add aTag"), "#~ There is no way to convert \'scoreboard players tag * add aTag\' because of the \'*\'"),
-                 (converter.decide("scoreboard players tag @s add aTag {abc:def}"), "tag @s[nbt={abc:def}] add aTag"),
-                 (converter.decide("scoreboard players tag * add aTag {abc:def}"), "#~ There is no way to convert \'scoreboard players tag * add aTag {abc:def}\' because of the \'*\'"),
-                 (converter.decide("scoreboard players tag Carl add aTag {abc:def}"), "tag @p[name=Carl,nbt={abc:def}] add aTag"))
+        tests = (("scoreboard players tag @s add aTag", "tag @s add aTag"),
+                 ("scoreboard players tag * add aTag", "#~ There is no way to convert \'scoreboard players tag * add aTag\' because of the \'*\'"),
+                 ("scoreboard players tag @s add aTag {abc:def}", "tag @s[nbt={abc:def}] add aTag"),
+                 ("scoreboard players tag * add aTag {abc:def}", "#~ There is no way to convert \'scoreboard players tag * add aTag {abc:def}\' because of the \'*\'"),
+                 ("scoreboard players tag Carl add aTag {abc:def}", "tag @p[name=Carl,nbt={abc:def}] add aTag"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax12_ok(self):
@@ -2622,10 +2463,10 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax12_convert(self):
-        tests = ((converter.decide("scoreboard players tag @s list"), "tag @s list"),
-                 (converter.decide("scoreboard players tag * list"), "#~ There is no way to convert \'scoreboard players tag * list\' because of the \'*\'"))
+        tests = (("scoreboard players tag @s list", "tag @s list"),
+                 ("scoreboard players tag * list", "#~ There is no way to convert \'scoreboard players tag * list\' because of the \'*\'"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax13_ok(self):
@@ -2646,10 +2487,10 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax13_convert(self):
-        tests = ((converter.decide("scoreboard teams list"), "team list"),
-                 (converter.decide("scoreboard teams list aName"), "team list aName"))
+        tests = (("scoreboard teams list", "team list"),
+                 ("scoreboard teams list aName", "team list aName"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax14_ok(self):
@@ -2669,11 +2510,11 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax14_convert(self):
-        tests = ((converter.decide("scoreboard teams add aName"), "team add aName"),
-                 (converter.decide("scoreboard teams add aName TeamName"), "team add aName TeamName"),
-                 (converter.decide("scoreboard teams add aName Team Name"), "team add aName Team Name"))
+        tests = (("scoreboard teams add aName", "team add aName"),
+                 ("scoreboard teams add aName TeamName", "team add aName TeamName"),
+                 ("scoreboard teams add aName Team Name", "team add aName Team Name"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax15_ok(self):
@@ -2696,11 +2537,11 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax15_convert(self):
-        tests = ((converter.decide("scoreboard teams join aName"), "team join aName"),
-                 (converter.decide("scoreboard teams join aName @s"), "team join aName @s"),
-                 (converter.decide("scoreboard teams join aName @s @e[c=1]"), "team join aName @s @e[limit=1,sort=nearest]"))
+        tests = (("scoreboard teams join aName", "team join aName"),
+                 ("scoreboard teams join aName @s", "team join aName @s"),
+                 ("scoreboard teams join aName @s @e[c=1]", "team join aName @s @e[limit=1,sort=nearest]"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax16_ok(self):
@@ -2721,10 +2562,10 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax16_convert(self):
-        tests = ((converter.decide("scoreboard teams remove aName"), "team remove aName"),
-                 (converter.decide("scoreboard teams empty aName"), "team empty aName"))
+        tests = (("scoreboard teams remove aName", "team remove aName"),
+                 ("scoreboard teams empty aName", "team empty aName"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax17_ok(self):
@@ -2752,41 +2593,41 @@ class Scoreboard(TestBase):
         self.assertStats()
 
     def test_syntax17_convert(self):
-        tests = ((converter.decide("scoreboard teams option aTeam color reset"), "team option aTeam color reset"),
-                 (converter.decide("scoreboard teams option aTeam color aqua"), "team option aTeam color aqua"),
-                 (converter.decide("scoreboard teams option aTeam color black"), "team option aTeam color black"),
-                 (converter.decide("scoreboard teams option aTeam color blue"), "team option aTeam color blue"),
-                 (converter.decide("scoreboard teams option aTeam color dark_aqua"), "team option aTeam color dark_aqua"),
-                 (converter.decide("scoreboard teams option aTeam color dark_blue"), "team option aTeam color dark_blue"),
-                 (converter.decide("scoreboard teams option aTeam color dark_gray"), "team option aTeam color dark_gray"),
-                 (converter.decide("scoreboard teams option aTeam color dark_green"), "team option aTeam color dark_green"),
-                 (converter.decide("scoreboard teams option aTeam color dark_purple"), "team option aTeam color dark_purple"),
-                 (converter.decide("scoreboard teams option aTeam color dark_red"), "team option aTeam color dark_red"),
-                 (converter.decide("scoreboard teams option aTeam color gold"), "team option aTeam color gold"),
-                 (converter.decide("scoreboard teams option aTeam color gray"), "team option aTeam color gray"),
-                 (converter.decide("scoreboard teams option aTeam color green"), "team option aTeam color green"),
-                 (converter.decide("scoreboard teams option aTeam color light_purple"), "team option aTeam color light_purple"),
-                 (converter.decide("scoreboard teams option aTeam color red"), "team option aTeam color red"),
-                 (converter.decide("scoreboard teams option aTeam color white"), "team option aTeam color white"),
-                 (converter.decide("scoreboard teams option aTeam color yellow"), "team option aTeam color yellow"),
-                 (converter.decide("scoreboard teams option aTeam friendlyfire true"), "team option aTeam friendlyfire true"),
-                 (converter.decide("scoreboard teams option aTeam friendlyfire false"), "team option aTeam friendlyfire false"),
-                 (converter.decide("scoreboard teams option aTeam seeFriendlyInvisibles true"), "team option aTeam seeFriendlyInvisibles true"),
-                 (converter.decide("scoreboard teams option aTeam seeFriendlyInvisibles false"), "team option aTeam seeFriendlyInvisibles false"),
-                 (converter.decide("scoreboard teams option aTeam nametagVisibility never"), "team option aTeam nametagVisibility never"),
-                 (converter.decide("scoreboard teams option aTeam nametagVisibility hideForOtherTeams"), "team option aTeam nametagVisibility hideForOtherTeams"),
-                 (converter.decide("scoreboard teams option aTeam nametagVisibility hideForOwnTeam"), "team option aTeam nametagVisibility hideForOwnTeam"),
-                 (converter.decide("scoreboard teams option aTeam nametagVisibility always"), "team option aTeam nametagVisibility always"),
-                 (converter.decide("scoreboard teams option aTeam deathMessageVisibility never"), "team option aTeam deathMessageVisibility never"),
-                 (converter.decide("scoreboard teams option aTeam deathMessageVisibility hideForOtherTeams"), "team option aTeam deathMessageVisibility hideForOtherTeams"),
-                 (converter.decide("scoreboard teams option aTeam deathMessageVisibility hideForOwnTeam"), "team option aTeam deathMessageVisibility hideForOwnTeam"),
-                 (converter.decide("scoreboard teams option aTeam deathMessageVisibility always"), "team option aTeam deathMessageVisibility always"),
-                 (converter.decide("scoreboard teams option aTeam collisionRule always"), "team option aTeam collisionRule always"),
-                 (converter.decide("scoreboard teams option aTeam collisionRule never"), "team option aTeam collisionRule never"),
-                 (converter.decide("scoreboard teams option aTeam collisionRule pushOwnTeam"), "team option aTeam collisionRule pushOwnTeam"),
-                 (converter.decide("scoreboard teams option aTeam collisionRule pushOtherTeams"), "team option aTeam collisionRule pushOtherTeams"))
+        tests = (("scoreboard teams option aTeam color reset", "team option aTeam color reset"),
+                 ("scoreboard teams option aTeam color aqua", "team option aTeam color aqua"),
+                 ("scoreboard teams option aTeam color black", "team option aTeam color black"),
+                 ("scoreboard teams option aTeam color blue", "team option aTeam color blue"),
+                 ("scoreboard teams option aTeam color dark_aqua", "team option aTeam color dark_aqua"),
+                 ("scoreboard teams option aTeam color dark_blue", "team option aTeam color dark_blue"),
+                 ("scoreboard teams option aTeam color dark_gray", "team option aTeam color dark_gray"),
+                 ("scoreboard teams option aTeam color dark_green", "team option aTeam color dark_green"),
+                 ("scoreboard teams option aTeam color dark_purple", "team option aTeam color dark_purple"),
+                 ("scoreboard teams option aTeam color dark_red", "team option aTeam color dark_red"),
+                 ("scoreboard teams option aTeam color gold", "team option aTeam color gold"),
+                 ("scoreboard teams option aTeam color gray", "team option aTeam color gray"),
+                 ("scoreboard teams option aTeam color green", "team option aTeam color green"),
+                 ("scoreboard teams option aTeam color light_purple", "team option aTeam color light_purple"),
+                 ("scoreboard teams option aTeam color red", "team option aTeam color red"),
+                 ("scoreboard teams option aTeam color white", "team option aTeam color white"),
+                 ("scoreboard teams option aTeam color yellow", "team option aTeam color yellow"),
+                 ("scoreboard teams option aTeam friendlyfire true", "team option aTeam friendlyfire true"),
+                 ("scoreboard teams option aTeam friendlyfire false", "team option aTeam friendlyfire false"),
+                 ("scoreboard teams option aTeam seeFriendlyInvisibles true", "team option aTeam seeFriendlyInvisibles true"),
+                 ("scoreboard teams option aTeam seeFriendlyInvisibles false", "team option aTeam seeFriendlyInvisibles false"),
+                 ("scoreboard teams option aTeam nametagVisibility never", "team option aTeam nametagVisibility never"),
+                 ("scoreboard teams option aTeam nametagVisibility hideForOtherTeams", "team option aTeam nametagVisibility hideForOtherTeams"),
+                 ("scoreboard teams option aTeam nametagVisibility hideForOwnTeam", "team option aTeam nametagVisibility hideForOwnTeam"),
+                 ("scoreboard teams option aTeam nametagVisibility always", "team option aTeam nametagVisibility always"),
+                 ("scoreboard teams option aTeam deathMessageVisibility never", "team option aTeam deathMessageVisibility never"),
+                 ("scoreboard teams option aTeam deathMessageVisibility hideForOtherTeams", "team option aTeam deathMessageVisibility hideForOtherTeams"),
+                 ("scoreboard teams option aTeam deathMessageVisibility hideForOwnTeam", "team option aTeam deathMessageVisibility hideForOwnTeam"),
+                 ("scoreboard teams option aTeam deathMessageVisibility always", "team option aTeam deathMessageVisibility always"),
+                 ("scoreboard teams option aTeam collisionRule always", "team option aTeam collisionRule always"),
+                 ("scoreboard teams option aTeam collisionRule never", "team option aTeam collisionRule never"),
+                 ("scoreboard teams option aTeam collisionRule pushOwnTeam", "team option aTeam collisionRule pushOwnTeam"),
+                 ("scoreboard teams option aTeam collisionRule pushOtherTeams", "team option aTeam collisionRule pushOtherTeams"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -2805,9 +2646,9 @@ class Seed(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("seed"), "seed"), )
+        tests = (("seed", "seed"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -2839,16 +2680,16 @@ class SetBlock(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("setblock 1 ~-1 ~1 stone"), "setblock 1 ~-1 ~1 stone"),
-                 (converter.decide("setblock 1 ~-1 ~1 stone 1"), "setblock 1 ~-1 ~1 granite"),
-                 (converter.decide("setblock 1 ~-1 ~1 stone 1 destroy"), "setblock 1 ~-1 ~1 granite destroy"),
-                 (converter.decide("setblock 1 ~-1 ~1 stone 1 destroy {abc:def}"), "setblock 1 ~-1 ~1 granite{abc:def} destroy"),
-                 (converter.decide("setblock 1 ~-1 ~1 stone 1 keep"), "setblock 1 ~-1 ~1 granite keep"),
-                 (converter.decide("setblock 1 ~-1 ~1 stone 1 keep {abc:def}"), "setblock 1 ~-1 ~1 granite{abc:def} keep"),
-                 (converter.decide("setblock 1 ~-1 ~1 stone 1 replace"), "setblock 1 ~-1 ~1 granite"),
-                 (converter.decide("setblock 1 ~-1 ~1 stone 1 replace {abc:def}"), "setblock 1 ~-1 ~1 granite{abc:def}"))
+        tests = (("setblock 1 ~-1 ~1 stone", "setblock 1 ~-1 ~1 stone"),
+                 ("setblock 1 ~-1 ~1 stone 1", "setblock 1 ~-1 ~1 granite"),
+                 ("setblock 1 ~-1 ~1 stone 1 destroy", "setblock 1 ~-1 ~1 granite destroy"),
+                 ("setblock 1 ~-1 ~1 stone 1 destroy {abc:def}", "setblock 1 ~-1 ~1 granite{abc:def} destroy"),
+                 ("setblock 1 ~-1 ~1 stone 1 keep", "setblock 1 ~-1 ~1 granite keep"),
+                 ("setblock 1 ~-1 ~1 stone 1 keep {abc:def}", "setblock 1 ~-1 ~1 granite{abc:def} keep"),
+                 ("setblock 1 ~-1 ~1 stone 1 replace", "setblock 1 ~-1 ~1 granite"),
+                 ("setblock 1 ~-1 ~1 stone 1 replace {abc:def}", "setblock 1 ~-1 ~1 granite{abc:def}"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -2869,9 +2710,9 @@ class SetIdleTimeout(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("setidletimeout 10"), "setidletimeout 10"), )
+        tests = (("setidletimeout 10", "setidletimeout 10"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -2890,9 +2731,9 @@ class SetWorldSpawn(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("setworldspawn"), "setworldspawn"), )
+        tests = (("setworldspawn", "setworldspawn"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -2913,9 +2754,9 @@ class SetWorldSpawn(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("setworldspawn 1 ~-1 1"), "setworldspawn 1 ~-1 1"), )
+        tests = (("setworldspawn 1 ~-1 1", "setworldspawn 1 ~-1 1"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -2933,9 +2774,9 @@ class SpawnPoint(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("spawnpoint"), "spawnpoint"), )
+        tests = (("spawnpoint", "spawnpoint"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -2952,9 +2793,9 @@ class SpawnPoint(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("spawnpoint @s"), "spawnpoint @s"), )
+        tests = (("spawnpoint @s", "spawnpoint @s"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax3_ok(self):
@@ -2975,9 +2816,9 @@ class SpawnPoint(TestBase):
         self.assertStats()
 
     def test_syntax3_convert(self):
-        tests = ((converter.decide("spawnpoint @s 1 ~-1 1"), "spawnpoint @s 1 ~-1 1"), )
+        tests = (("spawnpoint @s 1 ~-1 1", "spawnpoint @s 1 ~-1 1"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3010,11 +2851,11 @@ class SpreadPlayers(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("spreadplayers 1 ~1 1 2 true @s"), "spreadplayers 1 ~1 1 2 true @s"),
-                 (converter.decide("spreadplayers 1 ~1 1 2 true @s Carl"), "spreadplayers 1 ~1 1 2 true @s Carl"),
-                 (converter.decide("spreadplayers 1 ~1 1 2 true @e[c=1] Carl"), "spreadplayers 1 ~1 1 2 true @e[limit=1,sort=nearest] Carl"))
+        tests = (("spreadplayers 1 ~1 1 2 true @s", "spreadplayers 1 ~1 1 2 true @s"),
+                 ("spreadplayers 1 ~1 1 2 true @s Carl", "spreadplayers 1 ~1 1 2 true @s Carl"),
+                 ("spreadplayers 1 ~1 1 2 true @e[c=1] Carl", "spreadplayers 1 ~1 1 2 true @e[limit=1,sort=nearest] Carl"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3044,13 +2885,13 @@ class Stats(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("stats block 1 ~-1 ~1 clear AffectedBlocks"), "#~ stats block 1 ~-1 ~1 clear AffectedBlocks ||| Clearing a stat is no longer needed"),
-                 (converter.decide("stats block 1 ~-1 ~1 clear AffectedEntities"), "#~ stats block 1 ~-1 ~1 clear AffectedEntities ||| Clearing a stat is no longer needed"),
-                 (converter.decide("stats block 1 ~-1 ~1 clear AffectedItems"), "#~ stats block 1 ~-1 ~1 clear AffectedItems ||| Clearing a stat is no longer needed"),
-                 (converter.decide("stats block 1 ~-1 ~1 clear QueryResult"), "#~ stats block 1 ~-1 ~1 clear QueryResult ||| Clearing a stat is no longer needed"),
-                 (converter.decide("stats block 1 ~-1 ~1 clear SuccessCount"), "#~ stats block 1 ~-1 ~1 clear SuccessCount ||| Clearing a stat is no longer needed"))
+        tests = (("stats block 1 ~-1 ~1 clear AffectedBlocks", "#~ stats block 1 ~-1 ~1 clear AffectedBlocks ||| Clearing a stat is no longer needed"),
+                 ("stats block 1 ~-1 ~1 clear AffectedEntities", "#~ stats block 1 ~-1 ~1 clear AffectedEntities ||| Clearing a stat is no longer needed"),
+                 ("stats block 1 ~-1 ~1 clear AffectedItems", "#~ stats block 1 ~-1 ~1 clear AffectedItems ||| Clearing a stat is no longer needed"),
+                 ("stats block 1 ~-1 ~1 clear QueryResult", "#~ stats block 1 ~-1 ~1 clear QueryResult ||| Clearing a stat is no longer needed"),
+                 ("stats block 1 ~-1 ~1 clear SuccessCount", "#~ stats block 1 ~-1 ~1 clear SuccessCount ||| Clearing a stat is no longer needed"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -3081,18 +2922,13 @@ class Stats(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("stats block 1 ~-1 ~1 set AffectedBlocks @s anObjective"),
-                                   "#~ stats block 1 ~-1 ~1 set AffectedBlocks @s anObjective ||| Use \'execute store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
-                 (converter.decide("stats block 1 ~-1 ~1 set AffectedEntities @s anObjective"),
-                                   "#~ stats block 1 ~-1 ~1 set AffectedEntities @s anObjective ||| Use \'execute store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
-                 (converter.decide("stats block 1 ~-1 ~1 set AffectedItems @s anObjective"),
-                                   "#~ stats block 1 ~-1 ~1 set AffectedItems @s anObjective ||| Use \'execute store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
-                 (converter.decide("stats block 1 ~-1 ~1 set QueryResult @s anObjective"),
-                                   "#~ stats block 1 ~-1 ~1 set QueryResult @s anObjective ||| Use \'execute store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
-                 (converter.decide("stats block 1 ~-1 ~1 set SuccessCount @s anObjective"),
-                                   "#~ stats block 1 ~-1 ~1 set SuccessCount @s anObjective ||| Use \'execute store success score @s anObjective run COMMAND\' on the commands that you want the stats from"))
+        tests = (("stats block 1 ~-1 ~1 set AffectedBlocks @s anObjective", "#~ stats block 1 ~-1 ~1 set AffectedBlocks @s anObjective ||| Use \'execute store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
+                 ("stats block 1 ~-1 ~1 set AffectedEntities @s anObjective", "#~ stats block 1 ~-1 ~1 set AffectedEntities @s anObjective ||| Use \'execute store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
+                 ("stats block 1 ~-1 ~1 set AffectedItems @s anObjective", "#~ stats block 1 ~-1 ~1 set AffectedItems @s anObjective ||| Use \'execute store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
+                 ("stats block 1 ~-1 ~1 set QueryResult @s anObjective", "#~ stats block 1 ~-1 ~1 set QueryResult @s anObjective ||| Use \'execute store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
+                 ("stats block 1 ~-1 ~1 set SuccessCount @s anObjective", "#~ stats block 1 ~-1 ~1 set SuccessCount @s anObjective ||| Use \'execute store success score @s anObjective run COMMAND\' on the commands that you want the stats from"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax3_ok(self):
@@ -3116,13 +2952,13 @@ class Stats(TestBase):
         self.assertStats()
 
     def test_syntax3_convert(self):
-        tests = ((converter.decide("stats entity @s clear AffectedBlocks"), "#~ stats entity @s clear AffectedBlocks ||| Clearing a stat is no longer needed"),
-                 (converter.decide("stats entity @s clear AffectedEntities"), "#~ stats entity @s clear AffectedEntities ||| Clearing a stat is no longer needed"),
-                 (converter.decide("stats entity @s clear AffectedItems"), "#~ stats entity @s clear AffectedItems ||| Clearing a stat is no longer needed"),
-                 (converter.decide("stats entity @s clear QueryResult"), "#~ stats entity @s clear QueryResult ||| Clearing a stat is no longer needed"),
-                 (converter.decide("stats entity @s clear SuccessCount"), "#~ stats entity @s clear SuccessCount ||| Clearing a stat is no longer needed"))
+        tests = (("stats entity @s clear AffectedBlocks", "#~ stats entity @s clear AffectedBlocks ||| Clearing a stat is no longer needed"),
+                 ("stats entity @s clear AffectedEntities", "#~ stats entity @s clear AffectedEntities ||| Clearing a stat is no longer needed"),
+                 ("stats entity @s clear AffectedItems", "#~ stats entity @s clear AffectedItems ||| Clearing a stat is no longer needed"),
+                 ("stats entity @s clear QueryResult", "#~ stats entity @s clear QueryResult ||| Clearing a stat is no longer needed"),
+                 ("stats entity @s clear SuccessCount", "#~ stats entity @s clear SuccessCount ||| Clearing a stat is no longer needed"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax4_ok(self):
@@ -3149,18 +2985,13 @@ class Stats(TestBase):
         self.assertStats()
 
     def test_syntax4_convert(self):
-        tests = ((converter.decide("stats entity @s set AffectedBlocks @s anObjective"),
-                                   "#~ stats entity @s set AffectedBlocks @s anObjective ||| Use \'execute as @s at @s store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
-                 (converter.decide("stats entity @s set AffectedEntities @s anObjective"),
-                                   "#~ stats entity @s set AffectedEntities @s anObjective ||| Use \'execute as @s at @s store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
-                 (converter.decide("stats entity @s set AffectedItems @s anObjective"),
-                                   "#~ stats entity @s set AffectedItems @s anObjective ||| Use \'execute as @s at @s store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
-                 (converter.decide("stats entity @s set QueryResult @s anObjective"),
-                                   "#~ stats entity @s set QueryResult @s anObjective ||| Use \'execute as @s at @s store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
-                 (converter.decide("stats entity @s set SuccessCount @s anObjective"),
-                                   "#~ stats entity @s set SuccessCount @s anObjective ||| Use \'execute as @s at @s store success score @s anObjective run COMMAND\' on the commands that you want the stats from"))
+        tests = (("stats entity @s set AffectedBlocks @s anObjective", "#~ stats entity @s set AffectedBlocks @s anObjective ||| Use \'execute as @s at @s store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
+                 ("stats entity @s set AffectedEntities @s anObjective", "#~ stats entity @s set AffectedEntities @s anObjective ||| Use \'execute as @s at @s store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
+                 ("stats entity @s set AffectedItems @s anObjective", "#~ stats entity @s set AffectedItems @s anObjective ||| Use \'execute as @s at @s store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
+                 ("stats entity @s set QueryResult @s anObjective", "#~ stats entity @s set QueryResult @s anObjective ||| Use \'execute as @s at @s store result score @s anObjective run COMMAND\' on the commands that you want the stats from"),
+                 ("stats entity @s set SuccessCount @s anObjective", "#~ stats entity @s set SuccessCount @s anObjective ||| Use \'execute as @s at @s store success score @s anObjective run COMMAND\' on the commands that you want the stats from"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3179,9 +3010,9 @@ class Stop(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("stop"), "stop"), )
+        tests = (("stop", "stop"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3202,9 +3033,9 @@ class Stopsound(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("stopsound @s master aSound"), "stopsound @s master aSound"), )
+        tests = (("stopsound @s master aSound", "stopsound @s master aSound"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3224,9 +3055,9 @@ class Summon(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("summon cow"), "summon cow"), )
+        tests = (("summon cow", "summon cow"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -3250,10 +3081,10 @@ class Summon(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("summon cow 1 ~-1 ~1"), "summon cow 1 ~-1 ~1"),
-                 (converter.decide("summon cow 1 ~-1 ~1 {abc:def}"), "summon cow 1 ~-1 ~1 {abc:def}"))
+        tests = (("summon cow 1 ~-1 ~1", "summon cow 1 ~-1 ~1"),
+                 ("summon cow 1 ~-1 ~1 {abc:def}", "summon cow 1 ~-1 ~1 {abc:def}"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3279,10 +3110,10 @@ class Teleport(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("teleport @s 1 ~-1 ~1"), "teleport 1 ~-1 ~1"),
-                 (converter.decide("teleport @e 1 ~-1 ~1"), "teleport @e 1 ~-1 ~1"))
+        tests = (("teleport @s 1 ~-1 ~1", "teleport 1 ~-1 ~1"),
+                 ("teleport @e 1 ~-1 ~1", "teleport @e 1 ~-1 ~1"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -3310,10 +3141,10 @@ class Teleport(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("teleport @s 1 ~-1 ~1 ~30 ~-60"), "teleport 1 ~-1 ~1 ~30 ~-60"),
-                 (converter.decide("teleport @e 1 ~-1 ~1 ~30 ~-60"), "teleport @e 1 ~-1 ~1 ~30 ~-60"))
+        tests = (("teleport @s 1 ~-1 ~1 ~30 ~-60", "teleport 1 ~-1 ~1 ~30 ~-60"),
+                 ("teleport @e 1 ~-1 ~1 ~30 ~-60", "teleport @e 1 ~-1 ~1 ~30 ~-60"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3335,9 +3166,9 @@ class Tp(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("tp 1 ~-1 ~1"), "teleport 1 ~-1 ~1"), )
+        tests = (("tp 1 ~-1 ~1", "teleport 1 ~-1 ~1"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -3359,9 +3190,9 @@ class Tp(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("tp 1 ~-1 ~1 ~30 ~-60"), "teleport 1 ~-1 ~1 ~30 ~-60"), )
+        tests = (("tp 1 ~-1 ~1 ~30 ~-60", "teleport 1 ~-1 ~1 ~30 ~-60"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax3_ok(self):
@@ -3382,11 +3213,11 @@ class Tp(TestBase):
         self.assertStats()
 
     def test_syntax3_convert(self):
-        tests = ((converter.decide("tp @s"), "teleport @s"),
-                 (converter.decide("tp @s @e[c=1]"), "teleport @e[limit=1,sort=nearest]"),
-                 (converter.decide("tp @e @e[c=1]"), "teleport @e @e[limit=1,sort=nearest]"))
+        tests = (("tp @s", "teleport @s"),
+                 ("tp @s @e[c=1]", "teleport @e[limit=1,sort=nearest]"),
+                 ("tp @e @e[c=1]", "teleport @e @e[limit=1,sort=nearest]"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax4_ok(self):
@@ -3408,11 +3239,11 @@ class Tp(TestBase):
         self.assertStats()
 
     def test_syntax4_convert(self):
-        tests = ((converter.decide("tp @s 1 ~-1 ~1"), "teleport 1 ~-1 ~1"),
-                 (converter.decide("tp @e 1 2 3"), "execute as @e teleport 1 2 3"),
-                 (converter.decide("tp @e 1 ~-1 ~1"), "execute as @e at @s teleport 1 ~-1 ~1"))
+        tests = (("tp @s 1 ~-1 ~1", "teleport 1 ~-1 ~1"),
+                 ("tp @e 1 2 3", "execute as @e teleport 1 2 3"),
+                 ("tp @e 1 ~-1 ~1", "execute as @e at @s teleport 1 ~-1 ~1"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax5_ok(self):
@@ -3437,11 +3268,11 @@ class Tp(TestBase):
         self.assertStats()
 
     def test_syntax5_convert(self):
-        tests = ((converter.decide("tp @s 1 ~-1 ~1 ~30 ~-60"), "teleport 1 ~-1 ~1 ~30 ~-60"),
-                 (converter.decide("tp @e 1 2 3 30 -60"), "execute as @e teleport 1 2 3 30 -60"),
-                 (converter.decide("tp @e 1 ~-1 ~1 ~30 ~-60"), "execute as @e at @s teleport 1 ~-1 ~1 ~30 ~-60"))
+        tests = (("tp @s 1 ~-1 ~1 ~30 ~-60", "teleport 1 ~-1 ~1 ~30 ~-60"),
+                 ("tp @e 1 2 3 30 -60", "execute as @e teleport 1 2 3 30 -60"),
+                 ("tp @e 1 ~-1 ~1 ~30 ~-60", "execute as @e at @s teleport 1 ~-1 ~1 ~30 ~-60"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3463,9 +3294,9 @@ class Tellraw(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("tellraw @s {\"text\":\"hi\"}"), "tellraw @s {\"text\":\"hi\"}"), )
+        tests = (("tellraw @s {\"text\":\"hi\"}", "tellraw @s {\"text\":\"hi\"}"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3486,12 +3317,12 @@ class Testfor(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("testfor @s"), "execute if entity @s"),
-                 (converter.decide("testfor @s {abc:def}"), "execute if entity @s[nbt={abc:def}]"),
-                 (converter.decide("testfor Carl"), "execute if entity Carl"),
-                 (converter.decide("testfor Carl {abc:def}"), "execute if entity @p[name=Carl,nbt={abc:def}]"))
+        tests = (("testfor @s", "execute if entity @s"),
+                 ("testfor @s {abc:def}", "execute if entity @s[nbt={abc:def}]"),
+                 ("testfor Carl", "execute if entity Carl"),
+                 ("testfor Carl {abc:def}", "execute if entity @p[name=Carl,nbt={abc:def}]"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3519,11 +3350,11 @@ class TestforBlock(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("testforblock 1 ~-1 1 stone"), "execute if block 1 ~-1 1 stone"),
-                 (converter.decide("testforblock 1 ~-1 1 stone 1"), "execute if block 1 ~-1 1 granite"),
-                 (converter.decide("testforblock 1 ~-1 1 stone 1 {abc:def}"), "execute if block 1 ~-1 1 granite{abc:def}"))
+        tests = (("testforblock 1 ~-1 1 stone", "execute if block 1 ~-1 1 stone"),
+                 ("testforblock 1 ~-1 1 stone 1", "execute if block 1 ~-1 1 granite"),
+                 ("testforblock 1 ~-1 1 stone 1 {abc:def}", "execute if block 1 ~-1 1 granite{abc:def}"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3560,11 +3391,11 @@ class TestforBlocks(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("testforblocks 1 ~-1 1 1 ~-1 1 1 ~-1 1"), "execute if blocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 all"),
-                 (converter.decide("testforblocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 all"), "execute if blocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 all"),
-                 (converter.decide("testforblocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 masked"), "execute if blocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 masked"))
+        tests = (("testforblocks 1 ~-1 1 1 ~-1 1 1 ~-1 1", "execute if blocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 all"),
+                 ("testforblocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 all", "execute if blocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 all"),
+                 ("testforblocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 masked", "execute if blocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 masked"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3587,10 +3418,10 @@ class Time(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("time add 42"), "time add 42"),
-                 (converter.decide("time set 42"), "time set 42"))
+        tests = (("time add 42", "time add 42"),
+                 ("time set 42", "time set 42"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -3610,10 +3441,10 @@ class Time(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("time set day"), "time set day"),
-                 (converter.decide("time set night"), "time set night"))
+        tests = (("time set day", "time set day"),
+                 ("time set night", "time set night"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax3_ok(self):
@@ -3633,11 +3464,11 @@ class Time(TestBase):
         self.assertStats()
 
     def test_syntax3_convert(self):
-        tests = ((converter.decide("time query day"), "time query day"),
-                 (converter.decide("time query daytime"), "time query daytime"),
-                 (converter.decide("time query gametime"), "time query gametime"))
+        tests = (("time query day", "time query day"),
+                 ("time query daytime", "time query daytime"),
+                 ("time query gametime", "time query gametime"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3659,10 +3490,10 @@ class Title(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("title @s clear"), "title @s clear"),
-                 (converter.decide("title @s reset"), "title @s reset"))
+        tests = (("title @s clear", "title @s clear"),
+                 ("title @s reset", "title @s reset"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -3684,11 +3515,11 @@ class Title(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("title @s title {\"text\":\"hi\"}"), "title @s title {\"text\":\"hi\"}"),
-                 (converter.decide("title @s subtitle {\"text\":\"hi\"}"), "title @s subtitle {\"text\":\"hi\"}"),
-                 (converter.decide("title @s actionbar {\"text\":\"hi\"}"), "title @s actionbar {\"text\":\"hi\"}"))
+        tests = (("title @s title {\"text\":\"hi\"}", "title @s title {\"text\":\"hi\"}"),
+                 ("title @s subtitle {\"text\":\"hi\"}", "title @s subtitle {\"text\":\"hi\"}"),
+                 ("title @s actionbar {\"text\":\"hi\"}", "title @s actionbar {\"text\":\"hi\"}"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax3_ok(self):
@@ -3714,9 +3545,9 @@ class Title(TestBase):
         self.assertStats()
 
     def test_syntax3_convert(self):
-        tests = ((converter.decide("title @s times 1 2 3"), "title @s times 1 2 3"), )
+        tests = (("title @s times 1 2 3", "title @s times 1 2 3"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3735,9 +3566,9 @@ class ToggleDownfall(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("toggledownfall"), "#~ toggledownfall ||| This command was removed"), )
+        tests = (("toggledownfall", "#~ toggledownfall ||| This command was removed"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3760,10 +3591,10 @@ class Trigger(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("trigger anObjective add 0"), "trigger anObjective add 0"),
-                 (converter.decide("trigger anObjective add 1"), "trigger anObjective"))
+        tests = (("trigger anObjective add 0", "trigger anObjective add 0"),
+                 ("trigger anObjective add 1", "trigger anObjective"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3783,11 +3614,11 @@ class W(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("w @s hi"), "w @s hi"),
-                 (converter.decide("msg @s hi"), "w @s hi"),
-                 (converter.decide("tell @s hi"), "w @s hi"))
+        tests = (("w @s hi", "w @s hi"),
+                 ("msg @s hi", "w @s hi"),
+                 ("tell @s hi", "w @s hi"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3809,14 +3640,14 @@ class Weather(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("weather clear"), "#~ 'weather clear' no longer has random duration. The duration is now 5 minutes\nweather clear"),
-                 (converter.decide("weather rain"), "#~ 'weather rain' no longer has random duration. The duration is now 5 minutes\nweather rain"),
-                 (converter.decide("weather thunder"), "#~ 'weather thunder' no longer has random duration. The duration is now 5 minutes\nweather thunder"),
-                 (converter.decide("weather clear 1"), "weather clear 1"),
-                 (converter.decide("weather rain 1"), "weather rain 1"),
-                 (converter.decide("weather thunder 1"), "weather thunder 1"))
+        tests = (("weather clear", "#~ 'weather clear' no longer has random duration. The duration is now 5 minutes\nweather clear"),
+                 ("weather rain", "#~ 'weather rain' no longer has random duration. The duration is now 5 minutes\nweather rain"),
+                 ("weather thunder", "#~ 'weather thunder' no longer has random duration. The duration is now 5 minutes\nweather thunder"),
+                 ("weather clear 1", "weather clear 1"),
+                 ("weather rain 1", "weather rain 1"),
+                 ("weather thunder 1", "weather thunder 1"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3838,10 +3669,10 @@ class WhiteList(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("whitelist add @s"), "whitelist add @s"),
-                 (converter.decide("whitelist remove @s"), "whitelist remove @s"))
+        tests = (("whitelist add @s", "whitelist add @s"),
+                 ("whitelist remove @s", "whitelist remove @s"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -3859,12 +3690,12 @@ class WhiteList(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("whitelist on"), "whitelist on"),
-                 (converter.decide("whitelist off"), "whitelist off"),
-                 (converter.decide("whitelist list"), "whitelist list"),
-                 (converter.decide("whitelist reload"), "whitelist reload"))
+        tests = (("whitelist on", "whitelist on"),
+                 ("whitelist off", "whitelist off"),
+                 ("whitelist list", "whitelist list"),
+                 ("whitelist reload", "whitelist reload"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -3889,11 +3720,11 @@ class WorldBorder(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("weather clear 1"), "weather clear 1"),
-                 (converter.decide("weather rain 1"), "weather rain 1"),
-                 (converter.decide("weather thunder 1"), "weather thunder 1"))
+        tests = (("weather clear 1", "weather clear 1"),
+                 ("weather rain 1", "weather rain 1"),
+                 ("weather thunder 1", "weather thunder 1"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax2_ok(self):
@@ -3915,9 +3746,9 @@ class WorldBorder(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = ((converter.decide("worldborder center 1 ~2"), "worldborder center 1 ~2"), )
+        tests = (("worldborder center 1 ~2", "worldborder center 1 ~2"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax3_ok(self):
@@ -3940,10 +3771,10 @@ class WorldBorder(TestBase):
         self.assertStats()
 
     def test_syntax3_convert(self):
-        tests = ((converter.decide("worldborder damage amount 1"), "worldborder damage amount 1"),
-                 (converter.decide("worldborder damage buffer 1"), "worldborder damage buffer 1"))
+        tests = (("worldborder damage amount 1", "worldborder damage amount 1"),
+                 ("worldborder damage buffer 1", "worldborder damage buffer 1"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax4_ok(self):
@@ -3966,10 +3797,10 @@ class WorldBorder(TestBase):
         self.assertStats()
 
     def test_syntax4_convert(self):
-        tests = ((converter.decide("worldborder warning distance 1"), "worldborder warning distance 1"),
-                 (converter.decide("worldborder warning time 1"), "worldborder warning time 1"))
+        tests = (("worldborder warning distance 1", "worldborder warning distance 1"),
+                 ("worldborder warning time 1", "worldborder warning time 1"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
     def test_syntax5_ok(self):
@@ -3987,9 +3818,9 @@ class WorldBorder(TestBase):
         self.assertStats()
 
     def test_syntax5_convert(self):
-        tests = ((converter.decide("worldborder get"), "worldborder get"), )
+        tests = (("worldborder get", "worldborder get"), )
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
 
@@ -4012,10 +3843,10 @@ class Xp(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = ((converter.decide("xp 1"), "experience add @s 1"),
-                 (converter.decide("xp 1 @p"), "experience add @p 1"),
-                 (converter.decide("xp 1L"), "experience add @s 1 levels"),
-                 (converter.decide("xp 1L @p"), "experience add @p 1 levels"))
+        tests = (("xp 1", "experience add @s 1"),
+                 ("xp 1 @p", "experience add @p 1"),
+                 ("xp 1L", "experience add @s 1 levels"),
+                 ("xp 1L @p", "experience add @p 1 levels"))
         for before, after in tests:
-            self.assertEqual(unicode(before), after, r"'{}' != '{}'".format(unicode(before), after))
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
