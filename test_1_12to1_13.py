@@ -1048,10 +1048,9 @@ class Execute(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = (("execute @e[name=Carl] 1 ~-1 1 toggledownfall",
-                  "#~ execute as @e[name=Carl] run toggledownfall ||| This command was removed"),
-                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 toggledownfall",
-                  "#~ execute as @e[tag=Carl] as @e[name=Carl] run toggledownfall ||| This command was removed"),
+        tests = (("execute @e[name=Carl] 1 ~-1 1 toggledownfall", "#~ execute as @e[name=Carl] run toggledownfall ||| This command was removed"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 toggledownfall", "#~ execute as @e[tag=Carl] as @e[name=Carl] run toggledownfall ||| This command was removed"),
+                 ("execute Carl 1 ~-1 1 function abc:def", "execute as Carl at @s positioned 1 ~-1 1 run function abc:def"),
 
 
                  # @s
@@ -1118,9 +1117,9 @@ class Execute(TestBase):
                  ("execute @s ~ ~ ~ execute @s 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
                  ("execute @s ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
 
-                 ("execute @s 1 ~-1 1 execute @s ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s positioned 1 ~-1 1 at @s run setblock ~ ~ ~ stone"),
+                 ("execute @s 1 ~-1 1 execute @s ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
                  ("execute @s 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s positioned 1 ~-1 1 at @s[name=Carl] run setblock ~ ~ ~ stone"),
-                 ("execute @s 1 ~-1 1 execute @s 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s positioned 1 ~-1 1 at @s positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @s 1 ~-1 1 execute @s 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s positioned 1 ~-1 1 positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
                  ("execute @s 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s positioned 1 ~-1 1 at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
 
                  ("execute @s[tag=Carl] ~ ~ ~ execute @s ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s[tag=Carl] run setblock ~ ~ ~ stone"),
@@ -1128,9 +1127,9 @@ class Execute(TestBase):
                  ("execute @s[tag=Carl] ~ ~ ~ execute @s 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s[tag=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
                  ("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s[tag=Carl] at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
 
-                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s run setblock ~ ~ ~ stone"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s[tag=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
                  ("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ setblock ~ ~ ~ stone", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s[name=Carl] run setblock ~ ~ ~ stone"),
-                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s[tag=Carl] positioned 1 ~-1 1 positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
                  ("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 setblock ~ ~ ~ stone", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s[name=Carl] positioned 1 ~-1 1 run setblock ~ ~ ~ stone"),
 
                  # canAs and canAt
@@ -1144,9 +1143,9 @@ class Execute(TestBase):
                  ("execute @s ~ ~ ~ execute @s 1 ~-1 1 function abc:def", "execute at @s positioned 1 ~-1 1 run function abc:def"),
                  ("execute @s ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 function abc:def", "execute at @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
 
-                 ("execute @s 1 ~-1 1 execute @s ~ ~ ~ function abc:def", "execute at @s positioned 1 ~-1 1 at @s run function abc:def"),
+                 ("execute @s 1 ~-1 1 execute @s ~ ~ ~ function abc:def", "execute at @s positioned 1 ~-1 1 run function abc:def"),
                  ("execute @s 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ function abc:def", "execute at @s positioned 1 ~-1 1 at @s[name=Carl] run function abc:def"),
-                 ("execute @s 1 ~-1 1 execute @s 1 ~-1 1 function abc:def", "execute at @s positioned 1 ~-1 1 at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @s 1 ~-1 1 execute @s 1 ~-1 1 function abc:def", "execute at @s positioned 1 ~-1 1 positioned 1 ~-1 1 run function abc:def"),
                  ("execute @s 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 function abc:def", "execute at @s positioned 1 ~-1 1 at @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
 
                  ("execute @s[tag=Carl] ~ ~ ~ execute @s ~ ~ ~ function abc:def", "execute at @s[tag=Carl] run function abc:def"),
@@ -1154,9 +1153,9 @@ class Execute(TestBase):
                  ("execute @s[tag=Carl] ~ ~ ~ execute @s 1 ~-1 1 function abc:def", "execute at @s[tag=Carl] positioned 1 ~-1 1 run function abc:def"),
                  ("execute @s[tag=Carl] ~ ~ ~ execute @s[name=Carl] 1 ~-1 1 function abc:def", "execute at @s[tag=Carl] at @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
 
-                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ function abc:def", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s run function abc:def"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s ~ ~ ~ function abc:def", "execute at @s[tag=Carl] positioned 1 ~-1 1 run function abc:def"),
                  ("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] ~ ~ ~ function abc:def", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s[name=Carl] run function abc:def"),
-                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 function abc:def", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @s[tag=Carl] 1 ~-1 1 execute @s 1 ~-1 1 function abc:def", "execute at @s[tag=Carl] positioned 1 ~-1 1 positioned 1 ~-1 1 run function abc:def"),
                  ("execute @s[tag=Carl] 1 ~-1 1 execute @s[name=Carl] 1 ~-1 1 function abc:def", "execute at @s[tag=Carl] positioned 1 ~-1 1 at @s[name=Carl] positioned 1 ~-1 1 run function abc:def"),
 
                  # @e
@@ -1244,25 +1243,25 @@ class Execute(TestBase):
                  ("execute @e 1 ~-1 1 function abc:def", "execute as @e at @s positioned 1 ~-1 1 run function abc:def"),
                  ("execute @e[name=Carl] 1 ~-1 1 function abc:def", "execute as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
 
-                 ("execute @e ~ ~ ~ execute @e ~ ~ ~ function abc:def", "execute as @e at @s as @e at @s run function abc:def"),
-                 ("execute @e ~ ~ ~ execute @e[name=Carl] ~ ~ ~ function abc:def", "execute as @e at @s as @e[name=Carl] at @s run function abc:def"),
-                 ("execute @e ~ ~ ~ execute @e 1 ~-1 1 function abc:def", "execute as @e at @s as @e at @s positioned 1 ~-1 1 run function abc:def"),
-                 ("execute @e ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 function abc:def", "execute as @e at @s as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e ~ ~ ~ execute @e ~ ~ ~ function abc:def", "execute at @e as @e at @s run function abc:def"),
+                 ("execute @e ~ ~ ~ execute @e[name=Carl] ~ ~ ~ function abc:def", "execute at @e as @e[name=Carl] at @s run function abc:def"),
+                 ("execute @e ~ ~ ~ execute @e 1 ~-1 1 function abc:def", "execute at @e as @e at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 function abc:def", "execute at @e as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
 
-                 ("execute @e 1 ~-1 1 execute @e ~ ~ ~ function abc:def", "execute as @e at @s positioned 1 ~-1 1 as @e at @s run function abc:def"),
-                 ("execute @e 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ function abc:def", "execute as @e at @s positioned 1 ~-1 1 as @e[name=Carl] at @s run function abc:def"),
-                 ("execute @e 1 ~-1 1 execute @e 1 ~-1 1 function abc:def", "execute as @e at @s positioned 1 ~-1 1 as @e at @s positioned 1 ~-1 1 run function abc:def"),
-                 ("execute @e 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 function abc:def", "execute as @e at @s positioned 1 ~-1 1 as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e 1 ~-1 1 execute @e ~ ~ ~ function abc:def", "execute at @e positioned 1 ~-1 1 as @e at @s run function abc:def"),
+                 ("execute @e 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ function abc:def", "execute at @e positioned 1 ~-1 1 as @e[name=Carl] at @s run function abc:def"),
+                 ("execute @e 1 ~-1 1 execute @e 1 ~-1 1 function abc:def", "execute at @e positioned 1 ~-1 1 as @e at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 function abc:def", "execute at @e positioned 1 ~-1 1 as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
 
-                 ("execute @e[tag=Carl] ~ ~ ~ execute @e ~ ~ ~ function abc:def", "execute as @e[tag=Carl] at @s as @e at @s run function abc:def"),
-                 ("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] ~ ~ ~ function abc:def", "execute as @e[tag=Carl] at @s as @e[name=Carl] at @s run function abc:def"),
-                 ("execute @e[tag=Carl] ~ ~ ~ execute @e 1 ~-1 1 function abc:def", "execute as @e[tag=Carl] at @s as @e at @s positioned 1 ~-1 1 run function abc:def"),
-                 ("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 function abc:def", "execute as @e[tag=Carl] at @s as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e ~ ~ ~ function abc:def", "execute at @e[tag=Carl] as @e at @s run function abc:def"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] ~ ~ ~ function abc:def", "execute at @e[tag=Carl] as @e[name=Carl] at @s run function abc:def"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e 1 ~-1 1 function abc:def", "execute at @e[tag=Carl] as @e at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e[tag=Carl] ~ ~ ~ execute @e[name=Carl] 1 ~-1 1 function abc:def", "execute at @e[tag=Carl] as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"),
 
-                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e ~ ~ ~ function abc:def", "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e at @s run function abc:def"),
-                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ function abc:def", "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e[name=Carl] at @s run function abc:def"),
-                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e 1 ~-1 1 function abc:def", "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e at @s positioned 1 ~-1 1 run function abc:def"),
-                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 function abc:def", "execute as @e[tag=Carl] at @s positioned 1 ~-1 1 as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"))
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e ~ ~ ~ function abc:def", "execute at @e[tag=Carl] positioned 1 ~-1 1 as @e at @s run function abc:def"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] ~ ~ ~ function abc:def", "execute at @e[tag=Carl] positioned 1 ~-1 1 as @e[name=Carl] at @s run function abc:def"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e 1 ~-1 1 function abc:def", "execute at @e[tag=Carl] positioned 1 ~-1 1 as @e at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 function abc:def", "execute at @e[tag=Carl] positioned 1 ~-1 1 as @e[name=Carl] at @s positioned 1 ~-1 1 run function abc:def"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
@@ -1302,10 +1301,9 @@ class Execute(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = (("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 toggledownfall",
-                  "#~ execute at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run toggledownfall ||| This command was removed"),
-                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 toggledownfall",
-                  "#~ execute at @e if block ~ ~ ~ diorite at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run toggledownfall ||| This command was removed"),
+        tests = (("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 toggledownfall", "#~ execute at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run toggledownfall ||| This command was removed"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 toggledownfall", "#~ execute at @e if block ~ ~ ~ diorite at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run toggledownfall ||| This command was removed"),
+                 ("execute Carl 1 ~-1 1 detect ~ ~-1 1 stone 1 function abc:def", "execute as Carl at @s positioned 1 ~-1 1 if block ~ ~-1 1 granite run function abc:def"),
 
 
                  # @s
@@ -1315,9 +1313,9 @@ class Execute(TestBase):
                  ("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 seed", "execute at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
                  ("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 seed", "execute at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
 
-                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 seed", "execute at @s if block ~ ~ ~ diorite at @s if block ~ ~ ~ granite run seed"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 seed", "execute at @s if block ~ ~ ~ diorite if block ~ ~ ~ granite run seed"),
                  ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 seed", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] if block ~ ~ ~ granite run seed"),
-                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 seed", "execute at @s if block ~ ~ ~ diorite at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 seed", "execute at @s if block ~ ~ ~ diorite positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
                  ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 seed", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run seed"),
 
                  # canAs and not canAt
@@ -1326,9 +1324,9 @@ class Execute(TestBase):
                  ("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
                  ("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
 
-                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 say hi", "execute at @s if block ~ ~ ~ diorite at @s if block ~ ~ ~ granite run say hi"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 say hi", "execute at @s if block ~ ~ ~ diorite if block ~ ~ ~ granite run say hi"),
                  ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 say hi", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] if block ~ ~ ~ granite run say hi"),
-                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute at @s if block ~ ~ ~ diorite at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute at @s if block ~ ~ ~ diorite positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
                  ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
 
                  # not canAs and canAt
@@ -1337,9 +1335,9 @@ class Execute(TestBase):
                  ("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone", "execute at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
                  ("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone", "execute at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
 
-                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone", "execute at @s if block ~ ~ ~ diorite at @s if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone", "execute at @s if block ~ ~ ~ diorite if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
                  ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
-                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone", "execute at @s if block ~ ~ ~ diorite at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone", "execute at @s if block ~ ~ ~ diorite positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
                  ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 setblock ~ ~ ~ stone", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run setblock ~ ~ ~ stone"),
 
                  # canAs and canAt
@@ -1348,9 +1346,9 @@ class Execute(TestBase):
                  ("execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
                  ("execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
 
-                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def", "execute at @s if block ~ ~ ~ diorite at @s if block ~ ~ ~ granite run function abc:def"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def", "execute at @s if block ~ ~ ~ diorite if block ~ ~ ~ granite run function abc:def"),
                  ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] if block ~ ~ ~ granite run function abc:def"),
-                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute at @s if block ~ ~ ~ diorite at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute at @s if block ~ ~ ~ diorite positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
                  ("execute @s ~ ~ ~ detect ~ ~ ~ stone 3 execute @s[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute at @s if block ~ ~ ~ diorite at @s[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
 
                  # @e
@@ -1371,10 +1369,10 @@ class Execute(TestBase):
                  ("execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
                  ("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
 
-                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 say hi", "execute as @e at @s if block ~ ~ ~ diorite as @e at @s if block ~ ~ ~ granite run say hi"),
-                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 say hi", "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s if block ~ ~ ~ granite run say hi"),
-                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute as @e at @s if block ~ ~ ~ diorite as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
-                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 say hi", "execute at @e if block ~ ~ ~ diorite as @e at @s if block ~ ~ ~ granite run say hi"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 say hi", "execute at @e if block ~ ~ ~ diorite as @e[name=Carl] at @s if block ~ ~ ~ granite run say hi"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute at @e if block ~ ~ ~ diorite as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 say hi", "execute at @e if block ~ ~ ~ diorite as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run say hi"),
 
                  # not canAs and canAt
                  ("execute @e ~ ~ ~ detect ~ ~ ~ stone 1 setblock ~ ~ ~ stone", "execute at @e if block ~ ~ ~ granite run setblock ~ ~ ~ stone"),
@@ -1393,10 +1391,10 @@ class Execute(TestBase):
                  ("execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
                  ("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
 
-                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def", "execute as @e at @s if block ~ ~ ~ diorite as @e at @s if block ~ ~ ~ granite run function abc:def"),
-                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def", "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s if block ~ ~ ~ granite run function abc:def"),
-                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute as @e at @s if block ~ ~ ~ diorite as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
-                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute as @e at @s if block ~ ~ ~ diorite as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"))
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def", "execute at @e if block ~ ~ ~ diorite as @e at @s if block ~ ~ ~ granite run function abc:def"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] ~ ~ ~ detect ~ ~ ~ stone 1 function abc:def", "execute at @e if block ~ ~ ~ diorite as @e[name=Carl] at @s if block ~ ~ ~ granite run function abc:def"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute at @e if block ~ ~ ~ diorite as @e at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"),
+                 ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 function abc:def", "execute at @e if block ~ ~ ~ diorite as @e[name=Carl] at @s positioned 1 ~-1 1 if block 1 ~-1 1 granite run function abc:def"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()

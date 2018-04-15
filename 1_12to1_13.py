@@ -1105,7 +1105,9 @@ class execute(Master):
         self.data["<*command"] = self.data["<*command"][1:] if self.data["<*command"][0] == '/' else self.data["<*command"]
         self.data["<*command"] = decide(self.data["<*command"])
 
-        self.canAt, self.canAs = self.data["<*command"].canAt or self.data["<@entity"].canAt, self.data["<*command"].canAs
+        self.canAt = self.data["<*command"].canAt or self.data["<@entity"].canAt
+        self.canAs = not self.data["<@entity"].playerName and self.data["<@entity"].target == "s"
+
         if "<(detect" in self.data:
             self.canAt = True
 
@@ -1157,13 +1159,19 @@ class execute(Master):
             if s == u"execute":
                 return command
         else:
-            if self.canAt and self.canAs:
+            if self.canAt and self.data["<*command"].canAs:
                 s = u"execute as {} at @s".format(self.data["<@entity"])
-            elif self.canAt and not self.canAs:
+            elif self.canAt and not self.data["<*command"].canAs:
                 s = u"execute at {}".format(self.data["<@entity"])
             else:
                 s = u"execute as {}".format(self.data["<@entity"])
             s += position + detect
+
+        if command[:7] == "execute":
+            asat, target, rest = command.split(" ", 3)[1:]
+            if asat == "at" and target[:2] == "@s":
+                if target == "@s":
+                    command = u"execute {}".format(rest)
 
         if command[0] == '#':
             if command[:10] == "#~ execute":
