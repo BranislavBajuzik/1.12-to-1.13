@@ -25,8 +25,11 @@ Syntax explanation:
         . - whatever
 """
 
-from data import Globals
-from time import time as getTime
+try:
+    from data import Globals
+except ImportError:
+    raise ImportError("Unable to import data library (data.py). Please make sure this file is in the same directory as this one (1_12to1_13.py)")
+from time import time as get_time
 
 import json, sys, codecs, os, shutil
 
@@ -185,10 +188,6 @@ def getCompound(s):
             raise SyntaxError(u"Expected '}}' or ',' but got: \'{}\'".format(s[0]))
 
 
-def allBlocks(data, blockLabel, nbtLabel=None):
-    0/0
-
-
 def block(data, blockLabel, stateLabel=None, nbtLabel=None):
     userBlock = noPrefix(data[blockLabel])
 
@@ -212,18 +211,18 @@ def block(data, blockLabel, stateLabel=None, nbtLabel=None):
             raise SyntaxError(u"{} is not a valid block state format".format(data[stateLabel]))
         userStates = userStates.split(",")
 
-    if userStates != ["default"] and len(set(map(lambda x: x.split("=")[0], userStates))) != len(userStates):
-        raise SyntaxError(u"Block states \'{}\' contain duplicates".format(",".join(userStates)))
+    if userStates != ["default"]:
+        userStates = ["=".join(keyPair) for keyPair in dict(tuple(state.split("=", 1)) for state in userStates).items()]
 
-    convDict = Globals.blockStates[userBlock]
+    convDict = dict(Globals.blockStates[userBlock])
     userNBT = data[nbtLabel].copy() if nbtLabel in data else NBTCompound()
-    result = [convDict["default{"], [], userNBT]
     userNBT.stripNumbers()
+    result = ["", set(), userNBT]
 
-    for key in sorted(convDict, key=lambda x: len(x) if x != "default{" else 420, reverse=True):
+    for key in sorted(convDict, key=lambda x: len(x) if x[:7] != "default" else len(x)+420, reverse=True):
         convFromStates, convFromNBTs = map(lambda x: x.split(",") if x else [], key.split("{"))
-        convFromNBTs = dict(map(lambda x: x.split(":", 1), convFromNBTs))
-        if all(map(lambda x: x in userStates, convFromStates)) and all(map(lambda x: x[0] in userNBT and userNBT[x[0]] == x[1], convFromNBTs.items())):
+        convFromNBTs = dict(tuple(x.split(":", 1)) for x in convFromNBTs)
+        if all(x in userStates for x in convFromStates) and all(x[0] in userNBT and userNBT[x[0]] == x[1] for x in convFromNBTs.items()):
             for state in convFromStates:
                 userStates.remove(state)
             for nbt in convFromNBTs:
@@ -232,14 +231,158 @@ def block(data, blockLabel, stateLabel=None, nbtLabel=None):
             if convToBlock:
                 result[0] = convToBlock
             if convToStates:
-                result[1].extend(convToStates.split(","))
+                result[1].update(convToStates.split(","))
 
     if userStates:
         if len(userStates) == 1:
             raise SyntaxError(u"{} is not a valid block state of {}".format(userStates[0], userBlock))
         raise SyntaxError(u"{} are not valid block states of {}".format(array(userStates), userBlock))
 
-    return u"{}{}{}".format(result[0], u"[{}]".format(u",".join(result[1])) if result[1] else "", result[2] if result[2] else "")
+    if not result[0]:
+        result[0] = convDict["default{"].split("[")[0]
+
+    result[1] = _list(result[1])
+    if userBlock == "skull" and result[0].find("wall") != -1:
+        for i in range(len(result[1])):
+            if result[1][i][:8] == "rotation":
+                del result[1][i]
+                break
+
+    return u"{}{}{}".format(result[0], u"[{}]".format(u",".join(sorted(result[1]))) if result[1] else u"", result[2] if result[2] else u"")
+
+
+def blockTest(data, blockLabel, stateLabel=None, nbtLabel=None):
+    userBlock = noPrefix(data[blockLabel])
+
+    if userBlock not in Globals.data2states:
+        raise SyntaxError(u"{} is not a valid block".format(userBlock))
+
+    if stateLabel not in data or data[stateLabel] in ("*", "-1"):
+        userStates = ""
+    else:
+        userStates = data[stateLabel]
+    try:
+        userStates = int(userStates)
+        if not 0 <= userStates <= 15:
+            raise SyntaxError(u"{} is outside of range -1..15".format(userStates))
+        if userStates in Globals.data2states[userBlock]:
+            userStates = Globals.data2states[userBlock][userStates].split(",")
+        else:
+            userStates = ["default"]
+    except ValueError:
+        if not Globals.blockStateTestRe.match(userStates):
+            raise SyntaxError(u"{} is not a valid block state format".format(data[stateLabel]))
+        userStates = userStates.split(",") if userStates else []
+
+    convDict = dict(Globals.blockStates[userBlock])
+    userNBT = data[nbtLabel].copy() if nbtLabel in data else NBTCompound()
+    results = [set(), set(), userNBT]
+
+    default = convDict["default{"]
+    del convDict["default{"]
+
+    if userBlock in ("double_stone_slab", "double_stone_slab2"):
+        for key in convDict:
+            if convDict[key][-1] != "[":
+                convDict[key] = convDict[key].replace("[", "!") + "]["
+
+    convStates, convNBTs = set(), set()
+    for key in convDict:
+        states, nbts = key.split("{", 1)
+        if states:
+            for statePair in states.split(","):
+                convStates.update([statePair.split("=", 1)[0]])
+        if nbts:
+            for nbtPair in nbts.split(","):
+                convNBTs.update([nbtPair.split(":", 1)[0]])
+
+    if userStates == ["default"]:
+        defaultPair = Globals.blockDefaults[userBlock]
+
+        comments = []
+
+        if defaultPair[1]:
+            for key in defaultPair[1]:
+                if key in userNBT:
+                    if stripNBT(userNBT[key]) == stripNBT(defaultPair[1][key]):
+                        del userNBT[key]
+                    else:
+                        comments.append(key)
+        if comments:
+            return u"!{}".format(u", ".join(u"{} is not a valid value for {}".format(userNBT[key], key) for key in comments))
+        return [u"{}{}".format(defaultPair[0], userNBT if userNBT else u"")]
+    else:
+        userStates = dict(tuple(state.split("=")) for state in userStates)
+
+        badStates = set(userStates).difference(convStates)
+        if badStates:
+            if len(badStates) == 1:
+                raise SyntaxError(u"{} is not a valid block state of {}".format(_list(badStates)[0], userBlock))
+            raise SyntaxError(u"{} are not valid block states of {}".format(array(badStates), userBlock))
+
+        relevantStates, relevantNBTs = convStates.intersection(set(userStates)), convNBTs.intersection(set(userNBT))
+
+        for key in _list(convDict.keys()):
+            convFromStates, convFromNBTs = map(lambda x: x.split(",") if x else [], key.split("{"))
+            convFromStates = dict(tuple(x.split("=", 1)) for x in convFromStates)
+            convFromNBTs = dict(tuple(x.split(":", 1)) for x in convFromNBTs)
+            convToBlock, convToStates = convDict[key].split("[")
+
+            if userBlock == "double_stone_slab":
+                if relevantStates == {"seamless", "variant"}:
+                    if "variant" in convFromStates and convFromStates["variant"] == userStates["variant"]:
+                        if "seamless" in convFromStates and convFromStates["seamless"] == userStates["seamless"]:
+                            results[0].update([convToBlock])
+                        elif "seamless" not in convFromStates and userStates["seamless"] == "false":
+                            results[0].update([convToBlock])
+                elif relevantStates == {"variant"}:
+                    if "variant" in convFromStates and convFromStates["variant"] == userStates["variant"]:
+                        results[0].update([convToBlock])
+                elif relevantStates == {"seamless"}:
+                    if "seamless" in convFromStates and convFromStates["seamless"] == userStates["seamless"]:
+                        results[0].update([convToBlock])
+                    elif "seamless" not in convFromStates and userStates["seamless"] == "false":
+                        results[0].update([convToBlock])
+                else:
+                    results[0].update([convToBlock])
+                continue
+
+            if not any(x in relevantStates for x in convFromStates) and not any(x in convFromNBTs for x in relevantNBTs):
+                if convToBlock:
+                    results[0].update([convToBlock])
+                if convToStates:
+                    results[1].update((tuple(x.split("=", 1)) for x in convToStates.split(",")))
+            else:
+                if all(x[0] in userStates and userStates[x[0]] == x[1] for x in convFromStates.items()) and \
+                   (not relevantNBTs or all(x[0] in userNBT and stripNBT(userNBT[x[0]]) == x[1] for x in convFromNBTs.items())):
+                    if convToBlock:
+                        results[0].update([convToBlock])
+                    if convToStates:
+                        results[1].update((tuple(x.split("=", 1)) for x in convToStates.split(",")))
+
+        for nbt in relevantNBTs:
+            del userNBT[nbt]
+        removeStates = {}
+        for state, value in results[1]:
+            if state not in removeStates:
+                removeStates[state] = 1
+            else:
+                removeStates[state] += 1
+        resultStates = []
+        for state, value in results[1]:
+            if removeStates[state] == 1:
+                resultStates.append(u"{}={}".format(state, value))
+        results[1] = resultStates
+
+    if userBlock in ("double_stone_slab", "double_stone_slab2"):
+        results[0] = _list(results[0])
+        for i in range(len(results[0])):
+            results[0][i] = results[0][i].replace("!", "[")
+
+    if not results[0]:
+        results[0] = (default.split("[")[0], )
+    ret = [u"{}{}{}".format(name, u"[{}]".format(u",".join(sorted(results[1]))) if results[1] else u"", results[2] if results[2] else u"") for name in results[0]]
+    return ret
 
 
 def item(data, nameLabel, damageLabel=None, nbtLabel=None):
@@ -898,6 +1041,8 @@ class effect(Master):
         Master.__init__(self)
         syntaxes = (("<@player", "<(clear"),
                     ("<@player", effect.effects, "[0seconds", "[0amplifier", "[(true|false"))
+        if len(tokens) > 1:
+            tokens[1] = noPrefix(tokens[1])
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = self.data["<@player"].canAt, True
 
@@ -922,6 +1067,8 @@ class enchant(Master):
     def __init__(self, tokens):
         Master.__init__(self)
         syntaxes = (("<@player", enchant.enchants, "[0level"), )
+        if len(tokens) > 1:
+            tokens[1] = noPrefix(tokens[1])
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = self.data["<@player"].canAt, True
 
@@ -1854,7 +2001,7 @@ commandsMap = {command: eval(command.replace("-", "_")) for command in Globals.c
 
 
 if __name__ == "__main__":
-    start = getTime()
+    start = get_time()
     failedFiles = []
     commentedOutFiles = []
     tmpFiles = []
@@ -1874,7 +2021,6 @@ if __name__ == "__main__":
                         continue
                     Globals.flags["commentedOut"] = False
                     Globals.flags["multiLine"] = False
-                    Globals.flags["weather"] = False
                     lines[lineNumber] = u"{}{}\n".format(line[:start], unicode(decide(line)))
                     if Globals.flags["commentedOut"]:
                         commentedOutFiles.append((fileName, lineNumber))
@@ -1985,6 +2131,6 @@ if __name__ == "__main__":
                 os.rename(tmp, tmp[:-8])
             if commentedOutFiles:
                 print(u"Some commands were commented out because they have to be converted manually:\n{}".format(u"\n".join(map(lambda x: u"File: {}, Line: {}".format(x[0], x[1]), commentedOutFiles))))
-            raw_input("A total of {} commands, across {} files, was converted in {} seconds\n\nPress Enter to exit...".format(Globals.commandCounter, Globals.fileCounter, getTime() - start))
+            raw_input("A total of {} commands, across {} files, was converted in {} seconds\n\nPress Enter to exit...".format(Globals.commandCounter, Globals.fileCounter, get_time() - start))
     else:
         raw_input("Press Enter to exit...")

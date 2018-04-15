@@ -88,14 +88,11 @@ class TestBase(TestCase):
         super(TestBase, self).assertFalse(expr, msg)
         self.asserts()
 
-    def assertRaises(self, excClass, argument, isFunction=False):
+    def assertRaises(self, excClass, callableObj=None, *args, **kwargs):
         try:
-            if isFunction:
-                super(TestBase, self).assertRaises(excClass, argument)
-            else:
-                super(TestBase, self).assertRaises(excClass, lambda: self.decide(argument))
+            super(TestBase, self).assertRaises(excClass, callableObj, *args)
         except AssertionError:
-            raise AssertionError("{} didn't throw {}".format(argument, excClass))
+            raise AssertionError("{}({}) didn't throw {}".format(callableObj.__name__, ", ".join(repr(arg) for arg in args), excClass.__name__))
 
         self.asserts()
 
@@ -128,7 +125,7 @@ class Selector(TestBase):
                  "@s[score_a_min=2,score_a=1]", "@s[rm=2,r=1]", "@s[rxm=2,rx=1]", "@s[rym=2,ry=1]", "@s[rxm=-181,rx=-179]", "@s[rym=-181,ry=-179]")
 
         for case in cases:
-            self.assertRaises(SyntaxError, lambda: converter.Selector(case), True)
+            self.assertRaises(SyntaxError, converter.Selector, case)
 
         argPairs = (("x", "a"), ("y", "a"), ("z", "a"), ("dx", "a"), ("dy", "a"), ("dz", "a"), ("type", "bad"),
                     ("type", "!bad"), ("lm", "a"), ("l", "a"), ("m", "bad"), ("score_won", "a"), ("score_won_min", "a"),
@@ -140,7 +137,7 @@ class Selector(TestBase):
         for sType in ("p", "e", "a", "r", "s"):
             for n in (1, 2, 3):
                 for argPairsPerm in permutations(argPairs, n):
-                    self.assertRaises(SyntaxError, lambda: converter.Selector("@{}[{}]".format(sType, ",".join(_map(lambda x: "{}={}".format(x[0], x[1]), argPairsPerm)))), True)
+                    self.assertRaises(SyntaxError, converter.Selector, "@{}[{}]".format(sType, ",".join(_map(lambda x: "{}={}".format(x[0], x[1]), argPairsPerm))))
         self.assertStats()
 
     def test_syntax_convert(self):
@@ -185,7 +182,11 @@ class Selector(TestBase):
                 for argPairsComb in combinations(argPairs, n):
                     for argPairsProd in product(*argPairsComb):
                         before, after = zip(*argPairsProd)
-                        tests.append(("@{}[{}]".format(sType, ",".join(before)), "@{}[{}]".format(sType, ",".join(after))))
+                        realBefore = []
+                        for args in before:
+                            realBefore.extend(args.split(","))
+                        random.shuffle(realBefore)
+                        tests.append(("@{}[{}]".format(sType, ",".join(realBefore)), "@{}[{}]".format(sType, ",".join(after))))
 
             for before, after in tests:
                 self.assertEqual(after, unicode(converter.Selector(before)), "source: \'{}\'".format(before))
@@ -211,6 +212,127 @@ class Selector(TestBase):
         self.assertStats()
 
 
+class Block(TestBase):
+    def test_block_set_convert(self):
+        tests = ((["minecraft:stone"], "stone"),
+                 (["emerald_block", "0"], "emerald_block"),
+                 (["stone", "variant=stone,variant=granite"], "granite"),
+
+                 (["stone"], "stone"),
+                 (["stone", "0"], "stone"),
+                 (["stone", "0", "{a:b}"], "stone{a:b}"),
+                 (["stone", "1"], "granite"),
+                 (["stone", "1", "{a:b}"], "granite{a:b}"),
+                 (["stone", "default"], "stone"),
+                 (["stone", "variant=stone"], "stone"),
+                 (["stone", "variant=stone", "{a:b}"], "stone{a:b}"),
+                 (["stone", "variant=granite"], "granite"),
+                 (["stone", "variant=granite", "{a:b}"], "granite{a:b}"),
+
+                 (["bed"], "red_bed"),
+                 (["bed", "0"], "red_bed[facing=south,part=foot]"),
+                 (["bed", "0", "{color:10}"], "purple_bed[facing=south,part=foot]"),
+                 (["bed", "0", "{a:b}"], "red_bed[facing=south,part=foot]{a:b}"),
+                 (["bed", "0", "{color:10,a:b}"], "purple_bed[facing=south,part=foot]{a:b}"),
+                 (["bed", "default"], "red_bed"),
+                 (["bed", "default", "{color:10}"], "purple_bed"),
+                 (["bed", "default", "{a:b}"], "red_bed{a:b}"),
+                 (["bed", "default", "{color:10,a:b}"], "purple_bed{a:b}"),
+                 (["bed", "facing=north"], "red_bed[facing=north]"),
+                 (["bed", "facing=north", "{color:10}"], "purple_bed[facing=north]"),
+                 (["bed", "part=foot,facing=south,occupied=true"], "red_bed[facing=south,occupied=true,part=foot]"),
+                 (["bed", "part=foot,facing=south,occupied=true", "{color:10}"], "purple_bed[facing=south,occupied=true,part=foot]"),
+
+                 (["tallgrass"], "grass"),
+                 (["tallgrass", "type=tall_grass"], "grass"),
+                 (["tallgrass", "type=dead_bush"], "dead_bush"),
+                 (["tallgrass", "type=fern"], "fern"),
+
+                 (["skull"], "skeleton_wall_skull"),
+                 (["skull", "0"], "skeleton_skull"),
+                 (["skull", "0", "{Rot:0}"], "skeleton_skull[rotation=0]"),
+                 (["skull", "0", "{Rot:0,SkullType:4}"], "creeper_head[rotation=0]"),
+                 (["skull", "2", "{Rot:0,SkullType:4}"], "creeper_wall_head[facing=north]"),
+                 (["skull", "default"], "skeleton_wall_skull"),
+                 (["skull", "default", "{SkullType:1}"], "wither_skeleton_wall_skull"),
+                 (["skull", "default", "{SkullType:1,Rot:2}"], "wither_skeleton_wall_skull"),
+                 (["skull", "facing=down"], "skeleton_skull"),
+                 (["skull", "facing=down", "{SkullType:1}"], "wither_skeleton_skull"),
+                 (["skull", "facing=down", "{SkullType:1,Rot:0}"], "wither_skeleton_skull[rotation=0]"),
+                 (["skull", "facing=north"], "skeleton_wall_skull[facing=north]"),
+                 (["skull", "facing=north", "{SkullType:1}"], "wither_skeleton_wall_skull[facing=north]"),
+                 (["skull", "facing=north", "{SkullType:1,Rot:0}"], "wither_skeleton_wall_skull[facing=north]"),
+                 (["skull", "nodrop=true"], "skeleton_wall_skull"),
+
+                 (["double_stone_slab"], "stone_slab[type=double]"),
+                 (["double_stone_slab", "0"], "stone_slab[type=double]"),
+                 (["double_stone_slab", "8"], "smooth_stone"),
+                 (["double_stone_slab", "default"], "stone_slab[type=double]"),
+                 (["double_stone_slab", "seamless=true"], "smooth_stone"),
+                 (["double_stone_slab", "variant=quartz"], "quartz_slab[type=double]"),
+                 (["double_stone_slab", "seamless=true,variant=wood_old"], "petrified_oak_slab[type=double]"),
+                 (["double_stone_slab", "seamless=false,variant=wood_old"], "petrified_oak_slab[type=double]"),
+                 (["double_stone_slab", "seamless=true,variant=quartz"], "smooth_quartz"),
+                 (["double_stone_slab", "seamless=false,variant=quartz"], "quartz_slab[type=double]"))
+        for before, after in tests:
+            if len(before) == 3:
+                before[2] = converter.getCompound(before[2][1:])[0]
+            pairs = zip(("block", "state", "nbt"), before)
+            self.assertEqual(after, converter.block(dict(pairs), *zip(*pairs)[0]), "source: {}".format(before))
+        self.assertStats()
+
+    def test_block_set_nok(self):
+        perms = (["aaa"],
+                 ["bed", "-1"],
+                 ["bed", "16"],
+                 ["bed", "part="],
+                 ["bed", "=foot"],
+                 ["bed", "part"],
+                 ["bed", "part=footfacing=south"],
+                 ["bed", "part==south"],
+                 ["bed", "part=foot,,facing=south"],
+                 ["bed", "part=foot,"],
+                 ["bed", ",facing=south"],
+                 ["bed", "="],
+                 ["bed", ","],
+                 ["bed", ""],
+                 ["bed", "a=b"],
+                 ["bed", "part=a"],
+                 ["bed", "a=foot"],
+                 ["bed", "a=a,b=b"])
+        for perm in perms:
+            if len(perm) == 3:
+                perm[2] = converter.getCompound(perm[2][1:])[0]
+            pairs = zip(("block", "state", "nbt"), perm)
+            self.assertRaises(SyntaxError, converter.block, dict(pairs), *zip(*pairs)[0])
+        self.assertStats()
+
+    def test_block_test_convert(self):
+        tests = ((["minecraft:stone"], {"stone", "granite", "polished_granite", "diorite", "polished_diorite", "andesite", "polished_andesite"}),
+                 (["emerald_block", "0"], {"emerald_block"}),
+                 (["stone", "variant=stone,variant=granite"], {"granite"}),
+
+                 (["stone"], {"stone", "granite", "polished_granite", "diorite", "polished_diorite", "andesite", "polished_andesite"}),
+                 (["stone", "*"], {"stone", "granite", "polished_granite", "diorite", "polished_diorite", "andesite", "polished_andesite"}),
+                 (["stone", "-1"], {"stone", "granite", "polished_granite", "diorite", "polished_diorite", "andesite", "polished_andesite"}),
+                 (["stone", "0"], {"stone"}),
+                 (["stone", "0", "{a:b}"], {"stone{a:b}"}),
+                 (["stone", "1"], {"granite"}),
+                 (["stone", "1", "{a:b}"], {"granite{a:b}"}),
+                 (["stone", "default"], {"stone"}),
+                 (["stone", "variant=stone"], {"stone"}),
+                 (["stone", "variant=stone", "{a:b}"], {"stone{a:b}"}),
+                 (["stone", "variant=granite"], {"granite"}),
+                 (["stone", "variant=granite", "{a:b}"], {"granite{a:b}"}),
+                 )
+        for before, after in tests:
+            if len(before) == 3:
+                before[2] = converter.getCompound(before[2][1:])[0]
+            pairs = zip(("block", "state", "nbt"), before)
+            self.assertEqual(after, set(converter.blockTest(dict(pairs), *zip(*pairs)[0])), "source: {}".format(before))
+        self.assertStats()
+
+
 class Advancement(TestBase):
     def test_syntax1_ok(self):
         perms = generate_perms(["advancement", ["grant", "revoke"], "@s", ["only", "until", "from", "through"], "adv_name", "crit"], optional=1)
@@ -228,7 +350,7 @@ class Advancement(TestBase):
                  "advancement grant @s aaaa adv_name crit",
                  "advancement grant @s only adv_name crit ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -267,7 +389,7 @@ class Advancement(TestBase):
                  "advancement grant @s aaaaaaaaaa",
                  "advancement grant @s everything ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -291,7 +413,7 @@ class Advancement(TestBase):
                  "advancement test @c adv_name crit",
                  "advancement test @s adv_name crit ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax3_convert(self):
@@ -314,7 +436,7 @@ class Ban(TestBase):
     def test_syntax1_nok(self):
         perms = ("ban",)
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -336,7 +458,7 @@ class Ban_IP(TestBase):
     def test_syntax1_nok(self):
         perms = ("ban-ip",)
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -366,7 +488,7 @@ class BlockData(TestBase):
                  "blockdata 1 ~ ~3 aaaaa",
                  "blockdata 1 ~ ~3 {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -394,7 +516,7 @@ class Clear(TestBase):
                  "clear @s stone 1 42 aaaaaaaaa",
                  "clear @s stone 1 42 {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     @skip("Not implemented")
@@ -441,7 +563,7 @@ class Clone(TestBase):
                  "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace aaaaa",
                  "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace force ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -474,7 +596,7 @@ class Clone(TestBase):
                  "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered aaaaa stone 16",
                  "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone 1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -501,7 +623,7 @@ class Debug(TestBase):
                  "debug aaaaa",
                  "debug start ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -524,7 +646,7 @@ class DefaultGameMode(TestBase):
                  "defaultgamemode aaa",
                  "defaultgamemode 1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -557,7 +679,7 @@ class Deop(TestBase):
                  "deop @c",
                  "deop @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -579,7 +701,7 @@ class Difficulty(TestBase):
                  "difficulty aaa",
                  "difficulty 1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -612,7 +734,7 @@ class Effect(TestBase):
                  "effect @s",
                  "effect @c clear")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -641,11 +763,12 @@ class Effect(TestBase):
                  "effect @s speed 10 10 aaaa",
                  "effect @s speed 10 10 true ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
         tests = (("effect @s speed", "effect give @s speed"),
+                 ("effect @s minecraft:speed", "effect give @s speed"),
                  ("effect @s speed 0", "effect clear @s speed"),
                  ("effect @s speed 11", "effect give @s speed 11"),
                  ("effect @s speed 11 22", "effect give @s speed 11 22"),
@@ -673,11 +796,12 @@ class Enchant(TestBase):
                  "enchant @s sharpness a",
                  "enchant @s sharpness 1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = (("enchant @s 0", "enchant @s protection"),
+        tests = (("enchant @s minecraft:protection", "enchant @s protection"),
+                 ("enchant @s 0", "enchant @s protection"),
                  ("enchant @s 0 1", "enchant @s protection"),
                  ("enchant @s 0 2", "enchant @s protection 2"),
                  ("enchant @s protection", "enchant @s protection"),
@@ -891,7 +1015,7 @@ class EntityData(TestBase):
                  "entitydata @s aaaaaaaaa",
                  "entitydata @s {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -920,7 +1044,7 @@ class Execute(TestBase):
                  "execute @s 1 ~-1 1",
                  "execute @s 1 ~-1 1 aaaaaa")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1174,7 +1298,7 @@ class Execute(TestBase):
                  "execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1",
                  "execute @s 1 ~-1 1 detect 1 ~-1 1 stone 1 aaaaaa")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -1308,7 +1432,7 @@ class Fill(TestBase):
                  "fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 hollow aaaaaaaaa",
                  "fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 hollow {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1357,7 +1481,7 @@ class Fill(TestBase):
                  "fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone 16",
                  "fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone 2 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -1381,7 +1505,7 @@ class Function(TestBase):
                  "function aaaaaaaaaaaaaaaaaaa",
                  "function custom:example/test ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1404,7 +1528,7 @@ class Function(TestBase):
                  "function custom:example/test if @c",
                  "function custom:example/test if @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -1430,7 +1554,7 @@ class GameMode(TestBase):
                  "gamemode 1 @c",
                  "gamemode 1 @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1503,7 +1627,7 @@ class GameRule(TestBase):
                  "gamerule randomTickSpeed true",
                  "gamerule spawnRadius true")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1536,7 +1660,7 @@ class Give(TestBase):
                  "give @s stone 11 1 aaaaaaaaa",
                  "give @s stone 11 1 {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     @skip("Not implemented")
@@ -1560,7 +1684,7 @@ class Help(TestBase):
     def test_syntax1_nok(self):
         perms = ("aaaa", )
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1580,7 +1704,7 @@ class Help(TestBase):
         perms = ("help aaaa",
                  "help kill ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -1600,7 +1724,7 @@ class Kick(TestBase):
     def test_syntax1_nok(self):
         perms = ("kick", )
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1622,7 +1746,7 @@ class Kill(TestBase):
     def test_syntax1_nok(self):
         perms = ("kill @s ImNotSupposedToBeHere",)
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1644,7 +1768,7 @@ class List(TestBase):
         perms = ("list aaaaa",
                  "list uuids ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1667,7 +1791,7 @@ class Locate(TestBase):
                  "locate aaaaaa",
                  "locate Temple ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1695,7 +1819,7 @@ class Me(TestBase):
     def test_syntax1_nok(self):
         perms = ("me", )
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1717,7 +1841,7 @@ class Op(TestBase):
         perms = ("op",
                  "op @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1738,7 +1862,7 @@ class Pardon(TestBase):
         perms = ("pardon",
                  "pardon @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1759,7 +1883,7 @@ class Pardon_IP(TestBase):
         perms = ("pardon-ip",
                  "pardon-ip 127.0.0.1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1783,7 +1907,7 @@ class Particle(TestBase):
         perms = ("",
                  "")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     @skip("Not implemented")
@@ -1809,7 +1933,7 @@ class PlaySound(TestBase):
                  "playsound sound master @c",
                  "playsound sound master @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1854,7 +1978,7 @@ class PlaySound(TestBase):
                  "playsound sound master @s 1 ~-1 ~1 0.5 0.5 1.1",
                  "playsound sound master @s 1 ~-1 ~1 0.5 0.5 0.5 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -1904,7 +2028,7 @@ class Publish(TestBase):
         perms = ("aaaaaaa",
                  "publish ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1929,7 +2053,7 @@ class Recipe(TestBase):
                  "recipe give @s",
                  "recipe give @s recipeName ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1953,7 +2077,7 @@ class Reload(TestBase):
         perms = ("aaaaaa",
                  "reload ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -1990,7 +2114,7 @@ class ReplaceItem(TestBase):
                  "replaceitem block 1 ~-1 ~1 slot.armor.chest stone 5 1 aaaaaaaaa",
                  "replaceitem block 1 ~-1 ~1 slot.armor.chest stone 5 1 {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     @skip("Not implemented")
@@ -2011,7 +2135,7 @@ class Save_all(TestBase):
     def test_syntax1_nok(self):
         perms = ("save-all flush ImNotSupposedToBeHere", )
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -2033,7 +2157,7 @@ class Save_off(TestBase):
         perms = ("aaaaaaaa",
                  "save-off ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -2054,7 +2178,7 @@ class Save_on(TestBase):
         perms = ("aaaaaaa",
                  "save-on ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -2074,7 +2198,7 @@ class Say(TestBase):
     def test_syntax1_nok(self):
         perms = ("say", )
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -2101,7 +2225,7 @@ class Scoreboard(TestBase):
                  "scoreboard objectives aaaa",
                  "scoreboard objectives list ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -2126,7 +2250,7 @@ class Scoreboard(TestBase):
                  "scoreboard objectives add anObjective aaaaa displayName",
                  "scoreboard objectives add anObjective dummy aaaaabbbbbcccccdddddeeeeefffffggg")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     @skip("Not implemented")
@@ -2150,7 +2274,7 @@ class Scoreboard(TestBase):
                  "scoreboard objectives remove",
                  "scoreboard objectives remove anObjective ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax3_convert(self):
@@ -2176,7 +2300,7 @@ class Scoreboard(TestBase):
                  "scoreboard objectives setdisplay aaaa anObjective",
                  "scoreboard objectives setdisplay list anObjective ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax4_convert(self):
@@ -2199,7 +2323,7 @@ class Scoreboard(TestBase):
                  "scoreboard players list @c",
                  "scoreboard players list @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax5_convert(self):
@@ -2235,7 +2359,7 @@ class Scoreboard(TestBase):
                  "scoreboard players set @s anObjective 1 {abc:def} ImNotSupposedToBeHere",
                  "scoreboard players set * anObjective 1 {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax6_convert(self):
@@ -2277,7 +2401,7 @@ class Scoreboard(TestBase):
                  "scoreboard players reset @s anObjective ImNotSupposedToBeHere",
                  "scoreboard players reset * anObjective ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax7_convert(self):
@@ -2308,7 +2432,7 @@ class Scoreboard(TestBase):
                  "scoreboard players enable @s anObjective ImNotSupposedToBeHere",
                  "scoreboard players enable * anObjective ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax8_convert(self):
@@ -2342,7 +2466,7 @@ class Scoreboard(TestBase):
                  "scoreboard players test @s anObjective 1 2 ImNotSupposedToBeHere",
                  "scoreboard players test * anObjective 1 2 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax9_convert(self):
@@ -2390,7 +2514,7 @@ class Scoreboard(TestBase):
                  "scoreboard players operation * anObjective += @s aObjective ImNotSupposedToBeHere",
                  "scoreboard players operation @s anObjective += * aObjective ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax10_convert(self):
@@ -2425,7 +2549,7 @@ class Scoreboard(TestBase):
                  "scoreboard players tag @s add aTag {abc:def} ImNotSupposedToBeHere",
                  "scoreboard players tag * add aTag {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax11_convert(self):
@@ -2459,7 +2583,7 @@ class Scoreboard(TestBase):
                  "scoreboard players tag @s list ImNotSupposedToBeHere",
                  "scoreboard players tag * list ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax12_convert(self):
@@ -2483,7 +2607,7 @@ class Scoreboard(TestBase):
                  "scoreboard teams list aName ImNotSupposedToBeHere",
                  "scoreboard teams list aName ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax13_convert(self):
@@ -2506,7 +2630,7 @@ class Scoreboard(TestBase):
                  "scoreboard teams aaa aName TeamName",
                  "scoreboard teams add")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax14_convert(self):
@@ -2533,7 +2657,7 @@ class Scoreboard(TestBase):
                  "scoreboard teams join aName @s @c",
                  "scoreboard teams join aName @c @s")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax15_convert(self):
@@ -2558,7 +2682,7 @@ class Scoreboard(TestBase):
                  "scoreboard teams remove",
                  "scoreboard teams remove aName ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax16_convert(self):
@@ -2589,7 +2713,7 @@ class Scoreboard(TestBase):
                  "scoreboard teams option aTeam color aaaaa",
                  "scoreboard teams option aTeam color reset ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax17_convert(self):
@@ -2642,7 +2766,7 @@ class Seed(TestBase):
         perms = ("aaaa",
                  "seed ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -2676,7 +2800,7 @@ class SetBlock(TestBase):
                  "setblock 1 ~-1 ~1 stone 1 replace aaaaaaaaa",
                  "setblock 1 ~-1 ~1 stone 1 replace {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -2706,7 +2830,7 @@ class SetIdleTimeout(TestBase):
                  "setidletimeout aa",
                  "setidletimeout 10 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -2727,7 +2851,7 @@ class SetWorldSpawn(TestBase):
         perms = ("aaaaaaaaaaaaa",
                  "setworldspawn ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -2750,7 +2874,7 @@ class SetWorldSpawn(TestBase):
                  "setworldspawn 1 ~-1 a",
                  "setworldspawn 1 ~-1 1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -2770,7 +2894,7 @@ class SpawnPoint(TestBase):
     def test_syntax1_nok(self):
         perms = ("aaaaaaaaaa", )
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -2789,7 +2913,7 @@ class SpawnPoint(TestBase):
         perms = ("spawnpoint @c",
                  "spawnpoint @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -2812,7 +2936,7 @@ class SpawnPoint(TestBase):
                  "spawnpoint @s 1 ~-1 a",
                  "spawnpoint @s 1 ~-1 1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax3_convert(self):
@@ -2847,7 +2971,7 @@ class SpreadPlayers(TestBase):
                  "spreadplayers 1 ~1 1 2 true @c Carl",
                  "spreadplayers 1 ~1 1 2 true @s @c")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -2881,7 +3005,7 @@ class Stats(TestBase):
                  "stats block 1 ~-1 ~1 clear aaaaaaaaaaa",
                  "stats block 1 ~-1 ~1 clear QueryResult ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -2918,7 +3042,7 @@ class Stats(TestBase):
                  "stats block 1 ~-1 ~1 set QueryResult @s",
                  "stats block 1 ~-1 ~1 set QueryResult @s anObjective ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -2948,7 +3072,7 @@ class Stats(TestBase):
                  "stats entity @s clear aaaaaaaaaaa",
                  "stats entity @s clear QueryResult ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax3_convert(self):
@@ -2981,7 +3105,7 @@ class Stats(TestBase):
                  "stats entity @s set QueryResult @s",
                  "stats entity @s set QueryResult @s anObjective ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax4_convert(self):
@@ -3006,7 +3130,7 @@ class Stop(TestBase):
         perms = ("aaaa",
                  "stop ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3029,7 +3153,7 @@ class Stopsound(TestBase):
                  "stopsound @s aaaaaa aSound",
                  "stopsound @s master aSound ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3051,7 +3175,7 @@ class Summon(TestBase):
                  "summon aaa",
                  "summon cow ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3077,7 +3201,7 @@ class Summon(TestBase):
                  "summon cow 1 ~-1 ~1 aaaaaaaaa",
                  "summon cow 1 ~-1 ~1 {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -3106,7 +3230,7 @@ class Teleport(TestBase):
                  "teleport @s 1 ~-1 a",
                  "teleport @s 1 ~-1 ~1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3137,7 +3261,7 @@ class Teleport(TestBase):
                  "teleport @s 1 ~-1 ~1 ~30 aaaa",
                  "teleport @s 1 ~-1 ~1 ~30 ~-60 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -3162,7 +3286,7 @@ class Tp(TestBase):
                  "tp 1 ~-1 aa",
                  "tp 1 ~-1 ~1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3186,7 +3310,7 @@ class Tp(TestBase):
                  "tp 1 ~-1 ~1 ~30 aaaa",
                  "tp 1 ~-1 ~1 ~30 ~-60 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -3209,7 +3333,7 @@ class Tp(TestBase):
                  "tp @s @a",
                  "tp @e @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax3_convert(self):
@@ -3235,7 +3359,7 @@ class Tp(TestBase):
                  "tp @e 1 ~-1 aa",
                  "tp @e 1 ~-1 ~1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax4_convert(self):
@@ -3264,7 +3388,7 @@ class Tp(TestBase):
                  "tp @e 1 ~-1 ~1 ~30 aaaa",
                  "tp @e 1 ~-1 ~1 ~30 ~-60 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax5_convert(self):
@@ -3290,7 +3414,7 @@ class Tellraw(TestBase):
                  "tellraw @s aaaaaaaaaaaaaaaaa",
                  "tellraw @s {\"text\":\"hi\"} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3313,7 +3437,7 @@ class Testfor(TestBase):
                  "testfor @s aaaaaaaaa",
                  "testfor @s {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3346,7 +3470,7 @@ class TestforBlock(TestBase):
                  "testforblock 1 ~-1 1 stone 1 aaaaaaaaa",
                  "testforblock 1 ~-1 1 stone 1 {abc:def} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3387,7 +3511,7 @@ class TestforBlocks(TestBase):
                  "testforblocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 aaa",
                  "testforblocks 1 ~-1 1 1 ~-1 1 1 ~-1 1 all ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3414,7 +3538,7 @@ class Time(TestBase):
                  "time add 0",
                  "time add 42 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3437,7 +3561,7 @@ class Time(TestBase):
                  "time set aaa",
                  "time set day ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -3460,7 +3584,7 @@ class Time(TestBase):
                  "time query aaa",
                  "time query day ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax3_convert(self):
@@ -3486,7 +3610,7 @@ class Title(TestBase):
                  "title @s aaaaa",
                  "title @s clear ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3511,7 +3635,7 @@ class Title(TestBase):
                  "title @s title aaaaaaaaaaaaaaaaa",
                  "title @s title {\"text\":\"hi\"} ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -3541,7 +3665,7 @@ class Title(TestBase):
                  "title @s times 1 2 a",
                  "title @s times 1 2 3 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax3_convert(self):
@@ -3562,7 +3686,7 @@ class ToggleDownfall(TestBase):
         perms = ("aaaaaaaaaaaaaa",
                  "toggledownfall ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3587,7 +3711,7 @@ class Trigger(TestBase):
                  "trigger anObjective add a",
                  "trigger anObjective add 0 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3610,7 +3734,7 @@ class W(TestBase):
                  "w @c hi",
                  "w @s",)
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3636,7 +3760,7 @@ class Weather(TestBase):
                  "weather clear 1000001",
                  "weather clear 1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3665,7 +3789,7 @@ class WhiteList(TestBase):
                  "whitelist add @c",
                  "whitelist add @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3686,7 +3810,7 @@ class WhiteList(TestBase):
                  "whitelist aa",
                  "whitelist on ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -3716,7 +3840,7 @@ class WorldBorder(TestBase):
                  "worldborder add 1 -1",
                  "worldborder add 1 2 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
@@ -3742,7 +3866,7 @@ class WorldBorder(TestBase):
                  "worldborder center 1 aa",
                  "worldborder center 1 ~2 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax2_convert(self):
@@ -3767,7 +3891,7 @@ class WorldBorder(TestBase):
                  "worldborder damage amount -1",
                  "worldborder damage amount 1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax3_convert(self):
@@ -3793,7 +3917,7 @@ class WorldBorder(TestBase):
                  "worldborder warning distance -1",
                  "worldborder warning distance 1 ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax4_convert(self):
@@ -3814,7 +3938,7 @@ class WorldBorder(TestBase):
                  "worldborder aaa",
                  "worldborder get ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax5_convert(self):
@@ -3839,7 +3963,7 @@ class Xp(TestBase):
                  "xp 1L @c",
                  "xp 1L @s ImNotSupposedToBeHere")
         for perm in perms:
-            self.assertRaises(SyntaxError, perm)
+            self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
     def test_syntax1_convert(self):
