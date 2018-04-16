@@ -208,7 +208,7 @@ def block(data, blockLabel, stateLabel=None, nbtLabel=None):
             userStates = ["default"]
     except ValueError:
         if not Globals.blockStateSetRe.match(userStates):
-            raise SyntaxError(u"{} is not a valid block state format".format(data[stateLabel]))
+            raise SyntaxError(u"{} is not a valid block state format for setting a block".format(data[stateLabel]))
         userStates = userStates.split(",")
 
     if userStates != ["default"]:
@@ -241,12 +241,8 @@ def block(data, blockLabel, stateLabel=None, nbtLabel=None):
     if not result[0]:
         result[0] = convDict["default{"].split("[")[0]
 
-    result[1] = _list(result[1])
     if userBlock == "skull" and result[0].find("wall") != -1:
-        for i in range(len(result[1])):
-            if result[1][i][:8] == "rotation":
-                del result[1][i]
-                break
+        result[1] = [state for state in result[1] if state[:8] != "rotation"]
 
     return u"{}{}{}".format(result[0], u"[{}]".format(u",".join(sorted(result[1]))) if result[1] else u"", result[2] if result[2] else u"")
 
@@ -278,8 +274,9 @@ def blockTest(data, blockLabel, stateLabel=None, nbtLabel=None):
     userNBT = data[nbtLabel].copy() if nbtLabel in data else NBTCompound()
     results = [set(), set(), userNBT]
 
-    default = convDict["default{"]
-    del convDict["default{"]
+    if userStates == ["default"]:
+        data[stateLabel] = Globals.blockDefaults[userBlock]
+        return blockTest(data, blockLabel, stateLabel, nbtLabel)
 
     if userBlock in ("double_stone_slab", "double_stone_slab2"):
         for key in convDict:
@@ -296,93 +293,101 @@ def blockTest(data, blockLabel, stateLabel=None, nbtLabel=None):
             for nbtPair in nbts.split(","):
                 convNBTs.update([nbtPair.split(":", 1)[0]])
 
-    if userStates == ["default"]:
-        defaultPair = Globals.blockDefaults[userBlock]
+    userStates = dict(tuple(state.split("=")) for state in userStates)
 
-        comments = []
+    badStates = set(userStates).difference(convStates)
+    if badStates:
+        if len(badStates) == 1:
+            raise SyntaxError(u"{} is not a valid block state of {}".format(_list(badStates)[0], userBlock))
+        raise SyntaxError(u"{} are not valid block states of {}".format(array(badStates), userBlock))
 
-        if defaultPair[1]:
-            for key in defaultPair[1]:
-                if key in userNBT:
-                    if stripNBT(userNBT[key]) == stripNBT(defaultPair[1][key]):
-                        del userNBT[key]
-                    else:
-                        comments.append(key)
-        if comments:
-            return u"!{}".format(u", ".join(u"{} is not a valid value for {}".format(userNBT[key], key) for key in comments))
-        return [u"{}{}".format(defaultPair[0], userNBT if userNBT else u"")]
-    else:
-        userStates = dict(tuple(state.split("=")) for state in userStates)
+    relevantStates, relevantNBTs = convStates.intersection(set(userStates)), convNBTs.intersection(set(userNBT))
 
-        badStates = set(userStates).difference(convStates)
-        if badStates:
-            if len(badStates) == 1:
-                raise SyntaxError(u"{} is not a valid block state of {}".format(_list(badStates)[0], userBlock))
-            raise SyntaxError(u"{} are not valid block states of {}".format(array(badStates), userBlock))
+    for key in convDict:
+        if key[:7] == "default":
+            continue
+        convFromStates, convFromNBTs = map(lambda x: x.split(",") if x else [], key.split("{", 1))
+        convFromStates = dict(tuple(x.split("=", 1)) for x in convFromStates)
+        convFromNBTs = dict(tuple(x.split(":", 1)) for x in convFromNBTs)
+        convToBlock, convToStates = convDict[key].split("[", 1)
 
-        relevantStates, relevantNBTs = convStates.intersection(set(userStates)), convNBTs.intersection(set(userNBT))
-
-        for key in _list(convDict.keys()):
-            convFromStates, convFromNBTs = map(lambda x: x.split(",") if x else [], key.split("{"))
-            convFromStates = dict(tuple(x.split("=", 1)) for x in convFromStates)
-            convFromNBTs = dict(tuple(x.split(":", 1)) for x in convFromNBTs)
-            convToBlock, convToStates = convDict[key].split("[")
-
-            if userBlock == "double_stone_slab":
-                if relevantStates == {"seamless", "variant"}:
-                    if "variant" in convFromStates and convFromStates["variant"] == userStates["variant"]:
-                        if "seamless" in convFromStates and convFromStates["seamless"] == userStates["seamless"]:
-                            results[0].update([convToBlock])
-                        elif "seamless" not in convFromStates and userStates["seamless"] == "false":
-                            results[0].update([convToBlock])
-                elif relevantStates == {"variant"}:
-                    if "variant" in convFromStates and convFromStates["variant"] == userStates["variant"]:
-                        results[0].update([convToBlock])
-                elif relevantStates == {"seamless"}:
+        if userBlock == "double_stone_slab":
+            if relevantStates == {"seamless", "variant"}:
+                if "variant" in convFromStates and convFromStates["variant"] == userStates["variant"]:
                     if "seamless" in convFromStates and convFromStates["seamless"] == userStates["seamless"]:
                         results[0].update([convToBlock])
                     elif "seamless" not in convFromStates and userStates["seamless"] == "false":
                         results[0].update([convToBlock])
-                else:
+            elif relevantStates == {"variant"}:
+                if "variant" in convFromStates and convFromStates["variant"] == userStates["variant"]:
                     results[0].update([convToBlock])
+            elif relevantStates == {"seamless"}:
+                if "seamless" in convFromStates and convFromStates["seamless"] == userStates["seamless"]:
+                    results[0].update([convToBlock])
+                elif "seamless" not in convFromStates and userStates["seamless"] == "false":
+                    results[0].update([convToBlock])
+            else:
+                results[0].update([convToBlock])
+            continue
+
+        if userBlock == "flower_pot":
+            if "legacy_data" in relevantStates:
+                if "contents" in convFromStates:
+                    continue
+            elif "contents" in relevantStates and "legacy_data" in convFromStates:
                 continue
 
-            if not any(x in relevantStates for x in convFromStates) and not any(x in convFromNBTs for x in relevantNBTs):
+        if not any(x in relevantStates for x in convFromStates) and not any(x in convFromNBTs for x in relevantNBTs):
+            if convToBlock:
+                results[0].update([convToBlock])
+            if convToStates:
+                results[1].update((tuple(x.split("=", 1)) for x in convToStates.split(",")))
+        else:
+            if all(x[0] in userStates and userStates[x[0]] == x[1] for x in convFromStates.items()) and \
+               (not any(x in convFromNBTs for x in relevantNBTs) or
+                 all(x[0] in userNBT and stripNBT(userNBT[x[0]]) == x[1] for x in convFromNBTs.items())):
                 if convToBlock:
                     results[0].update([convToBlock])
                 if convToStates:
                     results[1].update((tuple(x.split("=", 1)) for x in convToStates.split(",")))
-            else:
-                if all(x[0] in userStates and userStates[x[0]] == x[1] for x in convFromStates.items()) and \
-                   (not relevantNBTs or all(x[0] in userNBT and stripNBT(userNBT[x[0]]) == x[1] for x in convFromNBTs.items())):
-                    if convToBlock:
-                        results[0].update([convToBlock])
-                    if convToStates:
-                        results[1].update((tuple(x.split("=", 1)) for x in convToStates.split(",")))
 
-        for nbt in relevantNBTs:
-            del userNBT[nbt]
-        removeStates = {}
-        for state, value in results[1]:
-            if state not in removeStates:
-                removeStates[state] = 1
-            else:
-                removeStates[state] += 1
-        resultStates = []
-        for state, value in results[1]:
-            if removeStates[state] == 1:
-                resultStates.append(u"{}={}".format(state, value))
-        results[1] = resultStates
+    for nbt in relevantNBTs:
+        del userNBT[nbt]
 
     if userBlock in ("double_stone_slab", "double_stone_slab2"):
         results[0] = _list(results[0])
         for i in range(len(results[0])):
             results[0][i] = results[0][i].replace("!", "[")
+    elif userBlock == "skull" and "SkullType" in relevantNBTs:
+            if len(results[0]) > 1:
+                results[0] = [result for result in results[0] if result[:8] != "skeleton"]
 
     if not results[0]:
-        results[0] = (default.split("[")[0], )
-    ret = [u"{}{}{}".format(name, u"[{}]".format(u",".join(sorted(results[1]))) if results[1] else u"", results[2] if results[2] else u"") for name in results[0]]
-    return ret
+        left, right = convDict["default{"].split("[")
+        results[0] = (left, )
+        if not results[1] and right:
+            results[1].update([tuple(right.split("=", 1))])
+
+    removeStates = {}
+    for state, value in results[1]:
+        if state not in removeStates:
+            removeStates[state] = 1
+        else:
+            removeStates[state] += 1
+    resultStates = []
+    for state, value in results[1]:
+        if removeStates[state] == 1:
+            resultStates.append(u"{}={}".format(state, value))
+    results[1] = resultStates
+
+    result = []
+    for name in results[0]:
+        if userBlock == "skull" and name.find("wall") != -1:
+            state = sorted(state for state in results[1] if state[:8] != "rotation")
+        else:
+            state = sorted(results[1])
+        result.append(u"{}{}{}".format(name, u"[{}]".format(u",".join(state)) if results[1] else u"", results[2] if results[2] else u""))
+    return result
 
 
 def item(data, nameLabel, damageLabel=None, nbtLabel=None):
@@ -963,12 +968,17 @@ class clone(Master):
         self.canAt = canAt(self.data, "<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2", "<~x", "<~y", "<~z")
 
         if "<(filtered" in self.data:
-            self.block = block(self.data, "<.tileName", "[.dataValue")  # todo -1, *
+            self.block = blockTest(self.data, "<.tileName", "[.dataValue")
 
     def __unicode__(self):
         s = u"clone {} {} {} {} {} {} {} {} {}".format(self.data["<~x1"], self.data["<~y1"], self.data["<~z1"], self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], self.data["<~x"], self.data["<~y"], self.data["<~z"])
         if "<(filtered" in self.data:
-            s += u" filtered {} {}".format(self.block, self.data["<(force|move|normal"])
+            replace = u" {}".format(self.data["<(force|move|normal"]) if self.data["<(force|move|normal"] != "normal" else u""
+            prefix = u""
+            if len(self.block) > 1:
+                Globals.flags["multiLine"] = True
+                prefix = u"#~ The splitting of this command ({}) can produce different results if used with stats\n".format(Master.__unicode__(self))
+            return prefix + u"\n".join(u"{} filtered {}{}".format(s, variant, replace) for variant in sorted(self.block))
         else:
             for key in self.syntax[9:]:
                 s += u" {}".format(self.data[key])
@@ -1089,7 +1099,9 @@ class entitydata(Master):
         self.canAt, self.canAs = self.data["<@entity"].canAt, True
 
     def __unicode__(self):
-        return u"data merge entity {} {}".format(self.data["<@entity"], self.data["<{dataTag"])
+        if self.data["<@entity"].isSingle():  # ToDo https://bugs.mojang.com/browse/MC-121807
+            return u"data merge entity {} {}".format(self.data["<@entity"], self.data["<{dataTag"])
+        return u"execute as {} run data merge entity @s {}".format(self.data["<@entity"], self.data["<{dataTag"])
 
 
 class execute(Master):
@@ -1111,26 +1123,24 @@ class execute(Master):
         if "<(detect" in self.data:
             self.canAt = True
 
-            if self.data["<.dataValue"] in ("-1", "*"):
-                pass
-                # self.block =   # todo -1, *
-            else:
-                self.block = block(self.data, "<.block", "<.dataValue")
+            self.block = blockTest(self.data, "<.block", "<.dataValue")
 
     def __unicode__(self):
+        Globals.flags["multiLine"] = False
         command = unicode(self.data["<*command"])
+        if not Globals.flags["multiLine"]:
+            return self.toString(command)
+        return u"\n".join(self.toString(line) if line[0] != "#" else line for line in command.split("\n"))
 
+    def toString(self, command):
         position = u""
         if not '~' == self.data["<~x"] == self.data["<~y"] == self.data["<~z"] and self.canAt:
             position = u" positioned {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"])
 
         detect = u""
         if "<(detect" in self.data:
-            if self.data["<.dataValue"] in ("-1", "*"):
-                coords = u" {} {} {} ".format(self.data["<~x2"], self.data["<~y2"], self.data["<~z2"])
-                detect += u" if block{}{}".format(coords, u" execute if block{}".format(coords).join(self.block))
-            else:
-                detect += u" if block {} {} {} {}".format(self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], self.block)
+            coords = u" {} {} {} ".format(self.data["<~x2"], self.data["<~y2"], self.data["<~z2"])
+            detect += u" if block{}{}".format(coords, u" if block{}".format(coords).join(sorted(self.block)))
 
         if not self.data["<@entity"].playerName and self.data["<@entity"].target == "s":
             selectorArgs = len(self.data["<@entity"].data)
@@ -1145,8 +1155,7 @@ class execute(Master):
                 else:
                     s = u"execute"
 
-            if detect:
-                s += detect
+            s += detect
 
             if command[:7] == "execute":
                 new, old = s.split(" ")[-2:], command.split(" ", 3)[1:3]
@@ -1198,7 +1207,7 @@ class fill(Master):
         if "<(replace" in self.data:
             self.block = block(self.data, "<.block", "<.dataValue")
             if "[.replaceTileName" in self.data:
-                self.replaceBlock = block(self.data, "[.replaceTileName", "[.replaceDataValue")  # todo -1, *
+                self.replaceBlock = blockTest(self.data, "[.replaceTileName", "[.replaceDataValue")
         else:
             self.block = block(self.data, "<.block", "[.dataValue", "[{dataTag")
 
@@ -1207,7 +1216,11 @@ class fill(Master):
         if "<(replace" in self.data:
             s += u" {} replace".format(self.block)
             if "[.replaceTileName" in self.data:
-                s += u" {}".format(self.replaceBlock)
+                prefix = u""
+                if len(self.replaceBlock) > 1:
+                    Globals.flags["multiLine"] = True
+                    prefix = u"#~ The splitting of this command ({}) can produce different results if used with stats\n".format(Master.__unicode__(self))
+                return prefix + u"\n".join(u"{} {}".format(s, variant) for variant in sorted(self.replaceBlock))
         else:
             s += u" {}".format(self.block)
             if "[(destroy|hollow|keep|outline" in self.data:
@@ -1345,13 +1358,14 @@ class locate(Master):
         Master.__init__(self)
         syntaxes = (("<(EndCity|Fortress|Mansion|Mineshaft|Monument|Stronghold|Temple|Village", ), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
+        self.canAt = True
 
     def __unicode__(self):
         if self.data[self.syntax[0]] != "Temple":
             return Master.__unicode__(self)
         Globals.flags["multiLine"] = True
-        return u"#~ The splitting of this command can produce different results if used with stats\nlocate {}".format(
-            u"\nlocate ".join(('Desert_Pyramid', 'Igloo', 'Jungle_Pyramid', 'Swamp_Hut')))
+        return u"#~ The splitting of this command ({}) can produce different results if used with stats\nlocate {}".format(
+            Master.__unicode__(self), u"\nlocate ".join(('Desert_Pyramid', 'Igloo', 'Jungle_Pyramid', 'Swamp_Hut')))
 
 
 class me(Master):
@@ -1794,7 +1808,7 @@ class teleport(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = canAt(self.data, "<~x", "<~y", "<~z", "<~yaw", "<~pitch") or self.data["<@target"].canAt, True
 
-        if self.data["<@target"] == Selector("@s"):
+        if "<~yaw" not in self.data and self.data["<@target"] == Selector("@s"):
             self.syntax = self.syntax[1:]
 
 
@@ -1816,12 +1830,14 @@ class tp(Master):
                     raise SyntaxError(u"Destination (\'{}\') can only target one entity.".format(self.data["[@destination"]))
                 self.canAt = self.canAt or self.data["[@destination"].canAt
 
-            if self.data["<@target"] == Selector("@s") and ("<~x" in self.data or "[@destination" in self.data):
+            if len(self.syntax) > 1 and "<~yaw" not in self.data and self.data["<@target"] == Selector("@s"):
                 self.syntax = self.syntax[1:]
                 del self.data["<@target"]
+        elif "<~yaw" in self.data:
+            self.data["<@target"] = Selector("@s")
 
     def __unicode__(self):
-        if "<@target" not in self.data or "<~x" not in self.data:
+        if "<@target" not in self.data or self.data["<@target"] == Selector("@s") or "<~x" not in self.data:
             return Master.__unicode__(self).replace("tp", "teleport", 1)
 
         s = u"execute as {}".format(self.data["<@target"])
@@ -1870,17 +1886,11 @@ class testforblock(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt = canAt(self.data, "<~x", "<~y", "<~z")
 
-        if "[.dataValue" in self.data and self.data["[.dataValue"] in ("-1", "*"):  # todo -1, *
-            pass
-        else:
-            self.block = block(self.data, "<.block", "[.dataValue", "[{dataTag")
+        self.block = blockTest(self.data, "<.block", "[.dataValue", "[{dataTag")
 
     def __unicode__(self):
-        if "[.dataValue" in self.data and self.data["[.dataValue"] in ("-1", "*"):
-            coords = u" {} {} {} ".format(self.data["<~x"], self.data["<~y"], self.data["<~z"])
-            return u"execute if block{}{}".format(coords, u" execute if block{}".format(coords).join(self.block))
-
-        return u"execute if block {} {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"], self.block)
+        coords = u" {} {} {} ".format(self.data["<~x"], self.data["<~y"], self.data["<~z"])
+        return u"execute if block{}{}".format(coords, u" if block{}".format(coords).join(sorted(self.block)))
 
 
 class testforblocks(Master):

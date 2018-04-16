@@ -218,6 +218,31 @@ class Block(TestBase):
                  (["emerald_block", "0"], "emerald_block"),
                  (["stone", "variant=stone,variant=granite"], "granite"),
 
+                 (["slime"], "slime_block"),
+                 (["slime", "0"], "slime_block"),
+                 (["slime", "default"], "slime_block"),
+                 (["slime", "0", "{a:b}"], "slime_block{a:b}"),
+
+                 (["lit_redstone_lamp"], "redstone_lamp[lit=true]"),
+                 (["lit_redstone_lamp", "0"], "redstone_lamp[lit=true]"),
+                 (["lit_redstone_lamp", "default"], "redstone_lamp[lit=true]"),
+                 (["lit_redstone_lamp", "0", "{a:b}"], "redstone_lamp[lit=true]{a:b}"),
+
+                 (["double_plant"], "sunflower"),
+                 (["double_plant", "0"], "sunflower[half=lower]"),
+                 (["double_plant", "default"], "sunflower"),
+                 (["double_plant", "variant=syringa"], "lilac"),
+                 (["double_plant", "variant=sunflower"], "sunflower"),
+                 (["double_plant", "half=upper"], "sunflower[half=upper]"),
+                 (["double_plant", "half=upper,variant=syringa"], "lilac[half=upper]"),
+
+                 (["flower_pot"], "flower_pot"),
+                 (["flower_pot", "0"], "flower_pot"),
+                 (["flower_pot", "default"], "flower_pot"),
+                 (["flower_pot", "contents=oak_sapling"], "potted_oak_sapling"),
+                 (["flower_pot", "legacy_data=1"], "potted_poppy"),
+                 (["flower_pot", "legacy_data=1,contents=oak_sapling"], "potted_poppy"),
+
                  (["stone"], "stone"),
                  (["stone", "0"], "stone"),
                  (["stone", "0", "{a:b}"], "stone{a:b}"),
@@ -243,7 +268,7 @@ class Block(TestBase):
                  (["bed", "part=foot,facing=south,occupied=true"], "red_bed[facing=south,occupied=true,part=foot]"),
                  (["bed", "part=foot,facing=south,occupied=true", "{color:10}"], "purple_bed[facing=south,occupied=true,part=foot]"),
 
-                 (["tallgrass"], "grass"),
+                 (["tallgrass"], "dead_bush"),
                  (["tallgrass", "type=tall_grass"], "grass"),
                  (["tallgrass", "type=dead_bush"], "dead_bush"),
                  (["tallgrass", "type=fern"], "fern"),
@@ -285,6 +310,7 @@ class Block(TestBase):
         perms = (["aaa"],
                  ["bed", "-1"],
                  ["bed", "16"],
+                 ["bed", "*"],
                  ["bed", "part="],
                  ["bed", "=foot"],
                  ["bed", "part"],
@@ -312,6 +338,33 @@ class Block(TestBase):
                  (["emerald_block", "0"], {"emerald_block"}),
                  (["stone", "variant=stone,variant=granite"], {"granite"}),
 
+                 (["slime"], {"slime_block"}),
+                 (["slime", "0"], {"slime_block"}),
+                 (["slime", "-1"], {"slime_block"}),
+                 (["slime", "default"], {"slime_block"}),
+                 (["slime", "0", "{a:b}"], {"slime_block{a:b}"}),
+
+                 (["lit_redstone_lamp"], {"redstone_lamp[lit=true]"}),
+                 (["lit_redstone_lamp", "0"], {"redstone_lamp[lit=true]"}),
+                 (["lit_redstone_lamp", "-1"], {"redstone_lamp[lit=true]"}),
+                 (["lit_redstone_lamp", "default"], {"redstone_lamp[lit=true]"}),
+                 (["lit_redstone_lamp", "default", "{a:b}"], {"redstone_lamp[lit=true]{a:b}"}),
+
+                 (["double_plant"], {"sunflower", "lilac", "tall_grass", "large_fern", "rose_bush", "peony"}),
+                 (["double_plant", "0"], {"sunflower[half=lower]"}),
+                 (["double_plant", "default"], {"sunflower[half=lower]"}),
+                 (["double_plant", "variant=syringa"], {"lilac"}),
+                 (["double_plant", "variant=sunflower"], {"sunflower"}),
+                 (["double_plant", "half=upper"], {"sunflower[half=upper]", "lilac[half=upper]", "tall_grass[half=upper]", "large_fern[half=upper]", "rose_bush[half=upper]", "peony[half=upper]"}),
+                 (["double_plant", "half=upper,variant=syringa"], {"lilac[half=upper]"}),
+
+                 (["flower_pot"], {"flower_pot", "potted_oak_sapling", "potted_spruce_sapling", "potted_birch_sapling", "potted_jungle_sapling", "potted_acacia_sapling", "potted_dark_oak_sapling", "potted_fern", "potted_dandelion", "potted_poppy", "potted_blue_orchid", "potted_allium", "potted_azure_bluet", "potted_red_tulip", "potted_orange_tulip", "potted_white_tulip", "potted_pink_tulip", "potted_oxeye_daisy", "potted_red_mushroom", "potted_brown_mushroom", "potted_dead_bush", "potted_cactus"}),
+                 (["flower_pot", "0"], {"flower_pot"}),
+                 (["flower_pot", "default"], {"flower_pot"}),
+                 (["flower_pot", "contents=oak_sapling"], {"potted_oak_sapling"}),
+                 (["flower_pot", "legacy_data=1"], {"potted_poppy"}),
+                 (["flower_pot", "legacy_data=1,contents=oak_sapling"], {"potted_poppy"}),
+
                  (["stone"], {"stone", "granite", "polished_granite", "diorite", "polished_diorite", "andesite", "polished_andesite"}),
                  (["stone", "*"], {"stone", "granite", "polished_granite", "diorite", "polished_diorite", "andesite", "polished_andesite"}),
                  (["stone", "-1"], {"stone", "granite", "polished_granite", "diorite", "polished_diorite", "andesite", "polished_andesite"}),
@@ -324,12 +377,90 @@ class Block(TestBase):
                  (["stone", "variant=stone", "{a:b}"], {"stone{a:b}"}),
                  (["stone", "variant=granite"], {"granite"}),
                  (["stone", "variant=granite", "{a:b}"], {"granite{a:b}"}),
-                 )
+
+                 (["bed"], {"white_bed", "orange_bed", "magenta_bed", "light_blue_bed", "yellow_bed", "lime_bed", "pink_bed", "gray_bed", "light_gray_bed", "cyan_bed", "purple_bed", "blue_bed", "brown_bed", "green_bed", "red_bed", "black_bed"}),
+                 (["bed", "0"], {"white_bed[facing=south,part=foot]", "orange_bed[facing=south,part=foot]", "magenta_bed[facing=south,part=foot]", "light_blue_bed[facing=south,part=foot]", "yellow_bed[facing=south,part=foot]", "lime_bed[facing=south,part=foot]", "pink_bed[facing=south,part=foot]", "gray_bed[facing=south,part=foot]", "light_gray_bed[facing=south,part=foot]", "cyan_bed[facing=south,part=foot]", "purple_bed[facing=south,part=foot]", "blue_bed[facing=south,part=foot]", "brown_bed[facing=south,part=foot]", "green_bed[facing=south,part=foot]", "red_bed[facing=south,part=foot]", "black_bed[facing=south,part=foot]"}),
+                 (["bed", "0", "{color:10}"], {"purple_bed[facing=south,part=foot]"}),
+                 (["bed", "0", "{a:b}"], {"white_bed[facing=south,part=foot]{a:b}", "orange_bed[facing=south,part=foot]{a:b}", "magenta_bed[facing=south,part=foot]{a:b}", "light_blue_bed[facing=south,part=foot]{a:b}", "yellow_bed[facing=south,part=foot]{a:b}", "lime_bed[facing=south,part=foot]{a:b}", "pink_bed[facing=south,part=foot]{a:b}", "gray_bed[facing=south,part=foot]{a:b}", "light_gray_bed[facing=south,part=foot]{a:b}", "cyan_bed[facing=south,part=foot]{a:b}", "purple_bed[facing=south,part=foot]{a:b}", "blue_bed[facing=south,part=foot]{a:b}", "brown_bed[facing=south,part=foot]{a:b}", "green_bed[facing=south,part=foot]{a:b}", "red_bed[facing=south,part=foot]{a:b}", "black_bed[facing=south,part=foot]{a:b}"}),
+                 (["bed", "0", "{color:10,a:b}"], {"purple_bed[facing=south,part=foot]{a:b}"}),
+                 (["bed", "default"], {"white_bed[facing=north,occupied=false,part=foot]", "orange_bed[facing=north,occupied=false,part=foot]", "magenta_bed[facing=north,occupied=false,part=foot]", "light_blue_bed[facing=north,occupied=false,part=foot]", "yellow_bed[facing=north,occupied=false,part=foot]", "lime_bed[facing=north,occupied=false,part=foot]", "pink_bed[facing=north,occupied=false,part=foot]", "gray_bed[facing=north,occupied=false,part=foot]", "light_gray_bed[facing=north,occupied=false,part=foot]", "cyan_bed[facing=north,occupied=false,part=foot]", "purple_bed[facing=north,occupied=false,part=foot]", "blue_bed[facing=north,occupied=false,part=foot]", "brown_bed[facing=north,occupied=false,part=foot]", "green_bed[facing=north,occupied=false,part=foot]", "red_bed[facing=north,occupied=false,part=foot]", "black_bed[facing=north,occupied=false,part=foot]"}),
+                 (["bed", "default", "{color:10}"], {"purple_bed[facing=north,occupied=false,part=foot]"}),
+                 (["bed", "default", "{a:b}"], {"white_bed[facing=north,occupied=false,part=foot]{a:b}", "orange_bed[facing=north,occupied=false,part=foot]{a:b}", "magenta_bed[facing=north,occupied=false,part=foot]{a:b}", "light_blue_bed[facing=north,occupied=false,part=foot]{a:b}", "yellow_bed[facing=north,occupied=false,part=foot]{a:b}", "lime_bed[facing=north,occupied=false,part=foot]{a:b}", "pink_bed[facing=north,occupied=false,part=foot]{a:b}", "gray_bed[facing=north,occupied=false,part=foot]{a:b}", "light_gray_bed[facing=north,occupied=false,part=foot]{a:b}", "cyan_bed[facing=north,occupied=false,part=foot]{a:b}", "purple_bed[facing=north,occupied=false,part=foot]{a:b}", "blue_bed[facing=north,occupied=false,part=foot]{a:b}", "brown_bed[facing=north,occupied=false,part=foot]{a:b}", "green_bed[facing=north,occupied=false,part=foot]{a:b}", "red_bed[facing=north,occupied=false,part=foot]{a:b}", "black_bed[facing=north,occupied=false,part=foot]{a:b}"}),
+                 (["bed", "default", "{color:10,a:b}"], {"purple_bed[facing=north,occupied=false,part=foot]{a:b}"}),
+                 (["bed", "facing=north"], {"white_bed[facing=north]", "orange_bed[facing=north]", "magenta_bed[facing=north]", "light_blue_bed[facing=north]", "yellow_bed[facing=north]", "lime_bed[facing=north]", "pink_bed[facing=north]", "gray_bed[facing=north]", "light_gray_bed[facing=north]", "cyan_bed[facing=north]", "purple_bed[facing=north]", "blue_bed[facing=north]", "brown_bed[facing=north]", "green_bed[facing=north]", "red_bed[facing=north]", "black_bed[facing=north]"}),
+                 (["bed", "facing=north", "{color:10}"], {"purple_bed[facing=north]"}),
+                 (["bed", "part=foot,facing=south,occupied=true"], {"white_bed[facing=south,occupied=true,part=foot]", "orange_bed[facing=south,occupied=true,part=foot]", "magenta_bed[facing=south,occupied=true,part=foot]", "light_blue_bed[facing=south,occupied=true,part=foot]", "yellow_bed[facing=south,occupied=true,part=foot]", "lime_bed[facing=south,occupied=true,part=foot]", "pink_bed[facing=south,occupied=true,part=foot]", "gray_bed[facing=south,occupied=true,part=foot]", "light_gray_bed[facing=south,occupied=true,part=foot]", "cyan_bed[facing=south,occupied=true,part=foot]", "purple_bed[facing=south,occupied=true,part=foot]", "blue_bed[facing=south,occupied=true,part=foot]", "brown_bed[facing=south,occupied=true,part=foot]", "green_bed[facing=south,occupied=true,part=foot]", "red_bed[facing=south,occupied=true,part=foot]", "black_bed[facing=south,occupied=true,part=foot]"}),
+                 (["bed", "part=foot,facing=south,occupied=true", "{color:10}"], {"purple_bed[facing=south,occupied=true,part=foot]"}),
+
+                 (["tallgrass"], {"grass", "dead_bush", "fern"}),
+                 (["tallgrass", "0"], {"dead_bush"}),
+                 (["tallgrass", "*"], {"grass", "dead_bush", "fern"}),
+                 (["tallgrass", "-1"], {"grass", "dead_bush", "fern"}),
+                 (["tallgrass", "default"], {"dead_bush"}),
+                 (["tallgrass", "type=tall_grass"], {"grass"}),
+                 (["tallgrass", "type=dead_bush"], {"dead_bush"}),
+                 (["tallgrass", "type=fern"], {"fern"}),
+
+                 (["skull"], {"skeleton_wall_skull", "wither_skeleton_wall_skull", "zombie_wall_head", "player_wall_head", "creeper_wall_head", "dragon_wall_head", "skeleton_skull", "wither_skeleton_skull", "zombie_head", "player_head", "creeper_head", "dragon_head"}),
+                 (["skull", "-1"], {"skeleton_wall_skull", "wither_skeleton_wall_skull", "zombie_wall_head", "player_wall_head", "creeper_wall_head", "dragon_wall_head", "skeleton_skull", "wither_skeleton_skull", "zombie_head", "player_head", "creeper_head", "dragon_head"}),
+                 (["skull", "*"], {"skeleton_wall_skull", "wither_skeleton_wall_skull", "zombie_wall_head", "player_wall_head", "creeper_wall_head", "dragon_wall_head", "skeleton_skull", "wither_skeleton_skull", "zombie_head", "player_head", "creeper_head", "dragon_head"}),
+                 (["skull", "0"], {"skeleton_skull", "wither_skeleton_skull", "zombie_head", "player_head", "creeper_head", "dragon_head"}),
+                 (["skull", "0", "{Rot:0}"], {"skeleton_skull[rotation=0]", "wither_skeleton_skull[rotation=0]", "zombie_head[rotation=0]", "player_head[rotation=0]", "creeper_head[rotation=0]", "dragon_head[rotation=0]"}),
+                 (["skull", "0", "{Rot:0,SkullType:4}"], {"creeper_head[rotation=0]"}),
+                 (["skull", "2", "{Rot:0,SkullType:4}"], {"creeper_wall_head[facing=north]"}),
+                 (["skull", "default"], {"skeleton_wall_skull[facing=north]", "wither_skeleton_wall_skull[facing=north]", "zombie_wall_head[facing=north]", "player_wall_head[facing=north]", "creeper_wall_head[facing=north]", "dragon_wall_head[facing=north]"}),
+                 (["skull", "default", "{Rot:0}"], {"skeleton_wall_skull[facing=north]", "wither_skeleton_wall_skull[facing=north]", "zombie_wall_head[facing=north]", "player_wall_head[facing=north]", "creeper_wall_head[facing=north]", "dragon_wall_head[facing=north]"}),
+                 (["skull", "default", "{SkullType:1}"], {"wither_skeleton_wall_skull[facing=north]"}),
+                 (["skull", "default", "{SkullType:1,Rot:2}"], {"wither_skeleton_wall_skull[facing=north]"}),
+                 (["skull", "facing=down"], {"skeleton_skull", "wither_skeleton_skull", "zombie_head", "player_head", "creeper_head", "dragon_head"}),
+                 (["skull", "facing=down", "{SkullType:1}"], {"wither_skeleton_skull"}),
+                 (["skull", "facing=down", "{SkullType:1,Rot:0}"], {"wither_skeleton_skull[rotation=0]"}),
+                 (["skull", "facing=down", "{Rot:0}"], {"skeleton_skull[rotation=0]", "wither_skeleton_skull[rotation=0]", "zombie_head[rotation=0]", "player_head[rotation=0]", "creeper_head[rotation=0]", "dragon_head[rotation=0]"}),
+                 (["skull", "facing=north"], {"skeleton_wall_skull[facing=north]", "wither_skeleton_wall_skull[facing=north]", "zombie_wall_head[facing=north]", "player_wall_head[facing=north]", "creeper_wall_head[facing=north]", "dragon_wall_head[facing=north]"}),
+                 (["skull", "facing=north", "{SkullType:1}"], {"wither_skeleton_wall_skull[facing=north]"}),
+                 (["skull", "facing=north", "{SkullType:1,Rot:0}"], {"wither_skeleton_wall_skull[facing=north]"}),
+                 (["skull", "nodrop=true"], {"skeleton_wall_skull", "wither_skeleton_wall_skull", "zombie_wall_head", "player_wall_head", "creeper_wall_head", "dragon_wall_head", "skeleton_skull", "wither_skeleton_skull", "zombie_head", "player_head", "creeper_head", "dragon_head"}),
+
+                 (["double_stone_slab"], {"smooth_stone", "smooth_sandstone", "smooth_quartz", "petrified_oak_slab[type=double]", "cobblestone_slab[type=double]", "brick_slab[type=double]", "stone_brick_slab[type=double]", "nether_brick_slab[type=double]", "stone_slab[type=double]", "sandstone_slab[type=double]", "quartz_slab[type=double]"}),
+                 (["double_stone_slab", "0"], {"stone_slab[type=double]"}),
+                 (["double_stone_slab", "8"], {"smooth_stone"}),
+                 (["double_stone_slab", "default"], {"stone_slab[type=double]"}),
+                 (["double_stone_slab", "seamless=true"], {"smooth_stone", "smooth_sandstone", "smooth_quartz", "petrified_oak_slab[type=double]", "cobblestone_slab[type=double]", "brick_slab[type=double]", "stone_brick_slab[type=double]", "nether_brick_slab[type=double]"}),
+                 (["double_stone_slab", "seamless=false"], {"stone_slab[type=double]", "sandstone_slab[type=double]", "quartz_slab[type=double]", "petrified_oak_slab[type=double]", "cobblestone_slab[type=double]", "brick_slab[type=double]", "stone_brick_slab[type=double]", "nether_brick_slab[type=double]"}),
+                 (["double_stone_slab", "variant=quartz"], {"smooth_quartz", "quartz_slab[type=double]"}),
+                 (["double_stone_slab", "seamless=true,variant=wood_old"], {"petrified_oak_slab[type=double]"}),
+                 (["double_stone_slab", "seamless=false,variant=wood_old"], {"petrified_oak_slab[type=double]"}),
+                 (["double_stone_slab", "seamless=true,variant=quartz"], {"smooth_quartz"}),
+                 (["double_stone_slab", "seamless=false,variant=quartz"], {"quartz_slab[type=double]"}))
         for before, after in tests:
             if len(before) == 3:
                 before[2] = converter.getCompound(before[2][1:])[0]
             pairs = zip(("block", "state", "nbt"), before)
             self.assertEqual(after, set(converter.blockTest(dict(pairs), *zip(*pairs)[0])), "source: {}".format(before))
+        self.assertStats()
+
+    def test_block_test_nok(self):
+        perms = (["aaa"],
+                 ["bed", "-2"],
+                 ["bed", "16"],
+                 ["bed", "part="],
+                 ["bed", "=foot"],
+                 ["bed", "part"],
+                 ["bed", "part=footfacing=south"],
+                 ["bed", "part==south"],
+                 ["bed", "part=foot,,facing=south"],
+                 ["bed", "part=foot,"],
+                 ["bed", ",facing=south"],
+                 ["bed", "="],
+                 ["bed", ","],
+                 ["bed", "a=b"],
+                 ["bed", "a=foot"],
+                 ["bed", "a=a,b=b"])
+        for perm in perms:
+            if len(perm) == 3:
+                perm[2] = converter.getCompound(perm[2][1:])[0]
+            pairs = zip(("block", "state", "nbt"), perm)
+            self.assertRaises(SyntaxError, converter.blockTest, dict(pairs), *zip(*pairs)[0])
         self.assertStats()
 
 
@@ -601,11 +732,32 @@ class Clone(TestBase):
 
     def test_syntax2_convert(self):
         tests = (("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone 1", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite force"),
-                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone force"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone", "#~ The splitting of this command (clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone) can produce different results if used with stats\n"
+                                                                           "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered andesite force\n"
+                                                                           "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered diorite force\n"
+                                                                           "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite force\n"
+                                                                           "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered polished_andesite force\n"
+                                                                           "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered polished_diorite force\n"
+                                                                           "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered polished_granite force\n"
+                                                                           "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone force"),
                  ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone 1", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite move"),
-                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone move"),
-                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone 1", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite normal"),
-                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone normal"))
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone", "#~ The splitting of this command (clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone) can produce different results if used with stats\n"
+                                                                          "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered andesite move\n"
+                                                                          "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered diorite move\n"
+                                                                          "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite move\n"
+                                                                          "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered polished_andesite move\n"
+                                                                          "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered polished_diorite move\n"
+                                                                          "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered polished_granite move\n"
+                                                                          "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone move"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone 1", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone", "#~ The splitting of this command (clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone) can produce different results if used with stats\n"
+                                                                            "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered andesite\n"
+                                                                            "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered diorite\n"
+                                                                            "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite\n"
+                                                                            "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered polished_andesite\n"
+                                                                            "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered polished_diorite\n"
+                                                                            "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered polished_granite\n"
+                                                                            "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
@@ -1019,7 +1171,9 @@ class EntityData(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = (("entitydata @s {abc:def}", "data merge entity @s {abc:def}"), )
+        tests = (("entitydata @s {abc:def}", "data merge entity @s {abc:def}"),
+                 ("entitydata @e[c=1] {abc:def}", "data merge entity @e[limit=1,sort=nearest] {abc:def}"),
+                 ("entitydata @e {abc:def}", "execute as @e run data merge entity @s {abc:def}"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
@@ -1051,6 +1205,11 @@ class Execute(TestBase):
         tests = (("execute @e[name=Carl] 1 ~-1 1 toggledownfall", "#~ execute as @e[name=Carl] run toggledownfall ||| This command was removed"),
                  ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 toggledownfall", "#~ execute as @e[tag=Carl] as @e[name=Carl] run toggledownfall ||| This command was removed"),
                  ("execute Carl 1 ~-1 1 function abc:def", "execute as Carl at @s positioned 1 ~-1 1 run function abc:def"),
+                 ("execute @e ~ ~ ~ locate temple", "#~ The splitting of this command (locate Temple) can produce different results if used with stats\n"
+                                                    "execute at @e run locate Desert_Pyramid\n"
+                                                    "execute at @e run locate Igloo\n"
+                                                    "execute at @e run locate Jungle_Pyramid\n"
+                                                    "execute at @e run locate Swamp_Hut"),
 
 
                  # @s
@@ -1304,7 +1463,8 @@ class Execute(TestBase):
         tests = (("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 toggledownfall", "#~ execute at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run toggledownfall ||| This command was removed"),
                  ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 toggledownfall", "#~ execute at @e if block ~ ~ ~ diorite at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run toggledownfall ||| This command was removed"),
                  ("execute Carl 1 ~-1 1 detect ~ ~-1 1 stone 1 function abc:def", "execute as Carl at @s positioned 1 ~-1 1 if block ~ ~-1 1 granite run function abc:def"),
-
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone -1 seed", "execute at @s if block ~ ~ ~ andesite if block ~ ~ ~ diorite if block ~ ~ ~ granite if block ~ ~ ~ polished_andesite if block ~ ~ ~ polished_diorite if block ~ ~ ~ polished_granite if block ~ ~ ~ stone run seed"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone * seed", "execute at @s if block ~ ~ ~ andesite if block ~ ~ ~ diorite if block ~ ~ ~ granite if block ~ ~ ~ polished_andesite if block ~ ~ ~ polished_diorite if block ~ ~ ~ polished_granite if block ~ ~ ~ stone run seed"),
 
                  # @s
                  # not canAs and not canAt
@@ -1484,7 +1644,14 @@ class Fill(TestBase):
 
     def test_syntax2_convert(self):
         tests = (("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace", "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace"),
-                 ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone", "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace stone"),
+                 ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone", "#~ The splitting of this command (fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone) can produce different results if used with stats\n"
+                                                                  "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace andesite\n"
+                                                                  "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace diorite\n"
+                                                                  "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace granite\n"
+                                                                  "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace polished_andesite\n"
+                                                                  "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace polished_diorite\n"
+                                                                  "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace polished_granite\n"
+                                                                  "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace stone"),
                  ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone 2", "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace polished_granite"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
@@ -1800,8 +1967,11 @@ class Locate(TestBase):
                  ("locate Fortress", "locate Fortress"),
                  ("locate EndCity", "locate EndCity"),
                  ("locate Stronghold", "locate Stronghold"),
-                 ("locate Temple", "#~ The splitting of this command can produce different results if used with stats\n"
-                                   "locate Desert_Pyramid\nlocate Igloo\nlocate Jungle_Pyramid\nlocate Swamp_Hut"))
+                 ("locate Temple", "#~ The splitting of this command (locate Temple) can produce different results if used with stats\n"
+                                   "locate Desert_Pyramid\n"
+                                   "locate Igloo\n"
+                                   "locate Jungle_Pyramid\n"
+                                   "locate Swamp_Hut"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
@@ -3263,7 +3433,7 @@ class Teleport(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = (("teleport @s 1 ~-1 ~1 ~30 ~-60", "teleport 1 ~-1 ~1 ~30 ~-60"),
+        tests = (("teleport @s 1 ~-1 ~1 ~30 ~-60", "teleport @s 1 ~-1 ~1 ~30 ~-60"),
                  ("teleport @e 1 ~-1 ~1 ~30 ~-60", "teleport @e 1 ~-1 ~1 ~30 ~-60"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
@@ -3390,7 +3560,7 @@ class Tp(TestBase):
         self.assertStats()
 
     def test_syntax5_convert(self):
-        tests = (("tp @s 1 ~-1 ~1 ~30 ~-60", "teleport 1 ~-1 ~1 ~30 ~-60"),
+        tests = (("tp @s 1 ~-1 ~1 ~30 ~-60", "teleport @s 1 ~-1 ~1 ~30 ~-60"),
                  ("tp @e 1 2 3 30 -60", "execute as @e teleport 1 2 3 30 -60"),
                  ("tp @e 1 ~-1 ~1 ~30 ~-60", "execute as @e at @s teleport 1 ~-1 ~1 ~30 ~-60"))
         for before, after in tests:
@@ -3472,7 +3642,7 @@ class TestforBlock(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = (("testforblock 1 ~-1 1 stone", "execute if block 1 ~-1 1 stone"),
+        tests = (("testforblock 1 ~-1 1 stone", "execute if block 1 ~-1 1 andesite if block 1 ~-1 1 diorite if block 1 ~-1 1 granite if block 1 ~-1 1 polished_andesite if block 1 ~-1 1 polished_diorite if block 1 ~-1 1 polished_granite if block 1 ~-1 1 stone"),
                  ("testforblock 1 ~-1 1 stone 1", "execute if block 1 ~-1 1 granite"),
                  ("testforblock 1 ~-1 1 stone 1 {abc:def}", "execute if block 1 ~-1 1 granite{abc:def}"))
         for before, after in tests:
