@@ -391,16 +391,27 @@ def blockTest(data, blockLabel, stateLabel=None, nbtLabel=None):
 
 
 def item(data, nameLabel, damageLabel=None, nbtLabel=None):
-    s = noPrefix(data[nameLabel])
-    if nbtLabel in data:
-        if damageLabel in data and data[damageLabel] != '0':
-            data[nbtLabel]["Damage"] = data[damageLabel]
-        return u"{}{}".format(s, data[nbtLabel] if data[nbtLabel] != {} else "")
+    userItem = noPrefix(data[nameLabel])
+
+    if userItem not in Globals.itemConvert:
+        raise SyntaxError(u"{} is not a valid item".format(userItem))
+
+    if damageLabel not in data or int(data[damageLabel]) < 0:
+        userDamage = "0"
     else:
-        if damageLabel in data and data[damageLabel] != '0':
-            return u"{}{{Damage:{}}}".format(s, data[damageLabel])
-        else:
-            return s
+        userDamage = data[damageLabel]
+
+    convDict = dict(Globals.itemConvert[userItem])
+    userNBT = data[nbtLabel].copy() if nbtLabel in data else NBTCompound()
+    result = [userItem, userNBT]
+
+    if False:  # ToDo durability
+        userNBT["Damage"] = userDamage
+    else:
+        if userDamage in convDict:
+            result[0] = convDict[userDamage]
+
+    return u"{}{}".format(result[0], result[1] if result[1] else u"")
 
 
 def selectorRange(data, low, high):
@@ -708,7 +719,7 @@ class NBTList(object):
             self.data[i] = stripNBT(self.data[i])
 
 
-class Selector(object):
+class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
     def __init__(self, raw):
         self.raw = raw
         if not Globals.selectorRe.match(raw):
@@ -1304,8 +1315,10 @@ class give(Master):
 
         constraints(self.data, {"[0amount": (1, 64)})
 
+        self.item = item(self.data, "<.item", "[0data", "[{dataTag")
+
     def __unicode__(self):
-        s = u"give {} {}".format(self.data["<@player"], item(self.data, "<.item", "[0data", "[{dataTag"))
+        s = u"give {} {}".format(self.data["<@player"], self.item)
 
         if "[0amount" in self.data:
             s += u" {}".format(self.data["[0amount"])
@@ -1543,7 +1556,10 @@ class replaceitem(Master):
         for word in self.syntax[:self.syntax.index("<.item")]:
             s += u" {}".format(self.data[word])
 
-        s += u" {}{}".format(self.item, self.data["[0amount"] if "[0amount" in self.data else "")
+        s += u" {}".format(self.item)
+
+        if "[0amount" in self.data:
+            s += u" {}".format(self.data["[0amount"])
 
         return s
 

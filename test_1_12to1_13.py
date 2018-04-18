@@ -639,8 +639,6 @@ class Clear(TestBase):
     def test_syntax1_nok(self):
         perms = ("clear @c stone 1 42 {abc:def}",
                  "clear @s aaaaa 1 42 {abc:def}",
-                 "clear @s stone -2 42 {abc:def}",
-                 "clear @s stone 16 42 {abc:def}",
                  "clear @s stone a 42 {abc:def}",
                  "clear @s stone a -1 {abc:def}",
                  "clear @s stone 1 aa {abc:def}",
@@ -650,14 +648,13 @@ class Clear(TestBase):
             self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
-    @skip("Not implemented")
     def test_syntax1_convert(self):
         tests = (("clear", "clear"),
                  ("clear @s", "clear @s"),
-                 ("clear @s minecraft:stone", "clear @s stone"),
-                 ("clear @s minecraft:stone 1", "clear @s granite"),
-                 ("clear @s minecraft:stone 1 42", "clear @s granite 42"),
-                 ("clear @s minecraft:stone 1 42 {abc:def}", "clear @s granite{abc:def} 42"))
+                 ("clear @s stone", "clear @s stone"),
+                 ("clear @s stone 1", "clear @s granite"),
+                 ("clear @s stone 1 42", "clear @s granite 42"),
+                 ("clear @s stone 1 42 {abc:def}", "clear @s granite{abc:def} 42"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
@@ -1828,7 +1825,6 @@ class Give(TestBase):
             self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
-    @skip("Not implemented")
     def test_syntax1_convert(self):
         tests = (("give @s stone", "give @s stone"),
                  ("give @s stone 11", "give @s stone 11"),
@@ -2285,9 +2281,43 @@ class ReplaceItem(TestBase):
             self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
-    @skip("Not implemented")
     def test_syntax1_convert(self):
-        tests = (("", ""), )
+        tests = (("replaceitem block 1 ~-1 ~1 slot.armor.chest stone", "replaceitem block 1 ~-1 ~1 armor.chest stone"),
+                 ("replaceitem block 1 ~-1 ~1 slot.armor.chest stone 5", "replaceitem block 1 ~-1 ~1 armor.chest stone 5"),
+                 ("replaceitem block 1 ~-1 ~1 slot.armor.chest stone 5 1", "replaceitem block 1 ~-1 ~1 armor.chest granite 5"),
+                 ("replaceitem block 1 ~-1 ~1 slot.armor.chest stone 5 1 {abc:def}", "replaceitem block 1 ~-1 ~1 armor.chest granite{abc:def} 5"))
+        for before, after in tests:
+            self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
+        self.assertStats()
+
+    def test_syntax2_ok(self):
+        perms = generate_perms(["replaceitem", "entity", "@s", list(converter.Globals.slots), "stone", "5", "1", "{abc:def}"], optional=3)
+        for perm in perms:
+            self.decide(perm)
+        self.assertStats()
+
+    def test_syntax2_nok(self):
+        perms = ("replaceitem",
+                 "replaceitem aaaaaa @s slot.armor.chest stone 5 1 {abc:def}",
+                 "replaceitem entity",
+                 "replaceitem entity @c slot.armor.chest stone 5 1 {abc:def}",
+                 "replaceitem entity @s",
+                 "replaceitem entity @s aaaaaaaaaaaaaaaa stone 5 1 {abc:def}",
+                 "replaceitem entity @s slot.armor.chest",
+                 "replaceitem entity @s slot.armor.chest aaaaa 5 1 {abc:def}",
+                 "replaceitem entity @s slot.armor.chest stone a 1 {abc:def}",
+                 "replaceitem entity @s slot.armor.chest stone 5 a {abc:def}",
+                 "replaceitem entity @s slot.armor.chest stone 5 1 aaaaaaaaa",
+                 "replaceitem entity @s slot.armor.chest stone 5 1 {abc:def} ImNotSupposedToBeHere")
+        for perm in perms:
+            self.assertRaises(SyntaxError, converter.decide, perm)
+        self.assertStats()
+
+    def test_syntax2_convert(self):
+        tests = (("replaceitem entity @s slot.armor.chest stone", "replaceitem entity @s armor.chest stone"),
+                 ("replaceitem entity @s slot.armor.chest stone 5", "replaceitem entity @s armor.chest stone 5"),
+                 ("replaceitem entity @s slot.armor.chest stone 5 1", "replaceitem entity @s armor.chest granite 5"),
+                 ("replaceitem entity @s slot.armor.chest stone 5 1 {abc:def}", "replaceitem entity @s armor.chest granite{abc:def} 5"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
