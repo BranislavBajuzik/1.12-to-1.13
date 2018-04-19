@@ -345,7 +345,7 @@ def blockTest(data, blockLabel, stateLabel=None, nbtLabel=None):
         else:
             if all(x[0] in userStates and userStates[x[0]] == x[1] for x in convFromStates.items()) and \
                (not any(x in convFromNBTs for x in relevantNBTs) or
-                 all(x[0] in userNBT and stripNBT(userNBT[x[0]]) == x[1] for x in convFromNBTs.items())):
+                 all(x[0] in userNBT and type(userNBT[x[0]]) in (unicode, str) and stripNBT(userNBT[x[0]]) == x[1] for x in convFromNBTs.items())):
                 if convToBlock:
                     results[0].update([convToBlock])
                 if convToStates:
@@ -403,13 +403,74 @@ def item(data, nameLabel, damageLabel=None, nbtLabel=None):
 
     convDict = dict(Globals.itemConvert[userItem])
     userNBT = data[nbtLabel].copy() if nbtLabel in data else NBTCompound()
+    userNBT.stripNumbers()
     result = [userItem, userNBT]
 
-    if False:  # ToDo durability
-        userNBT["Damage"] = userDamage
+    if userItem in Globals.damagable:
+        if userDamage != "0":
+            userNBT["Damage"] = userDamage
     else:
         if userDamage in convDict:
             result[0] = convDict[userDamage]
+
+        if userItem == "spawn_egg":
+            if "EntityTag" in userNBT and "id" in userNBT["EntityTag"]:
+                if userNBT["EntityTag"]["id"][0] == "\"":
+                    entityFrom = noPrefix(userNBT["EntityTag"]["id"][1:-1])
+                else:
+                    entityFrom = userNBT["EntityTag"]["id"]
+
+                if entityFrom not in Globals.spawnEggs:  # ToDo handle this without Error
+                    raise SyntaxError(u"Invalid entity for a spawn egg: {}".format(entityFrom))
+
+                result[0] = Globals.spawnEggs[entityFrom]
+                del userNBT["EntityTag"]["id"]
+                if not userNBT["EntityTag"]:
+                    del userNBT["EntityTag"]
+            else:
+                raise SyntaxError(u"Empty spawn eggs were removed".format(userItem))
+
+    return u"{}{}".format(result[0], result[1] if result[1] else u"")
+
+
+def itemTest(data, nameLabel, damageLabel=None, nbtLabel=None):
+    userItem = noPrefix(data[nameLabel])
+
+    if userItem not in Globals.itemConvert:
+        raise SyntaxError(u"{} is not a valid item".format(userItem))
+
+    if damageLabel not in data or int(data[damageLabel]) < 0:
+        userDamage = "0"
+    else:
+        userDamage = data[damageLabel]
+
+    convDict = dict(Globals.itemConvert[userItem])
+    userNBT = data[nbtLabel].copy() if nbtLabel in data else NBTCompound()
+    result = [userItem, userNBT]
+
+    if userItem in Globals.damagable:
+        if userDamage != "0":
+            userNBT["Damage"] = userDamage
+    else:
+        if userDamage in convDict:
+            result[0] = convDict[userDamage]
+
+        if userItem == "spawn_egg":
+            if "EntityTag" in userNBT and "id" in userNBT["EntityTag"]:
+                if userNBT["EntityTag"]["id"][0] == "\"":
+                    entityFrom = noPrefix(userNBT["EntityTag"]["id"][1:-1])
+                else:
+                    entityFrom = userNBT["EntityTag"]["id"]
+
+                if entityFrom not in Globals.spawnEggs:  # ToDo handle this without Error
+                    raise SyntaxError(u"Invalid entity for a spawn egg: {}".format(entityFrom))
+
+                result[0] = Globals.spawnEggs[entityFrom]
+                del userNBT["EntityTag"]["id"]
+                if not userNBT["EntityTag"]:
+                    del userNBT["EntityTag"]
+            else:
+                raise SyntaxError(u"Empty spawn eggs were removed".format(userItem))
 
     return u"{}{}".format(result[0], result[1] if result[1] else u"")
 
@@ -956,7 +1017,7 @@ class clear(Master):
             self.canAt, self.canAs = self.data["<@player"].canAt, True
 
         if "[.item" in self.data:
-            self.item = item(self.data, "[.item", "[0data", "[{dataTag")
+            self.item = itemTest(self.data, "[.item", "[0data", "[{dataTag")
         constraints(self.data, {"[0maxCount": (0, "*")})
 
     def __unicode__(self):
@@ -1320,7 +1381,7 @@ class give(Master):
     def __unicode__(self):
         s = u"give {} {}".format(self.data["<@player"], self.item)
 
-        if "[0amount" in self.data:
+        if "[0amount" in self.data and self.data["[0amount"] != "1":
             s += u" {}".format(self.data["[0amount"])
         return s
 

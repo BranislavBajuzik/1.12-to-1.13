@@ -381,6 +381,7 @@ class Block(TestBase):
                  (["bed"], {"white_bed", "orange_bed", "magenta_bed", "light_blue_bed", "yellow_bed", "lime_bed", "pink_bed", "gray_bed", "light_gray_bed", "cyan_bed", "purple_bed", "blue_bed", "brown_bed", "green_bed", "red_bed", "black_bed"}),
                  (["bed", "0"], {"white_bed[facing=south,part=foot]", "orange_bed[facing=south,part=foot]", "magenta_bed[facing=south,part=foot]", "light_blue_bed[facing=south,part=foot]", "yellow_bed[facing=south,part=foot]", "lime_bed[facing=south,part=foot]", "pink_bed[facing=south,part=foot]", "gray_bed[facing=south,part=foot]", "light_gray_bed[facing=south,part=foot]", "cyan_bed[facing=south,part=foot]", "purple_bed[facing=south,part=foot]", "blue_bed[facing=south,part=foot]", "brown_bed[facing=south,part=foot]", "green_bed[facing=south,part=foot]", "red_bed[facing=south,part=foot]", "black_bed[facing=south,part=foot]"}),
                  (["bed", "0", "{color:10}"], {"purple_bed[facing=south,part=foot]"}),
+                 (["bed", "0", "{color:10s}"], {"purple_bed[facing=south,part=foot]"}),
                  (["bed", "0", "{a:b}"], {"white_bed[facing=south,part=foot]{a:b}", "orange_bed[facing=south,part=foot]{a:b}", "magenta_bed[facing=south,part=foot]{a:b}", "light_blue_bed[facing=south,part=foot]{a:b}", "yellow_bed[facing=south,part=foot]{a:b}", "lime_bed[facing=south,part=foot]{a:b}", "pink_bed[facing=south,part=foot]{a:b}", "gray_bed[facing=south,part=foot]{a:b}", "light_gray_bed[facing=south,part=foot]{a:b}", "cyan_bed[facing=south,part=foot]{a:b}", "purple_bed[facing=south,part=foot]{a:b}", "blue_bed[facing=south,part=foot]{a:b}", "brown_bed[facing=south,part=foot]{a:b}", "green_bed[facing=south,part=foot]{a:b}", "red_bed[facing=south,part=foot]{a:b}", "black_bed[facing=south,part=foot]{a:b}"}),
                  (["bed", "0", "{color:10,a:b}"], {"purple_bed[facing=south,part=foot]{a:b}"}),
                  (["bed", "default"], {"white_bed[facing=north,occupied=false,part=foot]", "orange_bed[facing=north,occupied=false,part=foot]", "magenta_bed[facing=north,occupied=false,part=foot]", "light_blue_bed[facing=north,occupied=false,part=foot]", "yellow_bed[facing=north,occupied=false,part=foot]", "lime_bed[facing=north,occupied=false,part=foot]", "pink_bed[facing=north,occupied=false,part=foot]", "gray_bed[facing=north,occupied=false,part=foot]", "light_gray_bed[facing=north,occupied=false,part=foot]", "cyan_bed[facing=north,occupied=false,part=foot]", "purple_bed[facing=north,occupied=false,part=foot]", "blue_bed[facing=north,occupied=false,part=foot]", "brown_bed[facing=north,occupied=false,part=foot]", "green_bed[facing=north,occupied=false,part=foot]", "red_bed[facing=north,occupied=false,part=foot]", "black_bed[facing=north,occupied=false,part=foot]"}),
@@ -461,6 +462,51 @@ class Block(TestBase):
                 perm[2] = converter.getCompound(perm[2][1:])[0]
             pairs = zip(("block", "state", "nbt"), perm)
             self.assertRaises(SyntaxError, converter.blockTest, dict(pairs), *zip(*pairs)[0])
+        self.assertStats()
+
+
+class Item(TestBase):
+    def test_item_set_convert(self):
+        tests = ((["stone"], "stone"),
+                 (["stone", "0"], "stone"),
+                 (["stone", "1"], "granite"),
+                 (["stone", "2"], "polished_granite"),
+                 (["stone", "3"], "diorite"),
+                 (["stone", "4"], "polished_diorite"),
+                 (["stone", "5"], "andesite"),
+                 (["stone", "6"], "polished_andesite"),
+                 (["stone", "7"], "stone"),
+                 (["stone", "-1"], "stone"),
+                 (["stone", "0", "{abc:def}"], "stone{abc:def}"),
+
+                 (["spawn_egg", "0", "{EntityTag:{id:bat}}"], "bat_spawn_egg"),
+                 (["spawn_egg", "1", "{EntityTag:{id:bat}}"], "bat_spawn_egg"),
+                 (["spawn_egg", "-1", "{EntityTag:{id:bat}}"], "bat_spawn_egg"),
+                 (["spawn_egg", "0", "{EntityTag:{id:bat,a:b}}"], "bat_spawn_egg{EntityTag:{a:b}}"),
+                 (["spawn_egg", "0", "{EntityTag:{id:bat},a:b}"], "bat_spawn_egg{a:b}"),
+
+                 (["diamond_sword", "0"], "diamond_sword"),
+                 (["diamond_sword", "-1"], "diamond_sword"),
+                 (["diamond_sword", "1"], "diamond_sword{Damage:1}"),
+                 (["diamond_sword", "1", "{a:b}"], "diamond_sword{a:b,Damage:1}"))
+        for before, after in tests:
+            if len(before) == 3:
+                before[2] = converter.getCompound(before[2][1:])[0]
+            pairs = zip(("block", "state", "nbt"), before)
+            self.assertEqual(after, converter.item(dict(pairs), *zip(*pairs)[0]), "source: {}".format(before))
+        self.assertStats()
+
+    def test_item_set_nok(self):
+        perms = (["aaa"],
+                 ["bed", "*"],
+                 ["spawn_egg", "0"],
+                 ["spawn_egg", "0", "{EntityTag:{a:b}}"],
+                 ["spawn_egg", "0", "{a:b}"])
+        for perm in perms:
+            if len(perm) == 3:
+                perm[2] = converter.getCompound(perm[2][1:])[0]
+            pairs = zip(("block", "state", "nbt"), perm)
+            self.assertRaises(SyntaxError, converter.block, dict(pairs), *zip(*pairs)[0])
         self.assertStats()
 
 
@@ -1827,7 +1873,9 @@ class Give(TestBase):
 
     def test_syntax1_convert(self):
         tests = (("give @s stone", "give @s stone"),
+                 ("give @s stone 1", "give @s stone"),
                  ("give @s stone 11", "give @s stone 11"),
+                 ("give @s stone 1 1", "give @s granite"),
                  ("give @s stone 11 1", "give @s granite 11"),
                  ("give @s stone 11 1 {abc:def}", "give @s granite{abc:def} 11"))
         for before, after in tests:
