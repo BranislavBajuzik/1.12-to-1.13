@@ -1,15 +1,16 @@
-from unittest import TestCase, skip
+from unittest import TestCase
 from itertools import permutations, combinations, product
 import random, inspect, atexit
 converter = __import__("1_12to1_13")
 
 _map = map
-_filter = filter
 if type(u"") is str:
+    import importlib, builtins
+    reload = importlib.reload
     xrange = range
     raw_input = input
+    _map = builtins.map
     map = lambda x, y: list(_map(x, y))
-    filter = lambda x, y: list(_filter(x, y))
     unicode = lambda x: x.__unicode__() if hasattr(x, '__unicode__') else str(x)
 
 
@@ -302,8 +303,8 @@ class Block(TestBase):
         for before, after in tests:
             if len(before) == 3:
                 before[2] = converter.getCompound(before[2][1:])[0]
-            pairs = zip(("block", "state", "nbt"), before)
-            self.assertEqual(after, converter.block(dict(pairs), *zip(*pairs)[0]), "source: {}".format(before))
+            pairs = tuple(zip(("block", "state", "nbt"), before))
+            self.assertEqual(after, converter.block(dict(pairs), *tuple(zip(*pairs))[0]), "source: {}".format(before))
         self.assertStats()
 
     def test_block_set_nok(self):
@@ -329,8 +330,8 @@ class Block(TestBase):
         for perm in perms:
             if len(perm) == 3:
                 perm[2] = converter.getCompound(perm[2][1:])[0]
-            pairs = zip(("block", "state", "nbt"), perm)
-            self.assertRaises(SyntaxError, converter.block, dict(pairs), *zip(*pairs)[0])
+            pairs = tuple(zip(("block", "state", "nbt"), perm))
+            self.assertRaises(SyntaxError, converter.block, dict(pairs), *tuple(zip(*pairs))[0])
         self.assertStats()
 
     def test_block_test_convert(self):
@@ -436,8 +437,8 @@ class Block(TestBase):
         for before, after in tests:
             if len(before) == 3:
                 before[2] = converter.getCompound(before[2][1:])[0]
-            pairs = zip(("block", "state", "nbt"), before)
-            self.assertEqual(after, set(converter.blockTest(dict(pairs), *zip(*pairs)[0])), "source: {}".format(before))
+            pairs = tuple(zip(("block", "state", "nbt"), before))
+            self.assertEqual(after, set(converter.blockTest(dict(pairs), *tuple(zip(*pairs))[0])), "source: {}".format(before))
         self.assertStats()
 
     def test_block_test_nok(self):
@@ -460,8 +461,8 @@ class Block(TestBase):
         for perm in perms:
             if len(perm) == 3:
                 perm[2] = converter.getCompound(perm[2][1:])[0]
-            pairs = zip(("block", "state", "nbt"), perm)
-            self.assertRaises(SyntaxError, converter.blockTest, dict(pairs), *zip(*pairs)[0])
+            pairs = tuple(zip(("block", "state", "nbt"), perm))
+            self.assertRaises(SyntaxError, converter.blockTest, dict(pairs), *tuple(zip(*pairs))[0])
         self.assertStats()
 
 
@@ -492,21 +493,58 @@ class Item(TestBase):
         for before, after in tests:
             if len(before) == 3:
                 before[2] = converter.getCompound(before[2][1:])[0]
-            pairs = zip(("block", "state", "nbt"), before)
-            self.assertEqual(after, converter.item(dict(pairs), *zip(*pairs)[0]), "source: {}".format(before))
+            pairs = tuple(zip(("block", "state", "nbt"), before))
+            self.assertEqual(after, converter.item(dict(pairs), *tuple(zip(*pairs))[0]), "source: {}".format(before))
         self.assertStats()
 
     def test_item_set_nok(self):
         perms = (["aaa"],
-                 ["bed", "*"],
                  ["spawn_egg", "0"],
                  ["spawn_egg", "0", "{EntityTag:{a:b}}"],
+                 ["spawn_egg", "0", "{EntityTag:{id:b}}"],
                  ["spawn_egg", "0", "{a:b}"])
         for perm in perms:
             if len(perm) == 3:
                 perm[2] = converter.getCompound(perm[2][1:])[0]
-            pairs = zip(("block", "state", "nbt"), perm)
-            self.assertRaises(SyntaxError, converter.block, dict(pairs), *zip(*pairs)[0])
+            pairs = tuple(zip(("block", "state", "nbt"), perm))
+            self.assertRaises(SyntaxError, converter.item, dict(pairs), *tuple(zip(*pairs))[0])
+        self.assertStats()
+
+    def test_item_test_convert(self):
+        tests = ((["stone"], {"stone", "granite", "polished_granite", "diorite", "polished_diorite", "andesite", "polished_andesite"}),
+                 (["stone", "0"], {"stone"}),
+                 (["stone", "1"], {"granite"}),
+                 (["stone", "6"], {"polished_andesite"}),
+                 (["stone", "-1"], {"stone", "granite", "polished_granite", "diorite", "polished_diorite", "andesite", "polished_andesite"}),
+                 (["stone", "0", "{abc:def}"], {"stone{abc:def}"}),
+
+                 (["spawn_egg", "0", "{EntityTag:{id:bat}}"], {"bat_spawn_egg"}),
+                 (["spawn_egg", "-1"], {"bat_spawn_egg", "blaze_spawn_egg", "cave_spider_spawn_egg", "chicken_spawn_egg", "cow_spawn_egg", "creeper_spawn_egg", "donkey_spawn_egg", "elder_guardian_spawn_egg", "enderman_spawn_egg", "endermite_spawn_egg", "evocation_illager_spawn_egg", "ghast_spawn_egg", "guardian_spawn_egg", "horse_spawn_egg", "husk_spawn_egg", "llama_spawn_egg", "magma_cube_spawn_egg", "mooshroom_spawn_egg", "mule_spawn_egg", "ocelot_spawn_egg", "parrot_spawn_egg", "pig_spawn_egg", "polar_bear_spawn_egg", "rabbit_spawn_egg", "sheep_spawn_egg", "shulker_spawn_egg", "silverfish_spawn_egg", "skeleton_spawn_egg", "skeleton_horse_spawn_egg", "slime_spawn_egg", "spider_spawn_egg", "squid_spawn_egg", "stray_spawn_egg", "vex_spawn_egg", "villager_spawn_egg", "vindication_illager_spawn_egg", "witch_spawn_egg", "wither_skeleton_spawn_egg", "wolf_spawn_egg", "zombie_spawn_egg", "zombie_horse_spawn_egg", "zombie_pigman_spawn_egg", "zombie_villager_spawn_egg"}),
+                 (["spawn_egg", "0"], {"bat_spawn_egg", "blaze_spawn_egg", "cave_spider_spawn_egg", "chicken_spawn_egg", "cow_spawn_egg", "creeper_spawn_egg", "donkey_spawn_egg", "elder_guardian_spawn_egg", "enderman_spawn_egg", "endermite_spawn_egg", "evocation_illager_spawn_egg", "ghast_spawn_egg", "guardian_spawn_egg", "horse_spawn_egg", "husk_spawn_egg", "llama_spawn_egg", "magma_cube_spawn_egg", "mooshroom_spawn_egg", "mule_spawn_egg", "ocelot_spawn_egg", "parrot_spawn_egg", "pig_spawn_egg", "polar_bear_spawn_egg", "rabbit_spawn_egg", "sheep_spawn_egg", "shulker_spawn_egg", "silverfish_spawn_egg", "skeleton_spawn_egg", "skeleton_horse_spawn_egg", "slime_spawn_egg", "spider_spawn_egg", "squid_spawn_egg", "stray_spawn_egg", "vex_spawn_egg", "villager_spawn_egg", "vindication_illager_spawn_egg", "witch_spawn_egg", "wither_skeleton_spawn_egg", "wolf_spawn_egg", "zombie_spawn_egg", "zombie_horse_spawn_egg", "zombie_pigman_spawn_egg", "zombie_villager_spawn_egg"}),
+                 (["spawn_egg", "-1", "{EntityTag:{id:bat}}"], {"bat_spawn_egg"}),
+                 (["spawn_egg", "0", "{EntityTag:{id:bat,a:b}}"], {"bat_spawn_egg{EntityTag:{a:b}}"}),
+                 (["spawn_egg", "0", "{EntityTag:{id:bat},a:b}"], {"bat_spawn_egg{a:b}"}),
+
+                 (["diamond_sword", "0"], {"diamond_sword"}),
+                 (["diamond_sword", "-1"], {"diamond_sword"}),
+                 (["diamond_sword", "1"], {"diamond_sword{Damage:1}"}),
+                 (["diamond_sword", "1", "{a:b}"], {"diamond_sword{a:b,Damage:1}"}))
+        for before, after in tests:
+            if len(before) == 3:
+                before[2] = converter.getCompound(before[2][1:])[0]
+            pairs = tuple(zip(("block", "state", "nbt"), before))
+            self.assertEqual(after, set(converter.itemTest(dict(pairs), *tuple(zip(*pairs))[0])), "source: {}".format(before))
+        self.assertStats()
+
+    def test_item_test_nok(self):
+        perms = (["aaa"],
+                 ["stone", "7"],
+                 ["spawn_egg", "0", "{EntityTag:{id:b}}"])
+        for perm in perms:
+            if len(perm) == 3:
+                perm[2] = converter.getCompound(perm[2][1:])[0]
+            pairs = tuple(zip(("block", "state", "nbt"), perm))
+            self.assertRaises(SyntaxError, converter.itemTest, dict(pairs), *tuple(zip(*pairs))[0])
         self.assertStats()
 
 
@@ -686,7 +724,8 @@ class Clear(TestBase):
         perms = ("clear @c stone 1 42 {abc:def}",
                  "clear @s aaaaa 1 42 {abc:def}",
                  "clear @s stone a 42 {abc:def}",
-                 "clear @s stone a -1 {abc:def}",
+                 "clear @s stone -2 42 {abc:def}",
+                 "clear @s stone 42 42 {abc:def}",
                  "clear @s stone 1 aa {abc:def}",
                  "clear @s stone 1 42 aaaaaaaaa",
                  "clear @s stone 1 42 {abc:def} ImNotSupposedToBeHere")
@@ -697,7 +736,14 @@ class Clear(TestBase):
     def test_syntax1_convert(self):
         tests = (("clear", "clear"),
                  ("clear @s", "clear @s"),
-                 ("clear @s stone", "clear @s stone"),
+                 ("clear @s stone", "#~ The splitting of this command (clear @s stone) can produce different results if used with stats\n"
+                                    "clear @s andesite\n"
+                                    "clear @s diorite\n"
+                                    "clear @s granite\n"
+                                    "clear @s polished_andesite\n"
+                                    "clear @s polished_diorite\n"
+                                    "clear @s polished_granite\n"
+                                    "clear @s stone"),
                  ("clear @s stone 1", "clear @s granite"),
                  ("clear @s stone 1 42", "clear @s granite 42"),
                  ("clear @s stone 1 42 {abc:def}", "clear @s granite{abc:def} 42"))
@@ -2109,22 +2155,63 @@ class Particle(TestBase):
     def test_syntax1_ok(self):
         perms = generate_perms(["particle", list(converter.Globals.particles.keys()), coord(), coord(), coord(), "1", "2", "3", "1", "10", "force", "@s"], optional=3)
         perms.update(generate_perms(["particle", ["blockdust", "blockcrack", "fallingdust", "reddust"], coord(), coord(), coord(), "1", "2", "3", "1", "10", "force", "@s", "1"], optional=4))
-        perms.update(generate_perms(["particle", "iconcrack", coord(), coord(), coord(), "1", "2", "3", "1", "10", "force", "@s", "2 3"], optional=4))
+        perms.update(generate_perms(["particle", "iconcrack", coord(), coord(), coord(), "1", "2", "3", "1", "10", "force", "@s", "2", "3"], optional=5))
         for perm in perms:
             self.decide(perm)
         self.assertStats()
 
-    @skip("Not implemented")
     def test_syntax1_nok(self):
-        perms = ("",
-                 "")
+        perms = ("particle",
+                 "particle aaaa 1 ~-1 ~1 1 2 3 0 10 force @s",
+                 "particle wake",
+                 "particle wake a ~-1 ~1 1 2 3 0 10 force @s",
+                 "particle wake 1",
+                 "particle wake 1 aaa ~1 1 2 3 0 10 force @s",
+                 "particle wake 1 ~-1 ~1",
+                 "particle wake 1 ~-1 aa 1 2 3 0 10 force @s",
+                 "particle wake 1 ~-1 ~1 1",
+                 "particle wake 1 ~-1 ~1 a 2 3 0 10 force @s",
+                 "particle wake 1 ~-1 ~1 1 2",
+                 "particle wake 1 ~-1 ~1 1 a 3 0 10 force @s",
+                 "particle wake 1 ~-1 ~1 1 2 3",
+                 "particle wake 1 ~-1 ~1 1 2 a 0 10 force @s",
+                 "particle wake 1 ~-1 ~1 1 2 3 a 10 force @s",
+                 "particle wake 1 ~-1 ~1 1 2 3 0 aa force @s",
+                 "particle wake 1 ~-1 ~1 1 2 3 0 10 force @c",
+
+                 "particle blockdust 1 ~-1 ~1 1 2 3 0 10 force @s a",
+                 "particle blockdust 1 ~-1 ~1 1 2 3 0 10 force @s 256",
+                 "particle blockdust 1 ~-1 ~1 1 2 3 0 10 force @s 1 1",
+
+                 "particle iconcrack 1 ~-1 ~1 1 2 3 0 10 force @s a 1",
+                 "particle iconcrack 1 ~-1 ~1 1 2 3 0 10 force @s 1 a",
+                 "particle iconcrack 1 ~-1 ~1 1 2 3 0 10 force @s 1 1 1",
+                 "particle iconcrack 1 ~-1 ~1 1 2 3 0 10 force @s 253 1",
+                 "particle iconcrack 1 ~-1 ~1 1 2 3 0 10 force @s 1 454")
         for perm in perms:
             self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
-    @skip("Not implemented")
     def test_syntax1_convert(self):
-        tests = (("", ""), )
+        tests = (("particle take 1 ~-1 ~1 1 2 3 0", "#~ particle take 1 ~-1 ~1 1 2 3 0 0 ||| The particle take was removed"),
+                 ("particle take 1 ~-1 ~1 0 0 0 0", "#~ particle take 1 ~-1 ~1 ||| The particle take was removed"),
+
+                 ("particle wake 1 ~-1 ~1 0 0 0 0", "particle fishing 1 ~-1 ~1"),
+                 ("particle wake 1 ~-1 ~1 1 2 3 0 10 normal @s", "particle fishing 1 ~-1 ~1 1 2 3 0 10"),
+                 ("particle wake 1 ~-1 ~1 1 2 3 0 10 force @s", "particle fishing 1 ~-1 ~1 1 2 3 0 10 force"),
+                 ("particle wake 1 ~-1 ~1 1 2 3 0 10 force @a", "particle fishing 1 ~-1 ~1 1 2 3 0 10 force @a"),
+                 ("particle wake 1 ~-1 ~1 1 2 3 0 10 normal @a", "particle fishing 1 ~-1 ~1 1 2 3 0 10 normal @a"),
+                 ("particle wake 1 ~-1 ~1 1 2 3 0 10 force @a 1", "particle fishing 1 ~-1 ~1 1 2 3 0 10 force @a"),
+
+                 ("particle blockdust 1 ~-1 ~1 1 2 3 0 10 normal @s 1", "particle block stone 1 ~-1 ~1 1 2 3 0 10"),
+                 ("particle blockdust 1 ~-1 ~1 0 0 0 0 0 normal @s 1", "particle block stone 1 ~-1 ~1"),
+                 ("particle blockdust 1 ~-1 ~1 1 2 3 0 10 normal @s 4097", "particle block granite 1 ~-1 ~1 1 2 3 0 10"),
+
+                 ("particle iconcrack 1 ~-1 ~1 1 2 3 0 10 normal @s 1", "particle item stone 1 ~-1 ~1 1 2 3 0 10"),
+                 ("particle iconcrack 1 ~-1 ~1 0 0 0 0 0 normal @s 1", "particle item stone 1 ~-1 ~1"),
+                 ("particle iconcrack 1 ~-1 ~1 1 2 3 0 10 normal @s 1 0", "particle item stone 1 ~-1 ~1 1 2 3 0 10"),
+                 ("particle iconcrack 1 ~-1 ~1 1 2 3 0 10 normal @s 1 1", "particle item granite 1 ~-1 ~1 1 2 3 0 10"),
+                 ("particle iconcrack 1 ~-1 ~1 1 2 3 0 10 normal @s 256", "particle item iron_shovel 1 ~-1 ~1 1 2 3 0 10"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
@@ -2499,9 +2586,66 @@ class Scoreboard(TestBase):
             self.assertRaises(SyntaxError, converter.decide, perm)
         self.assertStats()
 
-    @skip("Not implemented")
     def test_syntax2_convert(self):
-        tests = (("", ""), )
+        tests = (("scoreboard objectives add anObjective dummy", "scoreboard objectives add anObjective dummy"),
+                 ("scoreboard objectives add anObjective DuMmY", "scoreboard objectives add anObjective dummy"),
+                 ("scoreboard objectives add anObjective dummy displayName", "scoreboard objectives add anObjective dummy displayName"),
+
+                 ("scoreboard objectives add anObjective stat.mineBlock.minecraft.tnt", "scoreboard objectives add anObjective minecraft.mined:minecraft.tnt"),
+                 ("scoreboard objectives add anObjective stat.mineBlock.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the scoreboards that refer to this objective\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.mined:minecraft.andesite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.mined:minecraft.diorite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.mined:minecraft.granite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.mined:minecraft.polished_andesite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.mined:minecraft.polished_diorite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.mined:minecraft.polished_granite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.mined:minecraft.stone"),
+
+                 ("scoreboard objectives add anObjective stat.craftItem.minecraft.tnt", "scoreboard objectives add anObjective minecraft.crafted:minecraft.tnt"),
+                 ("scoreboard objectives add anObjective stat.craftItem.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the scoreboards that refer to this objective\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.crafted:minecraft.andesite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.crafted:minecraft.diorite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.crafted:minecraft.granite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.crafted:minecraft.polished_andesite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.crafted:minecraft.polished_diorite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.crafted:minecraft.polished_granite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.crafted:minecraft.stone"),
+
+                 ("scoreboard objectives add anObjective stat.useItem.minecraft.tnt", "scoreboard objectives add anObjective minecraft.used:minecraft.tnt"),
+                 ("scoreboard objectives add anObjective stat.useItem.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the scoreboards that refer to this objective\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.used:minecraft.andesite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.used:minecraft.diorite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.used:minecraft.granite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.used:minecraft.polished_andesite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.used:minecraft.polished_diorite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.used:minecraft.polished_granite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.used:minecraft.stone"),
+
+                 ("scoreboard objectives add anObjective stat.breakItem.minecraft.elytra", "scoreboard objectives add anObjective minecraft.broken:minecraft.elytra"),
+
+                 ("scoreboard objectives add anObjective stat.pickup.minecraft.tnt", "scoreboard objectives add anObjective minecraft.picked_up:minecraft.tnt"),
+                 ("scoreboard objectives add anObjective stat.pickup.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the scoreboards that refer to this objective\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.picked_up:minecraft.andesite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.picked_up:minecraft.diorite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.picked_up:minecraft.granite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.picked_up:minecraft.polished_andesite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.picked_up:minecraft.polished_diorite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.picked_up:minecraft.polished_granite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.picked_up:minecraft.stone"),
+
+                 ("scoreboard objectives add anObjective stat.drop.minecraft.tnt", "scoreboard objectives add anObjective minecraft.dropped:minecraft.tnt"),
+                 ("scoreboard objectives add anObjective stat.drop.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the scoreboards that refer to this objective\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.dropped:minecraft.andesite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.dropped:minecraft.diorite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.dropped:minecraft.granite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.dropped:minecraft.polished_andesite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.dropped:minecraft.polished_diorite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.dropped:minecraft.polished_granite\n"
+                                                                                          "scoreboard objectives add anObjective minecraft.dropped:minecraft.stone"),
+
+                 ("scoreboard objectives add anObjective stat.killEntity.ElderGuardian", "scoreboard objectives add anObjective minecraft.killed:minecraft.elder_guardian"),
+                 ("scoreboard objectives add anObjective stat.entityKilledBy.ElderGuardian", "scoreboard objectives add anObjective minecraft.killed_by:minecraft.elder_guardian"),
+                 ("scoreboard objectives add anObjective stat.animalsBred", "scoreboard objectives add anObjective minecraft.custom:minecraft.animals_bred"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()

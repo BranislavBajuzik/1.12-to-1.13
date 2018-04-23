@@ -38,7 +38,8 @@ if type(u"") is str:
     import builtins
     Globals.python = 3
     _list = builtins.list
-    _filter = filter
+    _map = builtins.map
+    _filter = builtins.filter
     xrange = range
     raw_input = input
     os.getcwdu = os.getcwd
@@ -420,7 +421,7 @@ def item(data, nameLabel, damageLabel=None, nbtLabel=None):
                 else:
                     entityFrom = userNBT["EntityTag"]["id"]
 
-                if entityFrom not in Globals.spawnEggs:  # ToDo handle this without Error
+                if entityFrom not in Globals.spawnEggs:
                     raise SyntaxError(u"Invalid entity for a spawn egg: {}".format(entityFrom))
 
                 result[0] = Globals.spawnEggs[entityFrom]
@@ -440,20 +441,29 @@ def itemTest(data, nameLabel, damageLabel=None, nbtLabel=None):
         raise SyntaxError(u"{} is not a valid item".format(userItem))
 
     if damageLabel not in data or int(data[damageLabel]) < 0:
-        userDamage = "0"
+        userDamage = "-1"
     else:
         userDamage = data[damageLabel]
 
     convDict = dict(Globals.itemConvert[userItem])
     userNBT = data[nbtLabel].copy() if nbtLabel in data else NBTCompound()
-    result = [userItem, userNBT]
+    results = [[userItem], userNBT]
 
     if userItem in Globals.damagable:
-        if userDamage != "0":
+        if userDamage not in ("-1", "0"):
             userNBT["Damage"] = userDamage
+
     else:
         if userDamage in convDict:
-            result[0] = convDict[userDamage]
+            results[0] = [convDict[userDamage]]
+        elif userDamage == "0":
+            results[0] = [userItem]
+        elif userDamage == "-1":
+            results[0] = _list(convDict.values())
+            if "0" not in convDict:
+                results[0].append(userItem)
+        else:
+            raise SyntaxError(u"{} is not a valid damage value for {}".format(userDamage, userItem))
 
         if userItem == "spawn_egg":
             if "EntityTag" in userNBT and "id" in userNBT["EntityTag"]:
@@ -462,17 +472,17 @@ def itemTest(data, nameLabel, damageLabel=None, nbtLabel=None):
                 else:
                     entityFrom = userNBT["EntityTag"]["id"]
 
-                if entityFrom not in Globals.spawnEggs:  # ToDo handle this without Error
+                if entityFrom not in Globals.spawnEggs:
                     raise SyntaxError(u"Invalid entity for a spawn egg: {}".format(entityFrom))
 
-                result[0] = Globals.spawnEggs[entityFrom]
+                results[0] = [Globals.spawnEggs[entityFrom]]
                 del userNBT["EntityTag"]["id"]
                 if not userNBT["EntityTag"]:
                     del userNBT["EntityTag"]
             else:
-                raise SyntaxError(u"Empty spawn eggs were removed".format(userItem))
+                results[0] = _list(Globals.spawnEggs.values())
 
-    return u"{}{}".format(result[0], result[1] if result[1] else u"")
+    return [u"{}{}".format(name, results[1] if results[1] else u"") for name in sorted(results[0])]
 
 
 def selectorRange(data, low, high):
@@ -506,7 +516,10 @@ def futurizeSelector(data):
             for key in data.keys():
                 res = Globals.scoreRe.match(key)
                 if res:
-                    scores.append((res.group(1), res.group(2), data[key]))
+                    if res.group(2):
+                        scores.append((res.group(1), res.group(2), data[key]))
+                    else:
+                        scores.append((res.group(1), "", data[key]))
 
             scores.sort()
             scores.append(' ')
@@ -517,7 +530,7 @@ def futurizeSelector(data):
                     key1, key2 = u"score_{}".format(scores[i][0]), u"score_{}_min".format(scores[i][0])
                     scoreRet += u"{}={},".format(scores[i][0], selectorRange({key1: scores[i+1][2], key2: scores[i][2]}, key1, key2))
                     i += 1
-                elif scores[i][1] is None:
+                elif not scores[i][1]:
                     scoreRet += u"{}=..{},".format(scores[i][0], scores[i][2])
                 else:
                     scoreRet += u"{}={}..,".format(scores[i][0], scores[i][2])
@@ -1018,16 +1031,20 @@ class clear(Master):
 
         if "[.item" in self.data:
             self.item = itemTest(self.data, "[.item", "[0data", "[{dataTag")
-        constraints(self.data, {"[0maxCount": (0, "*")})
+        constraints(self.data, {"[0data": (-1, "*"), "[0maxCount": (-1, "*")})
 
     def __unicode__(self):
         if "<@player" not in self.data:
             return u"clear"
         s = u"clear {}".format(self.data["<@player"])
         if "[.item" in self.data:
-            s += u" {}".format(self.item)
-            if "[0maxCount" in self.data:
-                s += u" {}".format(self.data["[0maxCount"])
+            prefix = u""
+            count = u" {}".format(self.data["[0maxCount"]) if "[0maxCount" in self.data else u""
+            if len(self.item) > 1:
+                Globals.flags["multiLine"] = True
+                prefix = u"#~ The splitting of this command ({}) can produce different results if used with stats\n".format(
+                    Master.__unicode__(self))
+            return prefix + u"\n".join(u"{} {}{}".format(s, variant, count) for variant in sorted(self.item))
         return s
 
 
@@ -1483,6 +1500,7 @@ class particle(Master):
         self.canAt, self.canAs = True, "[@player" in self.data
 
         constraints(self.data, {"<0count": (0., "*")})
+
         if float(self.data["<0speed"]) < 0:
             self.data["<0speed"] = 0
 
@@ -1491,6 +1509,7 @@ class particle(Master):
 
         if "[@player" in self.data and self.data["[@player"] == Selector("@s"):
             self.syntax = self.syntax[:-1]
+            self.canAs = False
 
         if "[.mode" in self.data:
             if self.data["[.mode"] != "force":
@@ -1507,9 +1526,9 @@ class particle(Master):
             self.syntax = self.syntax[:4]
 
         if "[*params" in self.data:
-            if self.data[self.syntax[0]] in ("blockdust", "blockcrack", "fallingdust"):
+            if self.data[particle.particles] in ("blockdust", "blockcrack", "fallingdust"):
                 if len(self.data["[*params"].split(" ")) != 1:
-                    raise SyntaxError(u"Only one param is allowed when using the {} particle".format(self.data[self.syntax[0]]))
+                    raise SyntaxError(u"Only one param is allowed when using the {} particle".format(self.data[particle.particles]))
                 try:
                     params = int(self.data["[*params"])
                 except ValueError:
@@ -1518,7 +1537,7 @@ class particle(Master):
                 modulo = params % 4096
                 if modulo not in Globals.value2block:
                     raise SyntaxError(u"There is no block with block value {} ({} % 4096)".format(modulo, self.data["[*params"]))
-                self.particleArg = block({"block": Globals.value2block[modulo], "state": str((params - modulo) / 4096)}, "block", "state")
+                self.particleArg = block({"block": Globals.value2block[modulo], "state": str((params - modulo) // 4096)}, "block", "state")
 
             elif self.data[particle.particles] == "iconcrack":
                 params = self.data["[*params"].split(" ")
@@ -1533,9 +1552,10 @@ class particle(Master):
                     if params[0] not in Globals.value2block:
                         raise SyntaxError(u"There is no block with block value {}".format(params[0]))
                     self.particleArg = block({"block": Globals.value2block[params[0]], "state": unicode(params[1]) if len(params) == 2 else "0"}, "block", "state")
-                else:  # todo items
+                else:
                     if params[0] not in Globals.value2item:
                         raise SyntaxError(u"There is no item with item value {}".format(params[0]))
+                    self.particleArg = item({"item": Globals.value2item[params[0]], "damage": unicode(params[1]) if len(params) == 2 else "0"}, "item", "damage")
 
     def __unicode__(self):
         particleName = self.data[particle.particles]
@@ -1554,7 +1574,7 @@ class particle(Master):
         elif self.data[particle.particles] == "reddust" and self.data["<0speed"] != "0" and self.data["[0count"] == "0":
             return u"particle dust {} {} {} 1 {}".format(self.data["<0xd"], self.data["<0yd"], self.data["<0zd"], u" ".join(unicode(self.data[word]) for word in self.syntax[1:]))
 
-        return Master.__unicode__(self)
+        return u"particle {} {}".format(Globals.particles[particleName], u" ".join(unicode(self.data[word]) for word in self.syntax[1:]))
 
     @staticmethod
     def number(value):
@@ -1704,13 +1724,36 @@ class scoreboard(Master):
         constraints(self.data, {"<0score": ("*", "*")})
 
         if "<.criteria" in self.data:
-            lowered = map(lambda x: x.lower(), Globals.criteria)
+            lowered = [x.lower() for x in Globals.criteria]
             if self.data["<.criteria"].lower() not in lowered:
                 raise SyntaxError(u"'{}' is not a valid objective type".format(self.data["<.criteria"]))
             self.data["<.criteria"] = Globals.criteria[lowered.index(self.data["<.criteria"].lower())]
 
             if "[*display" in self.data and len(self.data["[*display"]) > 32:
                 raise SyntaxError(u"'{}' is too long for an objective name (32 max)".format(self.data["[*display"]))
+
+            criteria = self.data["<.criteria"]
+            if "stat.mineBlock.minecraft." in criteria:
+                self.criteria = [u"minecraft.mined:minecraft.{}".format(case) for case in sorted(blockTest({"block": criteria[25:]}, "block"))]
+            elif "stat.craftItem.minecraft." in criteria:
+                self.criteria = [u"minecraft.crafted:minecraft.{}".format(case) for case in sorted(itemTest({"item": criteria[25:]}, "item"))]
+            elif "stat.useItem.minecraft." in criteria:
+                self.criteria = [u"minecraft.used:minecraft.{}".format(case) for case in sorted(itemTest({"item": criteria[23:]}, "item"))]
+            elif "stat.breakItem.minecraft." in criteria:
+                self.criteria = [u"minecraft.broken:minecraft.{}".format(case) for case in sorted(itemTest({"item": criteria[25:]}, "item"))]
+            elif "stat.pickup.minecraft." in criteria:
+                self.criteria = [u"minecraft.picked_up:minecraft.{}".format(case) for case in sorted(itemTest({"item": criteria[22:]}, "item"))]
+            elif "stat.drop.minecraft." in criteria:
+                self.criteria = [u"minecraft.dropped:minecraft.{}".format(case) for case in sorted(itemTest({"item": criteria[20:]}, "item"))]
+            elif "stat.killEntity." in criteria:
+                self.criteria = [u"minecraft.killed:minecraft.{}".format(Globals.entityCriteria[criteria[16:]])]
+            elif "stat.entityKilledBy." in criteria:
+                self.criteria = [u"minecraft.killed_by:minecraft.{}".format(Globals.entityCriteria[criteria[20:]])]
+            elif "stat." in criteria:
+                self.criteria = [u"minecraft.custom:minecraft.{}".format(Globals.miscCriteria[criteria[5:]])]
+            else:
+                self.criteria = [self.data["<.criteria"]]
+            self.data["<.criteria"] = u"{}"
 
         if "<.min" in self.data:
             rules = {}
@@ -1728,6 +1771,18 @@ class scoreboard(Master):
                 self.canAt, self.canAs = self.canAt or self.data[word].canAt, True
 
     def __unicode__(self):
+        Globals.flags["multiLine"] = False
+        if "<.criteria" not in self.data:
+            return self.toString()
+
+        if len(self.criteria) == 1:
+            return self.toString().format(self.criteria[0])
+
+        Globals.flags["multiLine"] = True
+        return u"#~ This command was split, because the criteria was split. You need to split all the scoreboards that refer to this objective\n" + \
+               u"\n".join(self.toString().format(criteria) for criteria in self.criteria)
+
+    def toString(self):
         if any(map(lambda x: x[2] == '*', self.syntax)):
             if self.syntax[1] in ("<(list", "<(test", "<(operation", "<(tag") or "[{dataTag" in self.data:
                 Globals.flags["commentedOut"] = True
@@ -2119,7 +2174,6 @@ if __name__ == "__main__":
                     lines[lineNumber] = u"{}{}\n".format(line[:start], unicode(decide(line)))
                     if Globals.flags["commentedOut"]:
                         commentedOutFiles.append((fileName, lineNumber))
-                    # if Gloals.weatherFlag:
         except SyntaxError as ex:
             print("File: {}\nLine {}:\n{}".format(fileName, lineNumber + 1, ex))
             return fileName
