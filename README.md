@@ -2,7 +2,7 @@
 
 Made by **TheAl_T**: [planetminecraft.com/member/theal_t](https://www.planetminecraft.com/member/theal_t)
 
-HUGE thanks to **Onnowhere** for block state database and conversion, for testing and feedback: [youtube.com/onnowhere2](https://www.youtube.com/onnowhere2)
+HUGE thanks to **Onnowhere** for block state database, for testing and feedback: [youtube.com/onnowhere2](https://www.youtube.com/onnowhere2)
 
 [Reddit](https://www.reddit.com/r/MinecraftCommands/comments/6prh1h/112_113_convert_script/)
 

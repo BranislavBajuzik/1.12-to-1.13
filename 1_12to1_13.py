@@ -1977,7 +1977,7 @@ class tp(Master):
         if self.canAt:
             s += u" at @s"
 
-        s += u" teleport {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"])
+        s += u" run teleport {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"])
 
         if "<~yaw" in self.data:
             s += u" {} {}".format(self.data["<~yaw"], self.data["<~pitch"])

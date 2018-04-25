@@ -3754,8 +3754,8 @@ class Tp(TestBase):
 
     def test_syntax4_convert(self):
         tests = (("tp @s 1 ~-1 ~1", "teleport 1 ~-1 ~1"),
-                 ("tp @e 1 2 3", "execute as @e teleport 1 2 3"),
-                 ("tp @e 1 ~-1 ~1", "execute as @e at @s teleport 1 ~-1 ~1"))
+                 ("tp @e 1 2 3", "execute as @e run teleport 1 2 3"),
+                 ("tp @e 1 ~-1 ~1", "execute as @e at @s run teleport 1 ~-1 ~1"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
@@ -3783,8 +3783,8 @@ class Tp(TestBase):
 
     def test_syntax5_convert(self):
         tests = (("tp @s 1 ~-1 ~1 ~30 ~-60", "teleport @s 1 ~-1 ~1 ~30 ~-60"),
-                 ("tp @e 1 2 3 30 -60", "execute as @e teleport 1 2 3 30 -60"),
-                 ("tp @e 1 ~-1 ~1 ~30 ~-60", "execute as @e at @s teleport 1 ~-1 ~1 ~30 ~-60"))
+                 ("tp @e 1 2 3 30 -60", "execute as @e run teleport 1 2 3 30 -60"),
+                 ("tp @e 1 ~-1 ~1 ~30 ~-60", "execute as @e at @s run teleport 1 ~-1 ~1 ~30 ~-60"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
