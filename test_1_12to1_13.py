@@ -3864,7 +3864,14 @@ class TestforBlock(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = (("testforblock 1 ~-1 1 stone", "execute if block 1 ~-1 1 andesite if block 1 ~-1 1 diorite if block 1 ~-1 1 granite if block 1 ~-1 1 polished_andesite if block 1 ~-1 1 polished_diorite if block 1 ~-1 1 polished_granite if block 1 ~-1 1 stone"),
+        tests = (("testforblock 1 ~-1 1 stone", "#~ The splitting of this command (testforblock 1 ~-1 1 stone) can produce different results if used with stats\n"
+                                                "execute if block 1 ~-1 1 andesite\n"
+                                                "execute if block 1 ~-1 1 diorite\n"
+                                                "execute if block 1 ~-1 1 granite\n"
+                                                "execute if block 1 ~-1 1 polished_andesite\n"
+                                                "execute if block 1 ~-1 1 polished_diorite\n"
+                                                "execute if block 1 ~-1 1 polished_granite\n"
+                                                "execute if block 1 ~-1 1 stone"),
                  ("testforblock 1 ~-1 1 stone 1", "execute if block 1 ~-1 1 granite"),
                  ("testforblock 1 ~-1 1 stone 1 {abc:def}", "execute if block 1 ~-1 1 granite{abc:def}"))
         for before, after in tests:

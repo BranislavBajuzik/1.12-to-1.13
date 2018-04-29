@@ -1218,18 +1218,21 @@ class execute(Master):
         Globals.flags["multiLine"] = False
         command = unicode(self.data["<*command"])
         if not Globals.flags["multiLine"]:
+            if "<(detect" in self.data:
+                return u"\n".join(self.toString(command, variant) for variant in sorted(self.block))
             return self.toString(command)
+        if "<(detect" in self.data:
+            return u"\n".join(u"\n".join(self.toString(line, variant) if line[0] != "#" else line for line in command.split("\n")) for variant in sorted(self.block))
         return u"\n".join(self.toString(line) if line[0] != "#" else line for line in command.split("\n"))
 
-    def toString(self, command):
+    def toString(self, command, variant=None):
         position = u""
         if not '~' == self.data["<~x"] == self.data["<~y"] == self.data["<~z"] and self.canAt:
             position = u" positioned {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"])
 
         detect = u""
-        if "<(detect" in self.data:
-            coords = u" {} {} {} ".format(self.data["<~x2"], self.data["<~y2"], self.data["<~z2"])
-            detect += u" if block{}{}".format(coords, u" if block{}".format(coords).join(sorted(self.block)))
+        if "<(detect" in self.data:  # ToDo this is wrong
+            detect = u" if block {} {} {} {}".format(self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], variant)
 
         if not self.data["<@entity"].playerName and self.data["<@entity"].target == "s":
             selectorArgs = len(self.data["<@entity"].data)
@@ -2021,8 +2024,11 @@ class testforblock(Master):
         self.block = blockTest(self.data, "<.block", "[.dataValue", "[{dataTag")
 
     def __unicode__(self):
-        coords = u" {} {} {} ".format(self.data["<~x"], self.data["<~y"], self.data["<~z"])
-        return u"execute if block{}{}".format(coords, u" if block{}".format(coords).join(sorted(self.block)))
+        prefix = u""
+        if len(self.block) > 1:
+            Globals.flags["multiLine"] = True
+            prefix = u"#~ The splitting of this command ({}) can produce different results if used with stats\n".format(Master.__unicode__(self))
+        return prefix + u"\n".join(u"execute if block {} {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"], variant) for variant in sorted(self.block))
 
 
 class testforblocks(Master):
@@ -2033,7 +2039,7 @@ class testforblocks(Master):
         self.canAt = canAt(self.data, "<~x1", "<~y1", "<~z1", "<~x2", "<~y2", "<~z2", "<~x", "<~y", "<~z")
 
     def __unicode__(self):
-        return u"execute if blocks {} {} {} {} {} {} {} {} {} {}".format(self.data["<~x1"], self.data["<~y1"], self.data["<~z1"], self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], self.data["<~x"], self.data["<~y"], self.data["<~z"], self.data["[(all|masked"] if "[(all|masked" in self.data else "all")
+        return u"execute if blocks {} {} {} {} {} {} {} {} {} {}".format(self.data["<~x1"], self.data["<~y1"], self.data["<~z1"], self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], self.data["<~x"], self.data["<~y"], self.data["<~z"], self.data["[(all|masked"] if "[(all|masked" in self.data else u"all")
 
 
 class time(Master):
