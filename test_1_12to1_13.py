@@ -148,7 +148,7 @@ class Selector(TestBase):
                     (("dx=1", "dx=1"), ),
                     (("dy=1", "dy=1"), ),
                     (("dz=1", "dz=1"), ),
-                    (("type=Cow", "type=cow"), ),
+                    (("type=Cow", "type=cow"), ("type=!cow", "type=!cow")),
                     (("lm=1", "level=1.."), ("l=1", "level=..1"), ("lm=0,l=1", "level=0..1"), ("lm=1,l=1", "level=1")),
                     (("m=1", "gamemode=creative"), ("m=!c", "gamemode=!creative")),
                     (("team=red", "team=red"), ("team=!red", "team=!red"), ("team=", "team="), ("team=!", "team=!")),
@@ -791,11 +791,11 @@ class Clone(TestBase):
                  ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked"),
                  ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked force", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked force"),
                  ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked move", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked move"),
-                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked normal", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked normal"),
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked normal", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 masked"),
                  ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace"),
                  ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace force", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace force"),
                  ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace move", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace move"),
-                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace normal", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace normal"))
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace normal", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 replace"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
@@ -1552,8 +1552,20 @@ class Execute(TestBase):
         tests = (("execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 toggledownfall", "#~ execute at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run toggledownfall ||| This command was removed"),
                  ("execute @e ~ ~ ~ detect ~ ~ ~ stone 3 execute @e[name=Carl] 1 ~-1 1 detect 1 ~-1 1 stone 1 toggledownfall", "#~ execute at @e if block ~ ~ ~ diorite at @e[name=Carl] positioned 1 ~-1 1 if block 1 ~-1 1 granite run toggledownfall ||| This command was removed"),
                  ("execute Carl 1 ~-1 1 detect ~ ~-1 1 stone 1 function abc:def", "execute as Carl at @s positioned 1 ~-1 1 if block ~ ~-1 1 granite run function abc:def"),
-                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone -1 seed", "execute at @s if block ~ ~ ~ andesite if block ~ ~ ~ diorite if block ~ ~ ~ granite if block ~ ~ ~ polished_andesite if block ~ ~ ~ polished_diorite if block ~ ~ ~ polished_granite if block ~ ~ ~ stone run seed"),
-                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone * seed", "execute at @s if block ~ ~ ~ andesite if block ~ ~ ~ diorite if block ~ ~ ~ granite if block ~ ~ ~ polished_andesite if block ~ ~ ~ polished_diorite if block ~ ~ ~ polished_granite if block ~ ~ ~ stone run seed"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone -1 seed", "execute at @s if block ~ ~ ~ andesite run seed\n"
+                                                                 "execute at @s if block ~ ~ ~ diorite run seed\n"
+                                                                 "execute at @s if block ~ ~ ~ granite run seed\n"
+                                                                 "execute at @s if block ~ ~ ~ polished_andesite run seed\n"
+                                                                 "execute at @s if block ~ ~ ~ polished_diorite run seed\n"
+                                                                 "execute at @s if block ~ ~ ~ polished_granite run seed\n"
+                                                                 "execute at @s if block ~ ~ ~ stone run seed"),
+                 ("execute @s ~ ~ ~ detect ~ ~ ~ stone * seed", "execute at @s if block ~ ~ ~ andesite run seed\n"
+                                                                 "execute at @s if block ~ ~ ~ diorite run seed\n"
+                                                                 "execute at @s if block ~ ~ ~ granite run seed\n"
+                                                                 "execute at @s if block ~ ~ ~ polished_andesite run seed\n"
+                                                                 "execute at @s if block ~ ~ ~ polished_diorite run seed\n"
+                                                                 "execute at @s if block ~ ~ ~ polished_granite run seed\n"
+                                                                 "execute at @s if block ~ ~ ~ stone run seed"),
 
                  # @s
                  # not canAs and not canAt
@@ -3832,7 +3844,9 @@ class Testfor(TestBase):
 
     def test_syntax1_convert(self):
         tests = (("testfor @s", "execute if entity @s"),
+                 ("testfor @a", "execute if entity @a[limit=1]"),
                  ("testfor @s {abc:def}", "execute if entity @s[nbt={abc:def}]"),
+                 ("testfor @e {abc:def}", "execute if entity @e[limit=1,nbt={abc:def}]"),
                  ("testfor Carl", "execute if entity Carl"),
                  ("testfor Carl {abc:def}", "execute if entity @p[name=Carl,nbt={abc:def}]"))
         for before, after in tests:

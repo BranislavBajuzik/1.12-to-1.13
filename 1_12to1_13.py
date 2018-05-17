@@ -32,6 +32,7 @@ except ImportError:
 from time import time as get_time
 
 import json, sys, codecs, os, shutil
+# ToDo argparse
 
 _map = map
 if type(u"") is str:
@@ -880,7 +881,7 @@ class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
                     if self.target != 'r':
                         self.data["sort"] = "furthest"
                 else:
-                    if self.target in ('a', 'e'):
+                    if self.target != 'r':
                         self.data["sort"] = "nearest"
 
             if "type" in self.data:
@@ -1070,7 +1071,8 @@ class clone(Master):
             return prefix + u"\n".join(u"{} filtered {}{}".format(s, variant, replace) for variant in sorted(self.block))
         else:
             for key in self.syntax[9:]:
-                s += u" {}".format(self.data[key])
+                if self.data[key] != "normal":
+                    s += u" {}".format(self.data[key])
         return s
 
 
@@ -1095,7 +1097,7 @@ class defaultgamemode(Master):
             mode = "creative"
         elif self.data[s] in ('2', 'a'):
             mode = "adventure"
-        elif self.data[s] == '3' or self.data[s] == 'sp':
+        elif self.data[s] in ('3', 'sp'):
             mode = "spectator"
         else:
             mode = self.data[s]
@@ -1231,7 +1233,7 @@ class execute(Master):
             position = u" positioned {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"])
 
         detect = u""
-        if "<(detect" in self.data:  # ToDo this is wrong
+        if "<(detect" in self.data:
             detect = u" if block {} {} {} {}".format(self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], variant)
 
         if not self.data["<@entity"].playerName and self.data["<@entity"].target == "s":
@@ -1384,6 +1386,7 @@ class gamerule(Master):
         if self.custom:
             Globals.flags["commentedOut"] = True
             return u"#~ {} ||| Custom gamerules are no longer supported".format(Master.__unicode__(self))
+        # ToDo gameLoop
         return Master.__unicode__(self)
 
 
@@ -2004,14 +2007,19 @@ class testfor(Master):
         self.canAt, self.canAs = self.data["<@player"].canAt, True
 
     def __unicode__(self):
-        if "[{dataTag" in self.data:
-            if self.data["<@player"].playerName:
+        if self.data["<@player"].playerName:
+            if "[{dataTag" in self.data:
                 selectorCopy = Selector(u"@p[name={}]".format(self.data["<@player"]))
             else:
-                selectorCopy = self.data["<@player"].copy()
+                selectorCopy = self.data["<@player"]
+        else:
+            selectorCopy = self.data["<@player"].copy()
+            if "c" not in self.data["<@player"].data and self.data["<@player"].target not in ('s', 'p'):
+                selectorCopy.data['limit'] = "1"
+
+        if "[{dataTag" in self.data:
             selectorCopy.data["nbt"] = unicode(self.data["[{dataTag"])
-            return u"execute if entity {}".format(selectorCopy)
-        return u"execute if entity {}".format(self.data["<@player"])
+        return u"execute if entity {}".format(selectorCopy)
 
 
 class testforblock(Master):
@@ -2233,7 +2241,7 @@ if __name__ == "__main__":
                                 else:
                                     tmpFiles.append(u"{}.TheAl_T".format(os.path.join(root, fileName)))
 
-                elif choice.strip() == '3':  # todo
+                elif choice.strip() == '3':
                     relative = u""
                     found = False
                     currDir = None
