@@ -1147,6 +1147,15 @@ class effect(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = self.data["<@player"].canAt, True
 
+        if self.syntax[-1] == "[(true|false" and self.data["[(true|false"] == 'false':
+            self.syntax = self.syntax[:-1]
+
+        if self.syntax[-1] == "[0amplifier" and self.data["[0amplifier"] == '0':
+            self.syntax = self.syntax[:-1]
+
+        if self.syntax[-1] == "[0seconds" and self.data["[0seconds"] == '30':
+            self.syntax = self.syntax[:-1]
+
         constraints(self.data, {"[0seconds": (0, 1000000), "[0amplifier": (0, 255)})
 
     def __unicode__(self):
@@ -1360,12 +1369,12 @@ class gamemode(Master):
             mode = "creative"
         elif self.data[s] in ('2', 'a'):
             mode = "adventure"
-        elif self.data[s] == '3' or self.data[s] == 'sp':
+        elif self.data[s] in ('3', 'sp'):
             mode = "spectator"
         else:
             mode = self.data[s]
 
-        return u"gamemode {}{}".format(mode, u" {}".format(self.data["[@player"]) if len(self.syntax) == 2 else u"")
+        return u"gamemode {}{}".format(mode, u" {}".format(self.data["[@player"]) if "[@player" in self.data else u"")
 
 
 class gamerule(Master):
@@ -1510,10 +1519,10 @@ class particle(Master):
         if float(self.data["<0speed"]) < 0:
             self.data["<0speed"] = 0
 
-        if "[*params" in self.data:
+        if self.syntax[-1] == "[*params":
             self.syntax = self.syntax[:-1]
 
-        if "[@player" in self.data and self.data["[@player"] == Selector("@s"):
+        if self.syntax[-1] == "[@player" and self.data["[@player"] == Selector("@s"):
             self.syntax = self.syntax[:-1]
             self.canAs = False
 

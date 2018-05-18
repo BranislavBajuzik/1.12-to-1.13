@@ -1014,7 +1014,9 @@ class Effect(TestBase):
                  ("effect @s speed 11", "effect give @s speed 11"),
                  ("effect @s speed 11 22", "effect give @s speed 11 22"),
                  ("effect @s speed 11 22 true", "effect give @s speed 11 22 true"),
-                 ("effect @s speed 11 22 false", "effect give @s speed 11 22 false"))
+                 ("effect @s speed 30 0 false", "effect give @s speed"),
+                 ("effect @s speed 11 0 false", "effect give @s speed 11"),
+                 ("effect @s speed 11 22 false", "effect give @s speed 11 22"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
