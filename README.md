@@ -13,9 +13,6 @@ Use python 2.7 _**or**_ 3.6
 Main file:
 - When running the file, pass names of files you wish to convert as arguments or pass none for menu
 
-MCEdit filter:
-- Copy `1_12to1_13.py`, `1_12to1_13aMCEditPlugin.py` and `data.py` into your filters directory
-
 # Syntax explanation:
 
 First character:

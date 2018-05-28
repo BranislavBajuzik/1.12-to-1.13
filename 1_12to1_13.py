@@ -31,8 +31,7 @@ except ImportError:
     raise ImportError("Unable to import data library (data.py). Please make sure this file is in the same directory as this one (1_12to1_13.py)")
 from time import time as get_time
 
-import json, sys, codecs, os, shutil
-# ToDo argparse
+import json, codecs, os, shutil
 
 _map = map
 if type(u"") is str:
@@ -40,12 +39,10 @@ if type(u"") is str:
     Globals.python = 3
     _list = builtins.list
     _map = builtins.map
-    _filter = builtins.filter
     xrange = range
     raw_input = input
     os.getcwdu = os.getcwd
     map = lambda x, y: _list(_map(x, y))
-    filter = lambda x, y: _list(_filter(x, y))
     unicode = lambda x: x.__unicode__() if hasattr(x, '__unicode__') else str(x)
 else:
     import __builtin__
@@ -59,6 +56,20 @@ def escape(s):
 
 def unEscape(s):
     return s.replace("\\\\", "\\").replace("\\\"", "\"")
+
+
+def unEscapeJSON(s):
+    result = u""
+    escaped = False
+    for ch in s:
+        if ch == "\\":
+            escaped = True
+            continue
+        if escaped and ch in ("\\", "n"):
+            result += "\\"
+        escaped = False
+        result += ch
+    return result
 
 
 def noPrefix(s, prefix="minecraft:"):
@@ -152,7 +163,7 @@ def getList(s):
 
 def signText(s):
     try:
-        s = json.JSONDecoder().decode(unEscape(s[1:-1].strip()))
+        s = json.JSONDecoder().decode(unEscape(unEscapeJSON(s[1:-1].strip())))
         walk(s)
         return u"\"{}\"".format(escape(json.JSONEncoder(separators=(',', ':')).encode(s)))
     except ValueError:
@@ -358,7 +369,7 @@ def blockTest(data, blockLabel, stateLabel=None, nbtLabel=None):
 
     if userBlock in ("double_stone_slab", "double_stone_slab2"):
         results[0] = _list(results[0])
-        for i in range(len(results[0])):
+        for i in xrange(len(results[0])):
             results[0][i] = results[0][i].replace("!", "[")
     elif userBlock == "skull" and "SkullType" in relevantNBTs:
             if len(results[0]) > 1:
@@ -659,7 +670,7 @@ def lex(caller, syntaxes, tokens):
                 elif word[1] == ':':
                     workTokens = workTokens[:i] + [u"".join(workTokens[i:])]
                     try:
-                        workTokens[i] = json.JSONDecoder().decode(workTokens[i])
+                        workTokens[i] = json.JSONDecoder().decode(unEscapeJSON(workTokens[i]))
                         walk(workTokens[i])
                         break
                     except ValueError as ex:
@@ -706,7 +717,7 @@ def tokenize(raw):
 
 def decide(raw):
     Globals.commandCounter += 1
-    tokens = filter(lambda x: x != '', tokenize(raw.strip()))
+    tokens = [x for x in tokenize(raw.strip()) if x != '']
     if not tokens:
         raise SyntaxError(u"An empty string was provided")
 
@@ -883,6 +894,8 @@ class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
                 else:
                     if self.target != 'r':
                         self.data["sort"] = "nearest"
+            elif Globals.flags["strictSelector"] and self.target in ("a", "e"):
+                self.data["sort"] = "nearest"
 
             if "type" in self.data:
                 if self.data["type"][0] == "!":
@@ -1581,12 +1594,12 @@ class particle(Master):
         if particleName in ("blockdust", "blockcrack", "fallingdust", "iconcrack") and "[*params" in self.data:
             return u"particle {} {} {}".format(Globals.particles[particleName], self.particleArg, u" ".join(unicode(self.data[word]) for word in self.syntax[1:]))
 
-        elif self.data[particle.particles] in ("mobSpell", "mobSpellAmbient") and self.data["<0speed"] != "0" and self.data["[0count"] == "0":
+        if self.data[particle.particles] in ("mobSpell", "mobSpellAmbient") and self.data["<0speed"] != "0" and self.data["[0count"] == "0":
             s = u"particle {} {} {} {} ".format(Globals.particles[particleName], self.data["<~x"], self.data["<~y"], self.data["<~z"])
             s += u" ".join(_map(self.number, _map(lambda x: float(self.data[x]) * float(self.data["<0speed"]), ("<0xd", "<0yd", "<0zd"))))
             return u"{} {}".format(s, u" ".join(unicode(self.data[word]) for word in self.syntax[7:]))
 
-        elif self.data[particle.particles] == "reddust" and self.data["<0speed"] != "0" and self.data["[0count"] == "0":
+        if self.data[particle.particles] == "reddust" and self.data["<0speed"] != "0" and self.data["[0count"] == "0":
             return u"particle dust {} {} {} 1 {}".format(self.data["<0xd"], self.data["<0yd"], self.data["<0zd"], u" ".join(unicode(self.data[word]) for word in self.syntax[1:]))
 
         return u"particle {} {}".format(Globals.particles[particleName], u" ".join(unicode(self.data[word]) for word in self.syntax[1:]))
@@ -1700,7 +1713,7 @@ class scoreboard(Master):
     colorsKey = "<(reset|{}".format("|".join(Globals.colors))
 
     def __init__(self, tokens):
-        Master.__init__(self)
+        Master.__init__(self)  # ToDo https://bugs.mojang.com/browse/MC-129892
         syntaxes = (("<(objectives", "<(list"),
                     ("<(objectives", "<(add", "<.objective", "<.criteria", "[*display"),
                     ("<(objectives", "<(remove", "<.objective"),
@@ -1794,7 +1807,7 @@ class scoreboard(Master):
             return self.toString().format(self.criteria[0])
 
         Globals.flags["multiLine"] = True
-        return u"#~ This command was split, because the criteria was split. You need to split all the scoreboards that refer to this objective\n" + \
+        return u"#~ This command was split, because the criteria was split. You need to split all the commands that refer to this objective\n" + \
                u"\n".join(self.toString().format(criteria) for criteria in self.criteria)
 
     def toString(self):
@@ -1810,6 +1823,10 @@ class scoreboard(Master):
                 low = u"-2147483648"
 
             return u"execute if score {} {} matches {}..{}".format(self.data["<@entity"], self.data["<.objective"], low, high)
+
+        if "<(list" in self.data and "[@entity" in self.data and not self.data["[@entity"].isSingle():
+            Globals.flags["commentedOut"] = True
+            return u"#~ The list option in \'{}\' no longer allows for selectors that can target multiple entities.".format(Master.__unicode__(self))
 
         end = len(self.syntax)
         if "[{dataTag" in self.data:
@@ -1992,7 +2009,12 @@ class tp(Master):
         if self.canAt:
             s += u" at @s"
 
-        s += u" run teleport {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"])
+        s += u" run teleport"
+
+        if "<~yaw" in self.data:
+            s += u" @s"
+
+        s += u" {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"])
 
         if "<~yaw" in self.data:
             s += u" {} {}".format(self.data["<~yaw"], self.data["<~pitch"])
@@ -2174,12 +2196,12 @@ commandsMap = {command: eval(command.replace("-", "_")) for command in Globals.c
 
 
 if __name__ == "__main__":
-    startTime = get_time()
+    import argparse
+
     failedFiles = []
     commentedOutFiles = []
     multiLineFiles = []
     tmpFiles = []
-    manual = False
     Globals.fileCounter = 0
 
     def convertFile(fileName):
@@ -2212,139 +2234,157 @@ if __name__ == "__main__":
         with codecs.open(u"{}.TheAl_T".format(fileName), 'w', "utf-8") as f:
             f.writelines(lines)
 
+    def findWorld():
+        relative = u""
+        path = os.getcwdu().split(os.sep)
+        while len(path) >= 2:
+            relative += u"..{}".format(os.sep)
+            currDir = path.pop()
+            target = os.path.join(relative, currDir)
+            if "level.dat" in os.listdir(target):
+                return os.path.abspath(target)
+        return None
+
+    def convertTree(target):
+        for root, _, files in os.walk(target):
+            for fileName in files:
+                if fileName.endswith(".mcfunction"):
+                    ret = convertFile(os.path.join(root, fileName))
+                    if ret:
+                        failedFiles.append(ret)
+                    else:
+                        tmpFiles.append(u"{}.TheAl_T".format(os.path.join(root, fileName)))
+
+    args = argparse.ArgumentParser(description="Convert 1.12 Minecraft commands to 1.13")
+    args.add_argument("--strict_selectors", action="store_true", help="Always sort selectors")
+    args.add_argument("--menu", choices=("1", "2", "3", "4"), help="Used to access the menu from the CLI")
+    args.add_argument("--files", nargs="+", metavar="FILE", help="Used to convert only specific files. Overrides --menu")
+    args = args.parse_args()
+
+    Globals.flags["strictSelector"] = args.strict_selectors
+
     try:
-        if sys.argv[1:]:
-            for fileName in sys.argv[1:]:
+        if args.files:
+            startTime = get_time()
+            for fileName in args.files:
+                if not os.path.isfile(fileName):
+                    print(u"\'{}\' is not a file".format(fileName))
+                    failedFiles.append(fileName)
+                    continue
+
                 ret = convertFile(fileName)
                 if ret:
                     failedFiles.append(ret)
                 else:
                     tmpFiles.append(u"{}.TheAl_T".format(fileName))
         else:
-            choice = raw_input("No filenames on the command line, entering menu:\n"
-                               "1 - Convert all files in this folder only\n"
-                               "2 - Convert all files in this folder and all sub-folders\n"
-                               "3 - Move files to Data Pack\n"
-                               "4 - Remove .TheAl_T files\n"
-                               "else - Convert one command here\n"
-                               "\n"
-                               "> ")
-            if choice.strip() in ('1', '2', '3', '4'):
-                print('')
-                if choice.strip() == '1':
-                    for fileName in (f for f in os.listdir(u".") if not os.path.isdir(f)):
-                        if fileName.endswith(".mcfunction"):
-                            ret = convertFile(fileName)
-                            if ret:
-                                failedFiles.append(ret)
-                            else:
-                                tmpFiles.append(u"{}.TheAl_T".format(fileName))
+            world = findWorld()
 
-                elif choice.strip() == '2':
-                    for root, _, files in os.walk(u"."):
-                        for fileName in files:
-                            if fileName.endswith(".mcfunction"):
-                                ret = convertFile(os.path.join(root, fileName))
-                                if ret:
-                                    failedFiles.append(ret)
-                                else:
-                                    tmpFiles.append(u"{}.TheAl_T".format(os.path.join(root, fileName)))
-
-                elif choice.strip() == '3':
-                    relative = u""
-                    found = False
-                    currDir = None
-                    path = os.getcwdu().split(os.sep)
-                    levelsDat = []
-                    while len(path) >= 2:
-                        relative += u"..{}".format(os.sep)
-                        currDir = path.pop()
-                        currDirFiles = tuple(_ for _ in os.listdir(relative + currDir))
-                        if "level.dat" in currDirFiles:
-                            if path[-1] == "saves":
-                                    print("Found world: " + currDir)
-                                    os.chdir(u"{}{}".format(relative, currDir))
-                                    found = True
-                                    break
-                            else:
-                                levelsDat.append(u"{}{}".format(relative, currDir))
-
-                    if not found:
-                        print("Unable to find the world directory. Please provide a path to a folder containing level.dat: ")
-                        if levelsDat:
-                            levelsDat = u"Folders with level.dat:\n" + u"\n".join(levelsDat) + u"\n"
-                        else:
-                            levelsDat = u""
-                        userPath = raw_input(u"{}Current folder:\n{}\n> ".format(levelsDat, os.getcwdu()))
-                        if os.path.isdir(userPath):
-                            os.chdir(userPath)
-                            found = True
-                        else:
-                            print(u"\'{}\' is not a folder".format(userPath))
-
-                    if found:
-                        if raw_input(u"{} selected. Press y if you want to abort: ".format(os.getcwdu())).lower() == "y":
-                            raw_input("\nAborting\n\nPress Enter to exit...")
-                            exit()
-
-                        pack = u"datapacks{0}converted{0}".format(os.sep)
-                        if not os.path.isdir(pack):
-                            os.makedirs(pack)
-                        with open(u"{}pack.mcmeta".format(pack), 'w') as f:
-                            f.write("{\n\t\"pack\": {\n\t\t\"pack_format\": 1,\n\t\t\"description\": \"Made using TheAl_T\'s 1.12 to 1.13 converter\"\n\t}\n}\n")
-
-                        for what in (u"advancements", u"functions", u"loot_tables"):
-                            if os.path.isdir(u"data{}{}".format(os.sep, what)):
-                                print(u"Found {}".format(what))
-                                fromDir = u"data{0}{1}{0}".format(os.sep, what)
-                                for namespace in os.listdir(fromDir):
-                                    fromDirNamespace = u"{}{}{}".format(fromDir, namespace, os.sep)
-                                    if os.path.isdir(fromDirNamespace):
-                                        toDir = u"datapacks{0}converted{0}data{0}{1}{0}{2}{0}".format(os.sep, namespace, what)
-                                        if not os.path.isdir(toDir):
-                                            os.makedirs(toDir)
-                                        for f in os.listdir(fromDirNamespace):
-                                            shutil.move(u"{}{}{}".format(fromDirNamespace, os.sep, f), toDir)
-                                        os.removedirs(fromDirNamespace)
-
-                        if os.path.isdir(u"structures"):
-                            print(u"Found structures")
-                            toDir = u"datapacks{0}converted{0}data{0}minecraft{0}structures{0}".format(os.sep)
-                            if not os.path.isdir(toDir):
-                                os.makedirs(toDir)
-                            for f in os.listdir(u"structures"):
-                                shutil.move(u"structures{}{}".format(os.sep, f), toDir)
-                            os.rmdir(u"structures")
-
-                    raw_input("\nDone\n\nPress Enter to exit...")
-                    exit()
-
-                else:
-                    for root, _, files in os.walk(u"."):
-                        for fileName in files:
-                            if fileName.endswith(".TheAl_T"):
-                                os.remove(os.path.join(root, fileName))
-                    raw_input("\nDone\n\nPress Enter to exit...")
-                    exit()
+            if args.menu:
+                choice = args.menu
             else:
-                manual = True
-                print(u"\nOutput:\n{}\n".format(decide(raw_input("Input your command here:\n"))))
+                choice = raw_input(u"1 - Convert all files in this folder only\n"
+                                   u"2 - Convert all files in this folder and all sub-folders\n"
+                                   u"3 - Convert  world : {}\n"
+                                   u"4 - Remove .TheAl_T files\n"
+                                   u"else - One command to convert\n"
+                                   u"\n"
+                                   u"> ".format(os.path.basename(world) if world else u"Unable to find, you will be prompted"))
+
+            if choice.strip() not in ("1", "2", "3", "4"):
+                try:
+                    print(u"\nOutput:\n{}\n".format(decide(choice)))
+                except SyntaxError as e:
+                    print(u"\n{}\n".format(e))
+                raw_input("Press Enter to exit...")
+                exit()
+
+            print("")
+            startTime = get_time()
+            if choice.strip() == "1":
+                for fileName in (f for f in os.listdir(u".") if os.path.isfile(f)):
+                    if fileName.endswith(".mcfunction"):
+                        ret = convertFile(fileName)
+                        if ret:
+                            failedFiles.append(ret)
+                        else:
+                            tmpFiles.append(u"{}.TheAl_T".format(fileName))
+
+            elif choice.strip() == "2":
+                convertTree(u".")
+
+            elif choice.strip() == "3":
+                if not world:
+                    print("Unable to find the world directory. Please provide a path to a folder containing level.dat: ")
+                    world = raw_input(u"Current folder: {}\n> ".format(os.getcwdu()))
+                    if not os.path.isdir(world):
+                        print(u"\'{}\' is not a folder".format(world))
+                        exit(-1)
+                    if not args.menu and raw_input(u"{} selected. Press y if you want to abort: ".format(os.getcwdu())).lower() == "y":
+                        raw_input("\nAborting\n\nPress Enter to exit...")
+                        exit()
+                os.chdir(world)
+
+                startTime = get_time()
+
+                pack = u"datapacks{0}converted{0}".format(os.sep)
+                if not os.path.isdir(pack):
+                    os.makedirs(pack)
+                with open(u"{}pack.mcmeta".format(pack), 'w') as f:
+                    f.write("{\n\t\"pack\": {\n\t\t\"pack_format\": 1,\n\t\t\"description\": \"Made using TheAl_T\'s 1.12 to 1.13 converter\"\n\t}\n}\n")
+
+                convertTree(u"data{}functions".format(os.sep))
+
+                for i in xrange(len(tmpFiles)):
+                    tmp = tmpFiles[i].split(os.sep)
+                    tmpFiles[i] = os.path.join(*(["datapacks", "converted", "data"] + tmp[2:3] + ['functions'] + tmp[3:]))
+
+                if failedFiles:
+                    shutil.rmtree(u"datapacks")
+                else:
+                    for what in (u"advancements", u"functions", u"loot_tables"):
+                        if os.path.isdir(u"data{}{}".format(os.sep, what)):
+                            print(u"Found {}".format(what))
+                            fromDir = u"data{0}{1}{0}".format(os.sep, what)
+                            for namespace in os.listdir(fromDir):
+                                fromDirNamespace = u"{}{}{}".format(fromDir, namespace, os.sep)
+                                if os.path.isdir(fromDirNamespace):
+                                    toDir = u"datapacks{0}converted{0}data{0}{1}{0}{2}{0}".format(os.sep, namespace, what)
+                                    if not os.path.isdir(toDir):
+                                        os.makedirs(toDir)
+                                    for f in os.listdir(fromDirNamespace):
+                                        shutil.move(u"{}{}{}".format(fromDirNamespace, os.sep, f), toDir)
+                                    os.removedirs(fromDirNamespace)
+
+                    if os.path.isdir(u"structures"):
+                        print(u"Found structures")
+                        toDir = u"datapacks{0}converted{0}data{0}minecraft{0}structures{0}".format(os.sep)
+                        if not os.path.isdir(toDir):
+                            os.makedirs(toDir)
+                        for f in os.listdir(u"structures"):
+                            shutil.move(u"structures{}{}".format(os.sep, f), toDir)
+                        os.rmdir(u"structures")
+            else:
+                for root, _, files in os.walk(u"."):
+                    for fileName in files:
+                        if fileName.endswith(".TheAl_T"):
+                            os.remove(os.path.join(root, fileName))
+                raw_input("\nDone\n\nPress Enter to exit...")
+                exit()
     except SyntaxError as e:
         print(u"\n{}\n".format(e))
 
-    if not manual:
-        if failedFiles:
-            for tmp in tmpFiles:
-                os.remove(tmp)
-            raw_input(u"List of files that failed: \"{}\"\n\nConverting aborted.\n\nPress Enter to exit...".format(u"\" \"".join(failedFiles)))
-        else:
-            for tmp in tmpFiles:
-                os.remove(tmp[:-8])
-                os.rename(tmp, tmp[:-8])
-            if commentedOutFiles:
-                print(u"Some commands were commented out because they have to be converted manually or are no longer needed:\n{}\n".format(u"\n".join(map(lambda x: u"\tFile: {}, Line: {}".format(x[0], x[1]), commentedOutFiles))))
-            if commentedOutFiles:
-                print(u"Some commands were split. They require manual attention:\n{}\n".format(u"\n".join(map(lambda x: u"\tFile: {}, Line: {}".format(x[0], x[1]), multiLineFiles))))
-            raw_input("A total of {} commands, across {} files, was converted in {} seconds\n\nPress Enter to exit...".format(Globals.commandCounter, Globals.fileCounter, get_time() - startTime))
+    if failedFiles:
+        for tmp in tmpFiles:
+            os.remove(tmp)
+        raw_input(u"List of files that failed: \"{}\"\n\nConverting aborted.\n\nPress Enter to exit...".format(u"\" \"".join(failedFiles)))
     else:
-        raw_input("Press Enter to exit...")
+        for tmp in tmpFiles:
+            os.remove(tmp[:-8])
+            os.rename(tmp, tmp[:-8])
+        if commentedOutFiles:
+            print(u"Some commands were commented out because they have to be converted manually or are no longer needed:\n{}\n".format(u"\n".join(map(lambda x: u"\tFile: {}, Line: {}".format(x[0], x[1]), commentedOutFiles))))
+        if commentedOutFiles:
+            print(u"Some commands were split. They require manual attention:\n{}\n".format(u"\n".join(map(lambda x: u"\tFile: {}, Line: {}".format(x[0], x[1]), multiLineFiles))))
+        raw_input(u"A total of {0} command{2}, across {1} file{2}, was converted in {3:.2f} seconds\n\nPress Enter to exit...".format(Globals.commandCounter, Globals.fileCounter, u"s" if Globals.fileCounter > 1 else u"", get_time() - startTime))
+

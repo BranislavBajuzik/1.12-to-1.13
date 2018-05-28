@@ -24,7 +24,7 @@ def generate_perms(syntax, optional=0):
                 tmp.append(result[:len(result)-option])
         ret = tmp
 
-    return set(map(lambda x: " ".join(x), ret))
+    return set(" ".join(x) for x in ret)
 
 
 def generate_perms_r(syntax):
@@ -55,11 +55,13 @@ def total():
 class TestBase(TestCase):
     classAssertions = 0
     totalAssertions = 0
+    assertMessages = []
 
     @classmethod
     def tearDownClass(cls):
-        print("\n{} assertions in {}:\n".format(TestBase.classAssertions, cls.__name__))
+        print("\n{} assertions in {}:\n{}\n".format(TestBase.classAssertions, cls.__name__, "\n".join(TestBase.assertMessages)))
         TestBase.classAssertions = 0
+        TestBase.assertMessages = []
 
     def asserts(self):
         self.assertStat += 1
@@ -71,7 +73,7 @@ class TestBase(TestCase):
         reload(converter)
 
     def assertStats(self):
-        print("\t{} assertion{} made in {}.{}".format(self.assertStat, 's' if self.assertStat != 1 else '', self.__class__.__name__, inspect.stack()[1][0].f_code.co_name))
+        TestBase.assertMessages.append("\t{} assertion{} made in {}.{}".format(self.assertStat, 's' if self.assertStat != 1 else '', self.__class__.__name__, inspect.stack()[1][0].f_code.co_name))
 
     def decide(self, raw):
         ret = converter.decide(raw)
@@ -118,7 +120,7 @@ class Selector(TestBase):
         for sType in ("p", "e", "a", "r", "s"):
             for n in (1, 2, 3):
                 for argPairsPerm in permutations(argPairs, n):
-                    self.assertPass(converter.Selector("@{}[{}]".format(sType, ",".join(map(lambda x: "{}={}".format(x[0], x[1]), argPairsPerm)))))
+                    self.assertPass(converter.Selector("@{}[{}]".format(sType, ",".join("{}={}".format(x[0], x[1]) for x in argPairsPerm))))
         self.assertStats()
 
     def test_syntax_nok(self):
@@ -177,7 +179,7 @@ class Selector(TestBase):
                      ("@{}[rx=181,rxm=-179]", "@{}[x_rotation=-179]"),
                      ("@{}[ry=181]", "@{}[y_rotation=..-179]"), ("@{}[ry=-181]", "@{}[y_rotation=..179]"), ("@{}[rym=181]", "@{}[y_rotation=-179..]"), ("@{}[rym=-181]", "@{}[y_rotation=179..]"),
                      ("@{}[ry=181,rym=-179]", "@{}[y_rotation=-179]")] + c
-            tests = map(lambda test: (test[0].format(sType), test[1].format(sType)), tests)
+            tests = [(test[0].format(sType), test[1].format(sType)) for test in tests]
 
             for n in (1, 2, 3):
                 for argPairsComb in combinations(argPairs, n):
@@ -2606,7 +2608,7 @@ class Scoreboard(TestBase):
                  ("scoreboard objectives add anObjective dummy displayName", "scoreboard objectives add anObjective dummy displayName"),
 
                  ("scoreboard objectives add anObjective stat.mineBlock.minecraft.tnt", "scoreboard objectives add anObjective minecraft.mined:minecraft.tnt"),
-                 ("scoreboard objectives add anObjective stat.mineBlock.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the scoreboards that refer to this objective\n"
+                 ("scoreboard objectives add anObjective stat.mineBlock.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the commands that refer to this objective\n"
                                                                                           "scoreboard objectives add anObjective minecraft.mined:minecraft.andesite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.mined:minecraft.diorite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.mined:minecraft.granite\n"
@@ -2616,7 +2618,7 @@ class Scoreboard(TestBase):
                                                                                           "scoreboard objectives add anObjective minecraft.mined:minecraft.stone"),
 
                  ("scoreboard objectives add anObjective stat.craftItem.minecraft.tnt", "scoreboard objectives add anObjective minecraft.crafted:minecraft.tnt"),
-                 ("scoreboard objectives add anObjective stat.craftItem.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the scoreboards that refer to this objective\n"
+                 ("scoreboard objectives add anObjective stat.craftItem.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the commands that refer to this objective\n"
                                                                                           "scoreboard objectives add anObjective minecraft.crafted:minecraft.andesite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.crafted:minecraft.diorite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.crafted:minecraft.granite\n"
@@ -2626,7 +2628,7 @@ class Scoreboard(TestBase):
                                                                                           "scoreboard objectives add anObjective minecraft.crafted:minecraft.stone"),
 
                  ("scoreboard objectives add anObjective stat.useItem.minecraft.tnt", "scoreboard objectives add anObjective minecraft.used:minecraft.tnt"),
-                 ("scoreboard objectives add anObjective stat.useItem.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the scoreboards that refer to this objective\n"
+                 ("scoreboard objectives add anObjective stat.useItem.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the commands that refer to this objective\n"
                                                                                           "scoreboard objectives add anObjective minecraft.used:minecraft.andesite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.used:minecraft.diorite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.used:minecraft.granite\n"
@@ -2638,7 +2640,7 @@ class Scoreboard(TestBase):
                  ("scoreboard objectives add anObjective stat.breakItem.minecraft.elytra", "scoreboard objectives add anObjective minecraft.broken:minecraft.elytra"),
 
                  ("scoreboard objectives add anObjective stat.pickup.minecraft.tnt", "scoreboard objectives add anObjective minecraft.picked_up:minecraft.tnt"),
-                 ("scoreboard objectives add anObjective stat.pickup.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the scoreboards that refer to this objective\n"
+                 ("scoreboard objectives add anObjective stat.pickup.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the commands that refer to this objective\n"
                                                                                           "scoreboard objectives add anObjective minecraft.picked_up:minecraft.andesite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.picked_up:minecraft.diorite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.picked_up:minecraft.granite\n"
@@ -2648,7 +2650,7 @@ class Scoreboard(TestBase):
                                                                                           "scoreboard objectives add anObjective minecraft.picked_up:minecraft.stone"),
 
                  ("scoreboard objectives add anObjective stat.drop.minecraft.tnt", "scoreboard objectives add anObjective minecraft.dropped:minecraft.tnt"),
-                 ("scoreboard objectives add anObjective stat.drop.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the scoreboards that refer to this objective\n"
+                 ("scoreboard objectives add anObjective stat.drop.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the commands that refer to this objective\n"
                                                                                           "scoreboard objectives add anObjective minecraft.dropped:minecraft.andesite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.dropped:minecraft.diorite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.dropped:minecraft.granite\n"
@@ -2687,7 +2689,7 @@ class Scoreboard(TestBase):
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
 
-    sidebars = ["list", "sidebar", "belowName"] + map(lambda x: "sidebar.team.{}".format(x), converter.Globals.colors)
+    sidebars = ["list", "sidebar", "belowName"] + ["sidebar.team.{}".format(x) for x in converter.Globals.colors]
 
     def test_syntax4_ok(self):
         perms = generate_perms(["scoreboard", "objectives", "setdisplay", Scoreboard.sidebars, "anObjective"], optional=1)
@@ -3797,8 +3799,8 @@ class Tp(TestBase):
 
     def test_syntax5_convert(self):
         tests = (("tp @s 1 ~-1 ~1 ~30 ~-60", "teleport @s 1 ~-1 ~1 ~30 ~-60"),
-                 ("tp @e 1 2 3 30 -60", "execute as @e run teleport 1 2 3 30 -60"),
-                 ("tp @e 1 ~-1 ~1 ~30 ~-60", "execute as @e at @s run teleport 1 ~-1 ~1 ~30 ~-60"))
+                 ("tp @e 1 2 3 30 -60", "execute as @e run teleport @s 1 2 3 30 -60"),
+                 ("tp @e 1 ~-1 ~1 ~30 ~-60", "execute as @e at @s run teleport @s 1 ~-1 ~1 ~30 ~-60"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()

@@ -2,7 +2,7 @@ import re
 
 Globals = type("Dummy", (object, ), {})
 Globals.commandCounter = 0
-Globals.flags = {"commentedOut": False, "multiLine": False}
+Globals.flags = {"commentedOut": False, "multiLine": False, "strictSelector": False}
 Globals.posArgs = ("x", "y", "z", "dx", "dy", "dz", "r", "rm", "c")
 Globals.statTags = ("AffectedBlocks", "AffectedEntities", "AffectedItems", "QueryResult", "SuccessCount")
 Globals.colors = ("aqua", "black", "blue", "dark_aqua", "dark_blue", "dark_gray", "dark_green", "dark_purple", "dark_red", "gold", "gray", "green", "light_purple", "red", "white", "yellow")
