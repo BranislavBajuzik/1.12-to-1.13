@@ -2285,7 +2285,7 @@ if __name__ == "__main__":
             else:
                 choice = raw_input(u"1 - Convert all files in this folder only\n"
                                    u"2 - Convert all files in this folder and all sub-folders\n"
-                                   u"3 - Convert  world : {}\n"
+                                   u"3 - Convert world: {}\n"
                                    u"4 - Remove .TheAl_T files\n"
                                    u"else - One command to convert\n"
                                    u"\n"
@@ -2335,13 +2335,13 @@ if __name__ == "__main__":
 
                 convertTree(u"data{}functions".format(os.sep))
 
-                for i in xrange(len(tmpFiles)):
-                    tmp = tmpFiles[i].split(os.sep)
-                    tmpFiles[i] = os.path.join(*(["datapacks", "converted", "data"] + tmp[2:3] + ['functions'] + tmp[3:]))
-
                 if failedFiles:
                     shutil.rmtree(u"datapacks")
                 else:
+                    for i in xrange(len(tmpFiles)):
+                        tmp = tmpFiles[i].split(os.sep)
+                        tmpFiles[i] = os.path.join(*(["datapacks", "converted", "data"] + tmp[2:3] + ['functions'] + tmp[3:]))
+
                     for what in (u"advancements", u"functions", u"loot_tables"):
                         if os.path.isdir(u"data{}{}".format(os.sep, what)):
                             print(u"Found {}".format(what))
