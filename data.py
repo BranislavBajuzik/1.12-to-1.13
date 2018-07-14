@@ -11,6 +11,20 @@ Globals.selectorArgsNew = (("x", "x", "x"), ("y", "y", "y"), ("z", "z", "z"), ("
 Globals.commands = ["advancement", "ban", "ban-ip", "blockdata", "clear", "clone", "debug", "defaultgamemode", "deop", "difficulty", "effect", "enchant", "entitydata", "execute", "fill", "function", "gamemode", "gamerule", "give", "help", "?", "kick", "kill", "list", "locate", "me", "msg", "op", "pardon", "pardon-ip", "particle", "playsound", "publish", "recipe", "reload", "replaceitem", "save-all", "save-off", "save-on", "say", "scoreboard", "seed", "setblock", "setidletimeout", "setworldspawn", "spawnpoint", "spreadplayers", "stats", "stop", "stopsound", "summon", "teleport", "tell", "tellraw", "testfor", "testforblock", "testforblocks", "time", "title", "toggledownfall", "tp", "trigger", "w", "weather", "whitelist", "worldborder", "xp"]
 Globals.summons = ("item", "xp_orb", "area_effect_cloud", "leash_knot", "painting", "item_frame", "armor_stand", "evocation_fangs", "ender_crystal", "egg", "arrow", "snowball", "fireball", "small_fireball", "ender_pearl", "eye_of_ender_signal", "potion", "xp_bottle", "wither_skull", "fireworks_rocket", "spectral_arrow", "shulker_bullet", "dragon_fireball", "llama_spit", "tnt", "falling_block", "commandblock_minecart", "boat", "minecart", "chest_minecart", "furnace_minecart", "tnt_minecart", "hopper_minecart", "spawner_minecart", "elder_guardian", "wither_skeleton", "stray", "husk", "zombie_villager", "evocation_illager", "vex", "vindication_illager", "illusion_illager", "creeper", "skeleton", "spider", "giant", "zombie", "slime", "ghast", "zombie_pigman", "enderman", "cave_spider", "silverfish", "blaze", "magma_cube", "ender_dragon", "wither", "witch", "endermite", "guardian", "shulker", "skeleton_horse", "zombie_horse", "donkey", "mule", "bat", "pig", "sheep", "cow", "chicken", "squid", "wolf", "mooshroom", "snowman", "ocelot", "villager_golem", "horse", "rabbit", "polar_bear", "llama", "parrot", "villager", "lightning_bolt")
 Globals.slots = ("slot.armor.chest", "slot.armor.feet", "slot.armor.head", "slot.armor.legs", "slot.weapon.mainhand", "slot.weapon.offhand", "slot.enderchest.0", "slot.enderchest.1", "slot.enderchest.2", "slot.enderchest.3", "slot.enderchest.4", "slot.enderchest.5", "slot.enderchest.6", "slot.enderchest.7", "slot.enderchest.8", "slot.enderchest.9", "slot.enderchest.10", "slot.enderchest.11", "slot.enderchest.12", "slot.enderchest.13", "slot.enderchest.14", "slot.enderchest.15", "slot.enderchest.16", "slot.enderchest.17", "slot.enderchest.18", "slot.enderchest.19", "slot.enderchest.20", "slot.enderchest.21", "slot.enderchest.22", "slot.enderchest.23", "slot.enderchest.24", "slot.enderchest.25", "slot.enderchest.26", "slot.hotbar.0", "slot.hotbar.1", "slot.hotbar.2", "slot.hotbar.3", "slot.hotbar.4", "slot.hotbar.5", "slot.hotbar.6", "slot.hotbar.7", "slot.hotbar.8", "slot.inventory.0", "slot.inventory.1", "slot.inventory.2", "slot.inventory.3", "slot.inventory.4", "slot.inventory.5", "slot.inventory.6", "slot.inventory.7", "slot.inventory.8", "slot.inventory.9", "slot.inventory.10", "slot.inventory.11", "slot.inventory.12", "slot.inventory.13", "slot.inventory.14", "slot.inventory.15", "slot.inventory.16", "slot.inventory.17", "slot.inventory.18", "slot.inventory.19", "slot.inventory.20", "slot.inventory.21", "slot.inventory.22", "slot.inventory.23", "slot.inventory.24", "slot.inventory.25", "slot.inventory.26", "slot.horse.saddle", "slot.horse.chest", "slot.horse.armor", "slot.horse.0", "slot.horse.1", "slot.horse.2", "slot.horse.3", "slot.horse.4", "slot.horse.5", "slot.horse.6", "slot.horse.7", "slot.horse.8", "slot.horse.9", "slot.horse.10", "slot.horse.11", "slot.horse.12", "slot.horse.13", "slot.horse.14", "slot.villager.0", "slot.villager.1", "slot.villager.2", "slot.villager.3", "slot.villager.4", "slot.villager.5", "slot.villager.6", "slot.villager.7")
+Globals.summonMap = {
+    "evocation_illager": "evoker",
+    "evocation_fangs": "evoker_fangs",
+    "vindication_illager": "vindicator",
+    "illusion_illager": "illusioner",
+    "commandblock_minecart": "command_block_minecart",
+    "ender_crystal": "end_crystal",
+    "eye_of_ender_signal": "eye_of_ender",
+    "fireworks_rocket": "firework_rocket",
+    "snowman": "snow_golem",
+    "villager_golem": "iron_golem",
+    "xp_bottle": "experience_bottle",
+    "xp_orb": "experience_orb"
+}
 Globals.effects = {
     "1": "speed",
     "2": "slowness",
@@ -484,7 +498,8 @@ Globals.itemConvert = {
     "mossy_cobblestone": {},
     "obsidian": {},
     "torch": {},
-    "mob_spawner": {},
+    "mob_spawner": {
+        "0": "spawner"},
     "oak_stairs": {},
     "chest": {},
     "diamond_ore": {},
@@ -896,7 +911,7 @@ Globals.itemConvert = {
     "fish": {
         "0": "cod",
         "1": "salmon",
-        "2": "clownfish",
+        "2": "tropical_fish",
         "3": "pufferfish"},
     "cooked_fish": {
         "0": "cooked_cod",
@@ -1042,7 +1057,8 @@ Globals.itemConvert = {
     "acacia_door": {},
     "dark_oak_door": {},
     "chorus_fruit": {},
-    "chorus_fruit_popped": {},
+    "chorus_fruit_popped": {
+        "0": "popped_chorus_fruit"},
     "beetroot": {},
     "beetroot_seeds": {},
     "beetroot_soup": {},
@@ -1098,7 +1114,7 @@ Globals.spawnEggs = {
     "elder_guardian": "elder_guardian_spawn_egg",
     "enderman": "enderman_spawn_egg",
     "endermite": "endermite_spawn_egg",
-    "evoker": "evocation_illager_spawn_egg",
+    "evocation_illager": "evoker_spawn_egg",
     "ghast": "ghast_spawn_egg",
     "guardian": "guardian_spawn_egg",
     "horse": "horse_spawn_egg",
@@ -1123,7 +1139,7 @@ Globals.spawnEggs = {
     "stray": "stray_spawn_egg",
     "vex": "vex_spawn_egg",
     "villager": "villager_spawn_egg",
-    "vindication_illager": "vindication_illager_spawn_egg",
+    "vindication_illager": "vindicator_spawn_egg",
     "witch": "witch_spawn_egg",
     "wither_skeleton": "wither_skeleton_spawn_egg",
     "wolf": "wolf_spawn_egg",
@@ -4095,10 +4111,10 @@ Globals.blockStates = {
         "default{": "coal_ore["},
     "log": {
         "default{": "oak_log[",
-        "variant=oak,axis=none{": "oak_bark[",
-        "variant=spruce,axis=none{": "spruce_bark[",
-        "variant=birch,axis=none{": "birch_bark[",
-        "variant=jungle,axis=none{": "jungle_bark[",
+        "variant=oak,axis=none{": "oak_wood[",
+        "variant=spruce,axis=none{": "spruce_wood[",
+        "variant=birch,axis=none{": "birch_wood[",
+        "variant=jungle,axis=none{": "jungle_wood[",
         "variant=oak{": "oak_log[",
         "variant=spruce{": "spruce_log[",
         "variant=birch{": "birch_log[",
@@ -4106,7 +4122,7 @@ Globals.blockStates = {
         "axis=x{": "[axis=x",
         "axis=y{": "[axis=y",
         "axis=z{": "[axis=z",
-        "axis=none{": "oak_bark["},
+        "axis=none{": "oak_wood["},
     "leaves": {
         "default{": "oak_leaves[",
         "variant=oak{": "oak_leaves[",
@@ -4395,7 +4411,7 @@ Globals.blockStates = {
         "west=true{": "[west=true",
         "west=false{": "[west=false"},
     "mob_spawner": {
-        "default{": "mob_spawner["},
+        "default{": "spawner["},
     "oak_stairs": {
         "default{": "oak_stairs[",
         "facing=north{": "[facing=north",
@@ -4693,7 +4709,7 @@ Globals.blockStates = {
     "glowstone": {
         "default{": "glowstone["},
     "portal": {
-        "default{": "portal[",
+        "default{": "nether_portal[",
         "axis=x{": "[axis=x",
         "axis=z{": "[axis=z"},
     "lit_pumpkin": {
@@ -5456,14 +5472,14 @@ Globals.blockStates = {
         "decayable=false{": "[decayable=false"},
     "log2": {
         "default{": "acacia_log[",
-        "variant=acacia,axis=none{": "acacia_bark[",
-        "variant=dark_oak,axis=none{": "dark_oak_bark[",
+        "variant=acacia,axis=none{": "acacia_wood[",
+        "variant=dark_oak,axis=none{": "dark_oak_wood[",
         "variant=acacia{": "acacia_log[",
         "variant=dark_oak{": "dark_oak_log[",
         "axis=x{": "[axis=x",
         "axis=y{": "[axis=y",
         "axis=z{": "[axis=z",
-        "axis=none{": "acacia_bark["},
+        "axis=none{": "acacia_wood["},
     "acacia_stairs": {
         "default{": "acacia_stairs[",
         "facing=north{": "[facing=north",
@@ -6503,7 +6519,7 @@ Globals.entityCriteria = {
     "ElderGuardian": "elder_guardian",
     "Enderman": "enderman",
     "Endermite": "endermite",
-    "EvocationIllager": "evocation_illager",
+    "EvocationIllager": "evoker",
     "Ghast": "ghast",
     "Guardian": "guardian",
     "Horse": "horse",

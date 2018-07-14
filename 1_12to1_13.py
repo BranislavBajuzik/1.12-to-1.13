@@ -1963,6 +1963,17 @@ class summon(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt = "<~x" not in self.data or canAt(self.data, "<~x", "<~y", "<~z")
 
+    def __unicode__(self):
+        entity = self.data[summon.summons]
+        if entity in Globals.summonMap:
+            entity = Globals.summonMap[entity]
+
+        result = u"summon {}".format(entity)
+        for word in self.syntax[1:]:
+            result += u" {}".format(word)
+
+        return result
+
 
 class teleport(Master):  # ToDo https://bugs.mojang.com/browse/MC-124686
     def __init__(self, tokens):
@@ -2387,4 +2398,3 @@ if __name__ == "__main__":
         if commentedOutFiles:
             print(u"Some commands were split. They require manual attention:\n{}\n".format(u"\n".join(map(lambda x: u"\tFile: {}, Line: {}".format(x[0], x[1]), multiLineFiles))))
         raw_input(u"A total of {0} command{2}, across {1} file{2}, was converted in {3:.2f} seconds\n\nPress Enter to exit...".format(Globals.commandCounter, Globals.fileCounter, u"s" if Globals.fileCounter > 1 else u"", get_time() - startTime))
-
