@@ -1970,7 +1970,7 @@ class summon(Master):
 
         result = u"summon {}".format(entity)
         for word in self.syntax[1:]:
-            result += u" {}".format(word)
+            result += u" {}".format(self.data[word])
 
         return result
 
@@ -2294,13 +2294,14 @@ if __name__ == "__main__":
             if args.menu:
                 choice = args.menu
             else:
-                choice = raw_input(u"1 - Convert all files in this folder only\n"
+                choice = raw_input(u"Current folder: {}\n"
+                                   u"1 - Convert all files in this folder only\n"
                                    u"2 - Convert all files in this folder and all sub-folders\n"
                                    u"3 - Convert world: {}\n"
                                    u"4 - Remove .TheAl_T files\n"
                                    u"else - One command to convert\n"
                                    u"\n"
-                                   u"> ".format(os.path.basename(world) if world else u"Unable to find, you will be prompted"))
+                                   u"> ".format(os.getcwdu(), os.path.basename(world) if world else u"Unable to find, you will be prompted"))
 
             if choice.strip() not in ("1", "2", "3", "4"):
                 try:
@@ -2331,6 +2332,7 @@ if __name__ == "__main__":
                     if not os.path.isdir(world):
                         print(u"\'{}\' is not a folder".format(world))
                         exit(-1)
+                    os.chdir(world)
                     if not args.menu and raw_input(u"{} selected. Press y if you want to abort: ".format(os.getcwdu())).lower() == "y":
                         raw_input("\nAborting\n\nPress Enter to exit...")
                         exit()
