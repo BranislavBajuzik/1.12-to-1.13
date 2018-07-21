@@ -3,14 +3,10 @@ from itertools import permutations, combinations, product
 import random, inspect, atexit
 converter = __import__("1_12to1_13")
 
-_map = map
 if type(u"") is str:
-    import importlib, builtins
+    import importlib
     reload = importlib.reload
     xrange = range
-    raw_input = input
-    _map = builtins.map
-    map = lambda x, y: list(_map(x, y))
     unicode = lambda x: x.__unicode__() if hasattr(x, '__unicode__') else str(x)
 
 
@@ -140,13 +136,13 @@ class Selector(TestBase):
         for sType in ("p", "e", "a", "r", "s"):
             for n in (1, 2, 3):
                 for argPairsPerm in permutations(argPairs, n):
-                    self.assertRaises(SyntaxError, converter.Selector, "@{}[{}]".format(sType, ",".join(_map(lambda x: "{}={}".format(x[0], x[1]), argPairsPerm))))
+                    self.assertRaises(SyntaxError, converter.Selector, "@{}[{}]".format(sType, ",".join("{}={}".format(x[0], x[1]) for x in argPairsPerm)))
         self.assertStats()
 
     def test_syntax_convert(self):
-        argPairs = [(("x=1", "x=1.5"), ("x=-1", "x=-0.5")),
+        argPairs = [(("x=1", "x=1"), ("x=-1", "x=-1")),
                     (("y=1", "y=1"), ),
-                    (("z=1", "z=1.5"), ("z=-1", "z=-0.5")),
+                    (("z=1", "z=1"), ("z=-1", "z=-1")),
                     (("dx=1", "dx=1"), ),
                     (("dy=1", "dy=1"), ),
                     (("dz=1", "dz=1"), ),
@@ -521,8 +517,8 @@ class Item(TestBase):
                  (["stone", "0", "{abc:def}"], {"stone{abc:def}"}),
 
                  (["spawn_egg", "0", "{EntityTag:{id:bat}}"], {"bat_spawn_egg"}),
-                 (["spawn_egg", "-1"], {"bat_spawn_egg", "blaze_spawn_egg", "cave_spider_spawn_egg", "chicken_spawn_egg", "cow_spawn_egg", "creeper_spawn_egg", "donkey_spawn_egg", "elder_guardian_spawn_egg", "enderman_spawn_egg", "endermite_spawn_egg", "evocation_illager_spawn_egg", "ghast_spawn_egg", "guardian_spawn_egg", "horse_spawn_egg", "husk_spawn_egg", "llama_spawn_egg", "magma_cube_spawn_egg", "mooshroom_spawn_egg", "mule_spawn_egg", "ocelot_spawn_egg", "parrot_spawn_egg", "pig_spawn_egg", "polar_bear_spawn_egg", "rabbit_spawn_egg", "sheep_spawn_egg", "shulker_spawn_egg", "silverfish_spawn_egg", "skeleton_spawn_egg", "skeleton_horse_spawn_egg", "slime_spawn_egg", "spider_spawn_egg", "squid_spawn_egg", "stray_spawn_egg", "vex_spawn_egg", "villager_spawn_egg", "vindication_illager_spawn_egg", "witch_spawn_egg", "wither_skeleton_spawn_egg", "wolf_spawn_egg", "zombie_spawn_egg", "zombie_horse_spawn_egg", "zombie_pigman_spawn_egg", "zombie_villager_spawn_egg"}),
-                 (["spawn_egg", "0"], {"bat_spawn_egg", "blaze_spawn_egg", "cave_spider_spawn_egg", "chicken_spawn_egg", "cow_spawn_egg", "creeper_spawn_egg", "donkey_spawn_egg", "elder_guardian_spawn_egg", "enderman_spawn_egg", "endermite_spawn_egg", "evocation_illager_spawn_egg", "ghast_spawn_egg", "guardian_spawn_egg", "horse_spawn_egg", "husk_spawn_egg", "llama_spawn_egg", "magma_cube_spawn_egg", "mooshroom_spawn_egg", "mule_spawn_egg", "ocelot_spawn_egg", "parrot_spawn_egg", "pig_spawn_egg", "polar_bear_spawn_egg", "rabbit_spawn_egg", "sheep_spawn_egg", "shulker_spawn_egg", "silverfish_spawn_egg", "skeleton_spawn_egg", "skeleton_horse_spawn_egg", "slime_spawn_egg", "spider_spawn_egg", "squid_spawn_egg", "stray_spawn_egg", "vex_spawn_egg", "villager_spawn_egg", "vindication_illager_spawn_egg", "witch_spawn_egg", "wither_skeleton_spawn_egg", "wolf_spawn_egg", "zombie_spawn_egg", "zombie_horse_spawn_egg", "zombie_pigman_spawn_egg", "zombie_villager_spawn_egg"}),
+                 (["spawn_egg", "-1"], {"bat_spawn_egg", "blaze_spawn_egg", "cave_spider_spawn_egg", "chicken_spawn_egg", "cow_spawn_egg", "creeper_spawn_egg", "donkey_spawn_egg", "elder_guardian_spawn_egg", "enderman_spawn_egg", "endermite_spawn_egg", "evoker_spawn_egg", "ghast_spawn_egg", "guardian_spawn_egg", "horse_spawn_egg", "husk_spawn_egg", "llama_spawn_egg", "magma_cube_spawn_egg", "mooshroom_spawn_egg", "mule_spawn_egg", "ocelot_spawn_egg", "parrot_spawn_egg", "pig_spawn_egg", "polar_bear_spawn_egg", "rabbit_spawn_egg", "sheep_spawn_egg", "shulker_spawn_egg", "silverfish_spawn_egg", "skeleton_spawn_egg", "skeleton_horse_spawn_egg", "slime_spawn_egg", "spider_spawn_egg", "squid_spawn_egg", "stray_spawn_egg", "vex_spawn_egg", "villager_spawn_egg", "vindicator_spawn_egg", "witch_spawn_egg", "wither_skeleton_spawn_egg", "wolf_spawn_egg", "zombie_spawn_egg", "zombie_horse_spawn_egg", "zombie_pigman_spawn_egg", "zombie_villager_spawn_egg"}),
+                 (["spawn_egg", "0"], {"bat_spawn_egg", "blaze_spawn_egg", "cave_spider_spawn_egg", "chicken_spawn_egg", "cow_spawn_egg", "creeper_spawn_egg", "donkey_spawn_egg", "elder_guardian_spawn_egg", "enderman_spawn_egg", "endermite_spawn_egg", "evoker_spawn_egg", "ghast_spawn_egg", "guardian_spawn_egg", "horse_spawn_egg", "husk_spawn_egg", "llama_spawn_egg", "magma_cube_spawn_egg", "mooshroom_spawn_egg", "mule_spawn_egg", "ocelot_spawn_egg", "parrot_spawn_egg", "pig_spawn_egg", "polar_bear_spawn_egg", "rabbit_spawn_egg", "sheep_spawn_egg", "shulker_spawn_egg", "silverfish_spawn_egg", "skeleton_spawn_egg", "skeleton_horse_spawn_egg", "slime_spawn_egg", "spider_spawn_egg", "squid_spawn_egg", "stray_spawn_egg", "vex_spawn_egg", "villager_spawn_egg", "vindicator_spawn_egg", "witch_spawn_egg", "wither_skeleton_spawn_egg", "wolf_spawn_egg", "zombie_spawn_egg", "zombie_horse_spawn_egg", "zombie_pigman_spawn_egg", "zombie_villager_spawn_egg"}),
                  (["spawn_egg", "-1", "{EntityTag:{id:bat}}"], {"bat_spawn_egg"}),
                  (["spawn_egg", "0", "{EntityTag:{id:bat,a:b}}"], {"bat_spawn_egg{EntityTag:{a:b}}"}),
                  (["spawn_egg", "0", "{EntityTag:{id:bat},a:b}"], {"bat_spawn_egg{a:b}"}),
@@ -3720,7 +3716,7 @@ class Tp(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = (("tp 1 ~-1 ~1 ~30 ~-60", "teleport 1 ~-1 ~1 ~30 ~-60"), )
+        tests = (("tp 1 ~-1 ~1 ~30 ~-60", "teleport @s 1 ~-1 ~1 ~30 ~-60"), )
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()
@@ -3745,6 +3741,7 @@ class Tp(TestBase):
     def test_syntax3_convert(self):
         tests = (("tp @s", "teleport @s"),
                  ("tp @s @e[c=1]", "teleport @e[limit=1,sort=nearest]"),
+                 ("tp @e @s", "teleport @e @s"),
                  ("tp @e @e[c=1]", "teleport @e @e[limit=1,sort=nearest]"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
@@ -3770,7 +3767,7 @@ class Tp(TestBase):
 
     def test_syntax4_convert(self):
         tests = (("tp @s 1 ~-1 ~1", "teleport 1 ~-1 ~1"),
-                 ("tp @e 1 2 3", "execute as @e run teleport 1 2 3"),
+                 ("tp @e 1 2 3", "teleport @e 1 2 3"),
                  ("tp @e 1 ~-1 ~1", "execute as @e at @s run teleport 1 ~-1 ~1"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
@@ -3799,7 +3796,7 @@ class Tp(TestBase):
 
     def test_syntax5_convert(self):
         tests = (("tp @s 1 ~-1 ~1 ~30 ~-60", "teleport @s 1 ~-1 ~1 ~30 ~-60"),
-                 ("tp @e 1 2 3 30 -60", "execute as @e run teleport @s 1 2 3 30 -60"),
+                 ("tp @e 1 2 3 30 -60", "teleport @e 1 2 3 30 -60"),
                  ("tp @e 1 ~-1 ~1 ~30 ~-60", "execute as @e at @s run teleport @s 1 ~-1 ~1 ~30 ~-60"))
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))

@@ -855,11 +855,6 @@ class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
                 if key in self.data:
                     self.data[key] = unicode(((int(self.data[key])+180) % 360) - 180)
 
-            if 'x' in self.data:
-                self.data['x'] = int(self.data['x']) + 0.5
-            if 'z' in self.data:
-                self.data['z'] = int(self.data['z']) + 0.5
-
             if 'm' in self.data:
                 add = ''
                 if self.data['m'][0] == '!':
@@ -2005,14 +2000,16 @@ class tp(Master):
                     raise SyntaxError(u"Destination (\'{}\') can only target one entity.".format(self.data["[@destination"]))
                 self.canAt = self.canAt or self.data["[@destination"].canAt
 
-            if len(self.syntax) > 1 and "<~yaw" not in self.data and self.data["<@target"] == Selector("@s"):
-                self.syntax = self.syntax[1:]
-                del self.data["<@target"]
-        elif "<~yaw" in self.data:
-            self.data["<@target"] = Selector("@s")
-
     def __unicode__(self):
-        if "<@target" not in self.data or self.data["<@target"] == Selector("@s") or "<~x" not in self.data:
+        if "<@target" not in self.data:
+            if "<~yaw" in self.data:
+                return Master.__unicode__(self).replace("tp", "teleport @s", 1)
+            return Master.__unicode__(self).replace("tp", "teleport", 1)
+
+        if len(self.syntax) > 1 and "<~yaw" not in self.data and self.data["<@target"] == Selector("@s"):
+            return Master.__unicode__(self).replace("tp @s", "teleport", 1)
+
+        if self.data["<@target"] == Selector("@s") or "<~x" not in self.data or not self.canAt:
             return Master.__unicode__(self).replace("tp", "teleport", 1)
 
         s = u"execute as {}".format(self.data["<@target"])
