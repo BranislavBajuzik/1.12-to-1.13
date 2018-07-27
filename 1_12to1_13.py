@@ -606,7 +606,7 @@ def walk(node):
 
 
 def synt(caller, syntax):
-    return u"{} {}".format(caller, " ".join(syntax))
+    return u"{} {}".format(caller, u" ".join(syntax))
 
 
 def syntCount(syntax):
