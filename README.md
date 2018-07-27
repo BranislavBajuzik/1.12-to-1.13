@@ -15,6 +15,7 @@ Use Python 2.7 _**or**_ 3.6
 The intended use is to drop both the `1_12to1_13.py` and `data.py` into the folder of the world you want to convert and run it there.
 
 Available arguments:
+
 Pass no arguments to display a menu
 - `h`, `help`: Show help message and exit
 - `strict_selectors`: Always sort selectors
