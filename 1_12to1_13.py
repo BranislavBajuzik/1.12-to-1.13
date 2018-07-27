@@ -598,7 +598,11 @@ def walk(node):
             else:
                 if key == "action" and child == "run_command" and "value" in node:
                     if node["value"][0] == '/':
-                        node["value"] = u"/{}".format(decide(node["value"]))
+                        command = decide(node["value"])
+                        if not Globals.flags["multiLine"]:
+                            node["value"] = u"/{}".format(command)
+                        else:
+                            Globals.messages.append(u"Unable to convert this command, {} would span multiple lines".format(node["value"]))
     else:
         for child in node:
             if type(child) is dict or type(child) is _list:
@@ -1047,13 +1051,12 @@ class clear(Master):
             return u"clear"
         s = u"clear {}".format(self.data["<@player"])
         if "[.item" in self.data:
-            prefix = u""
             count = u" {}".format(self.data["[0maxCount"]) if "[0maxCount" in self.data else u""
             if len(self.item) > 1:
                 Globals.flags["multiLine"] = True
-                prefix = u"#~ The splitting of this command ({}) can produce different results if used with stats\n".format(
-                    Master.__unicode__(self))
-            return prefix + u"\n".join(u"{} {}{}".format(s, variant, count) for variant in sorted(self.item))
+                Globals.messages.append(u"The splitting of this command ({}) "
+                                        u"can produce different results if used with stats".format(Master.__unicode__(self)))
+            return u"\n".join(u"{} {}{}".format(s, variant, count) for variant in sorted(self.item))
         return s
 
 
@@ -1072,11 +1075,11 @@ class clone(Master):
         s = u"clone {} {} {} {} {} {} {} {} {}".format(self.data["<~x1"], self.data["<~y1"], self.data["<~z1"], self.data["<~x2"], self.data["<~y2"], self.data["<~z2"], self.data["<~x"], self.data["<~y"], self.data["<~z"])
         if "<(filtered" in self.data:
             replace = u" {}".format(self.data["<(force|move|normal"]) if self.data["<(force|move|normal"] != "normal" else u""
-            prefix = u""
             if len(self.block) > 1:
                 Globals.flags["multiLine"] = True
-                prefix = u"#~ The splitting of this command ({}) can produce different results if used with stats\n".format(Master.__unicode__(self))
-            return prefix + u"\n".join(u"{} filtered {}{}".format(s, variant, replace) for variant in sorted(self.block))
+                Globals.messages.append(u"The splitting of this command ({}) "
+                                        u"can produce different results if used with stats".format(Master.__unicode__(self)))
+            return u"\n".join(u"{} filtered {}{}".format(s, variant, replace) for variant in sorted(self.block))
         else:
             for key in self.syntax[9:]:
                 if self.data[key] != "normal":
@@ -1327,11 +1330,11 @@ class fill(Master):
         if "<(replace" in self.data:
             s += u" {} replace".format(self.block)
             if "[.replaceTileName" in self.data:
-                prefix = u""
                 if len(self.replaceBlock) > 1:
                     Globals.flags["multiLine"] = True
-                    prefix = u"#~ The splitting of this command ({}) can produce different results if used with stats\n".format(Master.__unicode__(self))
-                return prefix + u"\n".join(u"{} {}".format(s, variant) for variant in sorted(self.replaceBlock))
+                    Globals.messages.append(u"The splitting of this command ({}) "
+                                            u"can produce different results if used with stats".format(Master.__unicode__(self)))
+                return u"\n".join(u"{} {}".format(s, variant) for variant in sorted(self.replaceBlock))
         else:
             s += u" {}".format(self.block)
             if "[(destroy|hollow|keep|outline" in self.data:
@@ -1478,8 +1481,9 @@ class locate(Master):
         if self.data[self.syntax[0]] != "Temple":
             return Master.__unicode__(self)
         Globals.flags["multiLine"] = True
-        return u"#~ The splitting of this command ({}) can produce different results if used with stats\nlocate {}".format(
-            Master.__unicode__(self), u"\nlocate ".join(('Desert_Pyramid', 'Igloo', 'Jungle_Pyramid', 'Swamp_Hut')))
+        Globals.messages.append(u"The splitting of this command ({}) "
+                                u"can produce different results if used with stats".format(Master.__unicode__(self)))
+        return u"locate {}".format(u"\nlocate ".join(('Desert_Pyramid', 'Igloo', 'Jungle_Pyramid', 'Swamp_Hut')))
 
 
 class me(Master):
@@ -1802,8 +1806,9 @@ class scoreboard(Master):
             return self.toString().format(self.criteria[0])
 
         Globals.flags["multiLine"] = True
-        return u"#~ This command was split, because the criteria was split. You need to split all the commands that refer to this objective\n" + \
-               u"\n".join(self.toString().format(criteria) for criteria in self.criteria)
+        Globals.messages.append(u"This command ({}) was split because the criteria was split. "
+                                u"You need to split all the commands that refer to this objective".format(Master.__unicode__(self)))
+        return u"\n".join(self.toString().format(criteria) for criteria in self.criteria)
 
     def toString(self):
         if any(map(lambda x: x[2] == '*', self.syntax)):
@@ -2071,11 +2076,11 @@ class testforblock(Master):
         self.block = blockTest(self.data, "<.block", "[.dataValue", "[{dataTag")
 
     def __unicode__(self):
-        prefix = u""
         if len(self.block) > 1:
             Globals.flags["multiLine"] = True
-            prefix = u"#~ The splitting of this command ({}) can produce different results if used with stats\n".format(Master.__unicode__(self))
-        return prefix + u"\n".join(u"execute if block {} {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"], variant) for variant in sorted(self.block))
+            Globals.messages.append(u"The splitting of this command ({}) "
+                                    u"can produce different results if used with stats".format(Master.__unicode__(self)))
+        return u"\n".join(u"execute if block {} {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"], variant) for variant in sorted(self.block))
 
 
 class testforblocks(Master):
@@ -2150,8 +2155,7 @@ class weather(Master):
 
     def __unicode__(self):
         if "[0duration" not in self.data:
-            Globals.flags['multiLine'] = True
-            return u"#~ \'{0}\' no longer has random duration. The duration is now 5 minutes\n{0}".format(Master.__unicode__(self))
+            Globals.messages.append(u"\'{}\' no longer has random duration. The duration is now 5 minutes".format(Master.__unicode__(self)))
         return Master.__unicode__(self)
 
 
@@ -2225,16 +2229,17 @@ if __name__ == "__main__":
                     start = len(line) - len(line.lstrip())
                     if line[start] == '#':
                         continue
-                    Globals.flags["commentedOut"] = False
-                    Globals.flags["multiLine"] = False
+                    Globals.reset()
                     lines[lineNumber] = u"{}{}\n".format(line[:start], unicode(decide(line)))
 
                     if Globals.flags["commentedOut"]:
                         commentedOutFiles.append((fileName, lineNumber + lineOffset + 1))
                     if Globals.flags["multiLine"]:
                         multiLineFiles.append((fileName, lineNumber + lineOffset + 1))
-                        lines[lineNumber] = lines[lineNumber][:-1].replace(u"\n", u"\n{}".format(line[:start])) + u"\n"
-                        lineOffset += lines[lineNumber].count("\n") - 1
+                    if Globals.messages:
+                        lines[lineNumber] = line[:start] + u"".join(u"#~ {}\n".format(message) for message in Globals.messages) + lines[lineNumber][start:]
+                    lines[lineNumber] = lines[lineNumber][:-1].replace(u"\n", u"\n{}".format(line[:start])) + u"\n"
+                    lineOffset += lines[lineNumber].count("\n") - 1
 
         except SyntaxError as ex:
             print("File: {}\nLine {}:\n{}".format(fileName, lineNumber + lineOffset + 1, ex))
@@ -2302,7 +2307,11 @@ if __name__ == "__main__":
 
             if choice.strip() not in ("1", "2", "3", "4"):
                 try:
-                    print(u"\nOutput:\n{}\n".format(decide(choice)))
+                    result = unicode(decide(choice))
+                    print(u"\nOutput:\n")
+                    if Globals.messages:
+                        print(u"Messages:\n{}\n".format(u"\n".join(Globals.messages)))
+                    print(u"{}\n".format(result))
                 except SyntaxError as e:
                     print(u"\n{}\n".format(e))
                 raw_input("Press Enter to exit...")
@@ -2393,7 +2402,9 @@ if __name__ == "__main__":
             os.remove(tmp[:-8])
             os.rename(tmp, tmp[:-8])
         if commentedOutFiles:
-            print(u"Some commands were commented out because they have to be converted manually or are no longer needed:\n{}\n".format(u"\n".join(map(lambda x: u"\tFile: {}, Line: {}".format(x[0], x[1]), commentedOutFiles))))
-        if commentedOutFiles:
-            print(u"Some commands were split. They require manual attention:\n{}\n".format(u"\n".join(map(lambda x: u"\tFile: {}, Line: {}".format(x[0], x[1]), multiLineFiles))))
+            print(u"Some commands were commented out because they have to be converted manually or are no longer needed:\n{}\n"
+                  u"".format(u"\n".join(u"\tFile: {}, Line: {}".format(*x) for x in commentedOutFiles)))
+        if multiLineFiles:
+            print(u"Some commands were split. They require manual attention:\n{}\n"
+                  u"".format(u"\n".join(u"\tFile: {}, Line: {}".format(*x) for x in multiLineFiles)))
         raw_input(u"A total of {0} command{2}, across {1} file{2}, was converted in {3:.2f} seconds\n\nPress Enter to exit...".format(Globals.commandCounter, Globals.fileCounter, u"s" if Globals.fileCounter > 1 else u"", get_time() - startTime))

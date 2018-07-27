@@ -734,8 +734,7 @@ class Clear(TestBase):
     def test_syntax1_convert(self):
         tests = (("clear", "clear"),
                  ("clear @s", "clear @s"),
-                 ("clear @s stone", "#~ The splitting of this command (clear @s stone) can produce different results if used with stats\n"
-                                    "clear @s andesite\n"
+                 ("clear @s stone", "clear @s andesite\n"
                                     "clear @s diorite\n"
                                     "clear @s granite\n"
                                     "clear @s polished_andesite\n"
@@ -819,8 +818,7 @@ class Clone(TestBase):
 
     def test_syntax2_convert(self):
         tests = (("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone 1", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite force"),
-                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone", "#~ The splitting of this command (clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone) can produce different results if used with stats\n"
-                                                                           "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered andesite force\n"
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered force stone", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered andesite force\n"
                                                                            "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered diorite force\n"
                                                                            "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite force\n"
                                                                            "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered polished_andesite force\n"
@@ -828,8 +826,7 @@ class Clone(TestBase):
                                                                            "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered polished_granite force\n"
                                                                            "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone force"),
                  ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone 1", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite move"),
-                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone", "#~ The splitting of this command (clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone) can produce different results if used with stats\n"
-                                                                          "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered andesite move\n"
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered move stone", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered andesite move\n"
                                                                           "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered diorite move\n"
                                                                           "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite move\n"
                                                                           "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered polished_andesite move\n"
@@ -837,8 +834,7 @@ class Clone(TestBase):
                                                                           "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered polished_granite move\n"
                                                                           "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered stone move"),
                  ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone 1", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite"),
-                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone", "#~ The splitting of this command (clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone) can produce different results if used with stats\n"
-                                                                            "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered andesite\n"
+                 ("clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered normal stone", "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered andesite\n"
                                                                             "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered diorite\n"
                                                                             "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered granite\n"
                                                                             "clone 1 ~-1 ~1 1 ~-1 ~1 1 ~-1 ~1 filtered polished_andesite\n"
@@ -1294,8 +1290,7 @@ class Execute(TestBase):
         tests = (("execute @e[name=Carl] 1 ~-1 1 toggledownfall", "#~ execute as @e[name=Carl] run toggledownfall ||| This command was removed"),
                  ("execute @e[tag=Carl] 1 ~-1 1 execute @e[name=Carl] 1 ~-1 1 toggledownfall", "#~ execute as @e[tag=Carl] as @e[name=Carl] run toggledownfall ||| This command was removed"),
                  ("execute Carl 1 ~-1 1 function abc:def", "execute as Carl at @s positioned 1 ~-1 1 run function abc:def"),
-                 ("execute @e ~ ~ ~ locate temple", "#~ The splitting of this command (locate Temple) can produce different results if used with stats\n"
-                                                    "execute at @e run locate Desert_Pyramid\n"
+                 ("execute @e ~ ~ ~ locate temple", "execute at @e run locate Desert_Pyramid\n"
                                                     "execute at @e run locate Igloo\n"
                                                     "execute at @e run locate Jungle_Pyramid\n"
                                                     "execute at @e run locate Swamp_Hut"),
@@ -1745,8 +1740,7 @@ class Fill(TestBase):
 
     def test_syntax2_convert(self):
         tests = (("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace", "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace"),
-                 ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone", "#~ The splitting of this command (fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone) can produce different results if used with stats\n"
-                                                                  "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace andesite\n"
+                 ("fill 1 ~-1 ~1 1 ~-1 ~1 stone 1 replace stone", "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace andesite\n"
                                                                   "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace diorite\n"
                                                                   "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace granite\n"
                                                                   "fill 1 ~-1 ~1 1 ~-1 ~1 granite replace polished_andesite\n"
@@ -2069,8 +2063,7 @@ class Locate(TestBase):
                  ("locate Fortress", "locate Fortress"),
                  ("locate EndCity", "locate EndCity"),
                  ("locate Stronghold", "locate Stronghold"),
-                 ("locate Temple", "#~ The splitting of this command (locate Temple) can produce different results if used with stats\n"
-                                   "locate Desert_Pyramid\n"
+                 ("locate Temple", "locate Desert_Pyramid\n"
                                    "locate Igloo\n"
                                    "locate Jungle_Pyramid\n"
                                    "locate Swamp_Hut"))
@@ -2604,8 +2597,7 @@ class Scoreboard(TestBase):
                  ("scoreboard objectives add anObjective dummy displayName", "scoreboard objectives add anObjective dummy displayName"),
 
                  ("scoreboard objectives add anObjective stat.mineBlock.minecraft.tnt", "scoreboard objectives add anObjective minecraft.mined:minecraft.tnt"),
-                 ("scoreboard objectives add anObjective stat.mineBlock.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the commands that refer to this objective\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.mined:minecraft.andesite\n"
+                 ("scoreboard objectives add anObjective stat.mineBlock.minecraft.stone", "scoreboard objectives add anObjective minecraft.mined:minecraft.andesite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.mined:minecraft.diorite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.mined:minecraft.granite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.mined:minecraft.polished_andesite\n"
@@ -2614,8 +2606,7 @@ class Scoreboard(TestBase):
                                                                                           "scoreboard objectives add anObjective minecraft.mined:minecraft.stone"),
 
                  ("scoreboard objectives add anObjective stat.craftItem.minecraft.tnt", "scoreboard objectives add anObjective minecraft.crafted:minecraft.tnt"),
-                 ("scoreboard objectives add anObjective stat.craftItem.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the commands that refer to this objective\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.crafted:minecraft.andesite\n"
+                 ("scoreboard objectives add anObjective stat.craftItem.minecraft.stone", "scoreboard objectives add anObjective minecraft.crafted:minecraft.andesite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.crafted:minecraft.diorite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.crafted:minecraft.granite\n"
                                                                                           "scoreboard objectives add anObjective minecraft.crafted:minecraft.polished_andesite\n"
@@ -2624,36 +2615,33 @@ class Scoreboard(TestBase):
                                                                                           "scoreboard objectives add anObjective minecraft.crafted:minecraft.stone"),
 
                  ("scoreboard objectives add anObjective stat.useItem.minecraft.tnt", "scoreboard objectives add anObjective minecraft.used:minecraft.tnt"),
-                 ("scoreboard objectives add anObjective stat.useItem.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the commands that refer to this objective\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.used:minecraft.andesite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.used:minecraft.diorite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.used:minecraft.granite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.used:minecraft.polished_andesite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.used:minecraft.polished_diorite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.used:minecraft.polished_granite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.used:minecraft.stone"),
+                 ("scoreboard objectives add anObjective stat.useItem.minecraft.stone", "scoreboard objectives add anObjective minecraft.used:minecraft.andesite\n"
+                                                                                        "scoreboard objectives add anObjective minecraft.used:minecraft.diorite\n"
+                                                                                        "scoreboard objectives add anObjective minecraft.used:minecraft.granite\n"
+                                                                                        "scoreboard objectives add anObjective minecraft.used:minecraft.polished_andesite\n"
+                                                                                        "scoreboard objectives add anObjective minecraft.used:minecraft.polished_diorite\n"
+                                                                                        "scoreboard objectives add anObjective minecraft.used:minecraft.polished_granite\n"
+                                                                                        "scoreboard objectives add anObjective minecraft.used:minecraft.stone"),
 
                  ("scoreboard objectives add anObjective stat.breakItem.minecraft.elytra", "scoreboard objectives add anObjective minecraft.broken:minecraft.elytra"),
 
                  ("scoreboard objectives add anObjective stat.pickup.minecraft.tnt", "scoreboard objectives add anObjective minecraft.picked_up:minecraft.tnt"),
-                 ("scoreboard objectives add anObjective stat.pickup.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the commands that refer to this objective\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.picked_up:minecraft.andesite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.picked_up:minecraft.diorite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.picked_up:minecraft.granite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.picked_up:minecraft.polished_andesite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.picked_up:minecraft.polished_diorite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.picked_up:minecraft.polished_granite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.picked_up:minecraft.stone"),
+                 ("scoreboard objectives add anObjective stat.pickup.minecraft.stone", "scoreboard objectives add anObjective minecraft.picked_up:minecraft.andesite\n"
+                                                                                        "scoreboard objectives add anObjective minecraft.picked_up:minecraft.diorite\n"
+                                                                                        "scoreboard objectives add anObjective minecraft.picked_up:minecraft.granite\n"
+                                                                                        "scoreboard objectives add anObjective minecraft.picked_up:minecraft.polished_andesite\n"
+                                                                                        "scoreboard objectives add anObjective minecraft.picked_up:minecraft.polished_diorite\n"
+                                                                                        "scoreboard objectives add anObjective minecraft.picked_up:minecraft.polished_granite\n"
+                                                                                        "scoreboard objectives add anObjective minecraft.picked_up:minecraft.stone"),
 
                  ("scoreboard objectives add anObjective stat.drop.minecraft.tnt", "scoreboard objectives add anObjective minecraft.dropped:minecraft.tnt"),
-                 ("scoreboard objectives add anObjective stat.drop.minecraft.stone", "#~ This command was split, because the criteria was split. You need to split all the commands that refer to this objective\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.dropped:minecraft.andesite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.dropped:minecraft.diorite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.dropped:minecraft.granite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.dropped:minecraft.polished_andesite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.dropped:minecraft.polished_diorite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.dropped:minecraft.polished_granite\n"
-                                                                                          "scoreboard objectives add anObjective minecraft.dropped:minecraft.stone"),
+                 ("scoreboard objectives add anObjective stat.drop.minecraft.stone", "scoreboard objectives add anObjective minecraft.dropped:minecraft.andesite\n"
+                                                                                     "scoreboard objectives add anObjective minecraft.dropped:minecraft.diorite\n"
+                                                                                     "scoreboard objectives add anObjective minecraft.dropped:minecraft.granite\n"
+                                                                                     "scoreboard objectives add anObjective minecraft.dropped:minecraft.polished_andesite\n"
+                                                                                     "scoreboard objectives add anObjective minecraft.dropped:minecraft.polished_diorite\n"
+                                                                                     "scoreboard objectives add anObjective minecraft.dropped:minecraft.polished_granite\n"
+                                                                                     "scoreboard objectives add anObjective minecraft.dropped:minecraft.stone"),
 
                  ("scoreboard objectives add anObjective stat.killEntity.ElderGuardian", "scoreboard objectives add anObjective minecraft.killed:minecraft.elder_guardian"),
                  ("scoreboard objectives add anObjective stat.entityKilledBy.ElderGuardian", "scoreboard objectives add anObjective minecraft.killed_by:minecraft.elder_guardian"),
@@ -3879,8 +3867,7 @@ class TestforBlock(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = (("testforblock 1 ~-1 1 stone", "#~ The splitting of this command (testforblock 1 ~-1 1 stone) can produce different results if used with stats\n"
-                                                "execute if block 1 ~-1 1 andesite\n"
+        tests = (("testforblock 1 ~-1 1 stone", "execute if block 1 ~-1 1 andesite\n"
                                                 "execute if block 1 ~-1 1 diorite\n"
                                                 "execute if block 1 ~-1 1 granite\n"
                                                 "execute if block 1 ~-1 1 polished_andesite\n"
@@ -4176,9 +4163,9 @@ class Weather(TestBase):
         self.assertStats()
 
     def test_syntax1_convert(self):
-        tests = (("weather clear", "#~ 'weather clear' no longer has random duration. The duration is now 5 minutes\nweather clear"),
-                 ("weather rain", "#~ 'weather rain' no longer has random duration. The duration is now 5 minutes\nweather rain"),
-                 ("weather thunder", "#~ 'weather thunder' no longer has random duration. The duration is now 5 minutes\nweather thunder"),
+        tests = (("weather clear", "weather clear"),
+                 ("weather rain", "weather rain"),
+                 ("weather thunder", "weather thunder"),
                  ("weather clear 1", "weather clear 1"),
                  ("weather rain 1", "weather rain 1"),
                  ("weather thunder 1", "weather thunder 1"))
