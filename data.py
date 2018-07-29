@@ -4027,7 +4027,7 @@ Globals.blockStates = {
     "bedrock": {
         "default{": "bedrock["},
     "flowing_water": {
-        "default{": "flowing_water[",
+        "default{": "water[",
         "level=0{": "[level=0",
         "level=1{": "[level=1",
         "level=2{": "[level=2",
@@ -4063,7 +4063,7 @@ Globals.blockStates = {
         "level=14{": "[level=14",
         "level=15{": "[level=15"},
     "flowing_lava": {
-        "default{": "flowing_lava[",
+        "default{": "lava[",
         "level=0{": "[level=0",
         "level=1{": "[level=1",
         "level=2{": "[level=2",
@@ -6261,9 +6261,9 @@ Globals.blockDefaults = {
     "planks": "variant=oak",
     "sapling": "type=oak,stage=0",
     "bedrock": "*",
-    "flowing_water": "flowing_water[level=0]",
+    "flowing_water": "water[level=0]",
     "water": "water[level=0]",
-    "flowing_lava": "flowing_lava[level=0]",
+    "flowing_lava": "lava[level=0]",
     "lava": "lava[level=0]",
     "sand": "type=sand",
     "gravel": "*",

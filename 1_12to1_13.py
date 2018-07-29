@@ -33,7 +33,6 @@ from time import time as get_time
 
 import json, codecs, os, shutil
 
-_map = map
 if type(u"") is str:
     import builtins
     Globals.python = 3
@@ -42,7 +41,6 @@ if type(u"") is str:
     xrange = range
     raw_input = input
     os.getcwdu = os.getcwd
-    map = lambda x, y: _list(_map(x, y))
     unicode = lambda x: x.__unicode__() if hasattr(x, '__unicode__') else str(x)
 else:
     import __builtin__
@@ -73,7 +71,7 @@ def unEscapeJSON(s):
 
 
 def noPrefix(s, prefix="minecraft:"):
-    return s[len(prefix):] if s[:len(prefix)] == prefix else s
+    return s[len(prefix):] if s[:len(prefix)].lower() == prefix.lower() else s
 
 
 def canAt(data, *labels):
@@ -114,7 +112,7 @@ def getString(s):
         if i == len(s):
             raise SyntaxError(u"Unbalanced brackets (more opened than closed)")
         if s[i] in (',', '}', ']'):
-            return result.rstrip(), s[i:]
+            return NBTValue(result.rstrip()), s[i:]
         if s[i] in ('{', '[', '\"', ':'):
             raise SyntaxError(u"Unquoted value can't have '{{' or '[' or '\"' or : in them")
         result += s[i]
@@ -139,14 +137,14 @@ def getQString(s):
         i += 1
     s = s[i+1:].lstrip()
     if s[0] in (',', '}', ']'):
-        return result.rstrip(), s
+        return NBTValue(result.rstrip(), quoted=True), s
     raise SyntaxError(u"Expected ',' or '}}' or ']' but got: '{}'".format(s[0]))
 
 
 def getList(s):
     result = NBTList()
     if s[0] == "]":
-            return result, s[1:].lstrip()
+        return result, s[1:].lstrip()
     if s[0] == 'I' and s[1:].lstrip() == ';':
         s = s[s.find(';')+1:]
         result = ["I;"]
@@ -233,7 +231,7 @@ def block(data, blockLabel, stateLabel=None, nbtLabel=None):
     result = ["", set(), userNBT]
 
     for key in sorted(convDict, key=lambda x: len(x) if x[:7] != "default" else len(x)+420, reverse=True):
-        convFromStates, convFromNBTs = map(lambda x: x.split(",") if x else [], key.split("{"))
+        convFromStates, convFromNBTs = [x.split(",") if x else [] for x in key.split("{")]
         convFromNBTs = dict(tuple(x.split(":", 1)) for x in convFromNBTs)
         if all(x in userStates for x in convFromStates) and all(x[0] in userNBT and userNBT[x[0]] == x[1] for x in convFromNBTs.items()):
             for state in convFromStates:
@@ -319,7 +317,7 @@ def blockTest(data, blockLabel, stateLabel=None, nbtLabel=None):
     for key in convDict:
         if key[:7] == "default":
             continue
-        convFromStates, convFromNBTs = map(lambda x: x.split(",") if x else [], key.split("{", 1))
+        convFromStates, convFromNBTs = [x.split(",") if x else [] for x in key.split("{", 1)]
         convFromStates = dict(tuple(x.split("=", 1)) for x in convFromStates)
         convFromNBTs = dict(tuple(x.split(":", 1)) for x in convFromNBTs)
         convToBlock, convToStates = convDict[key].split("[", 1)
@@ -358,7 +356,7 @@ def blockTest(data, blockLabel, stateLabel=None, nbtLabel=None):
         else:
             if all(x[0] in userStates and userStates[x[0]] == x[1] for x in convFromStates.items()) and \
                (not any(x in convFromNBTs for x in relevantNBTs) or
-                 all(x[0] in userNBT and type(userNBT[x[0]]) in (unicode, str) and stripNBT(userNBT[x[0]]) == x[1] for x in convFromNBTs.items())):
+                 all(x[0] in userNBT and type(userNBT[x[0]]) is NBTValue and stripNBT(userNBT[x[0]]) == x[1] for x in convFromNBTs.items())):
                 if convToBlock:
                     results[0].update([convToBlock])
                 if convToStates:
@@ -602,7 +600,7 @@ def walk(node):
                         if not Globals.flags["multiLine"]:
                             node["value"] = u"/{}".format(command)
                         else:
-                            Globals.messages.append(u"Unable to convert this command, {} would span multiple lines".format(node["value"]))
+                            Globals.messages.append(u"Unable to convert this command, NBT key \'{}\' would span multiple lines".format(node["value"]))
     else:
         for child in node:
             if type(child) is dict or type(child) is _list:
@@ -647,7 +645,7 @@ def lex(caller, syntaxes, tokens):
                     workTokens[i] = Selector(workTokens[i])
                 elif word[1] == '(':
                     splitted = word[2:].split('|')
-                    lowered = map(lambda x: x.lower(), splitted)
+                    lowered = [x.lower() for x in splitted]
                     if workTokens[i].lower() not in lowered:
                         raise SyntaxError(u"Token: '{}' is not in the list: {}".format(workTokens[i], splitted))
                     workTokens[i] = splitted[lowered.index(workTokens[i].lower())]
@@ -747,25 +745,66 @@ def decide(raw):
 
 
 def stripNBT(value, recursive=True):
-    if type(value) not in (unicode, str):
+    if type(value) is not NBTValue:
         if recursive and type(value) in (NBTCompound, NBTList):
             value.stripNumbers()
         return value
-    try:
-        int(value)
-        return value
-    except ValueError:
-        if value[-1] not in ("b", "s", "f", "d"):
-            return value
-    try:
-        int(value[:-1])
-        return value[:-1]
-    except ValueError:
-        if value[-1] not in ("f", "d"):
-            return value
-        if isNumber(value[:-1]):
-            return value[:-1]
-        return value
+    return value.stripNumbers()
+
+
+class NBTValue(str):
+    def __new__(cls, value, *args, **kwargs):
+        return super(NBTValue, cls).__new__(cls, value)
+
+    def __init__(self, value, quoted=False):
+        super(NBTValue, self).__init__()
+        self.quoted = quoted
+        self.value = value
+        self.type = ""
+
+        if quoted:
+            return
+
+        if isNumber(value):
+            try:
+                self.value = int(value)
+            except ValueError:
+                self.value = float(value)
+        elif isNumber(value[:-1]):
+            if value[-1] in ("b", "s"):
+                try:
+                    self.value = int(value[:-1])
+                    self.type = value[-1]
+                except ValueError:
+                    pass
+            elif value[-1] in ("f", "d"):
+                try:
+                    self.value = float(value[:-1])
+                    self.type = value[-1]
+                except ValueError:
+                    pass
+        self.value = str(self.value)
+
+    def __unicode__(self):
+        result = unicode(self.value)
+        if self.quoted:
+            return u"\"{}\"".format(escape(result))
+        if self.type:
+            result += self.type
+        return result
+
+    def stripNumbers(self):
+        result = unicode(self.value)
+        if self.quoted:
+            return u"\"{}\"".format(escape(result))
+        return result
+
+    if Globals.python == 3:
+        def __str__(self):
+            return self.__unicode__()
+
+    def __repr__(self):
+        return self.__unicode__()
 
 
 class NBTCompound(dict):
@@ -831,8 +870,11 @@ class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
                     self.data[key] = val
 
                 for key in self.data:
-                    if key in ('m', "type"):
+                    if key == 'm':
                         self.data[key] = self.data[key].lower()
+                    if key == "type":
+                        negated = self.data["type"][0] == "!"
+                        self.data[key] = u"{}{}".format(u"!" if negated else u"", noPrefix(self.data[key].lower()[negated:]))
                     if not (Globals.scoreRe.match(key) or key in Globals.selectorArgs):
                         raise SyntaxError(u"\'{}\' is not a valid selector because: \'{}\' is not valid selector argument".format(raw, key))
 
@@ -897,10 +939,7 @@ class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
                 self.data["sort"] = "nearest"
 
             if "type" in self.data:
-                if self.data["type"][0] == "!":
-                    test = self.data["type"][1:]
-                else:
-                    test = self.data["type"]
+                test = self.data["type"][self.data["type"][0] == "!":]
 
                 if test not in Globals.summons and test != "player":
                     raise SyntaxError(u"\'{}\' is not valid entity type".format(self.data["type"]))
@@ -957,7 +996,7 @@ class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
 class Selectors(object):
     def __init__(self, raw):
         self.selectors = map(Selector, raw.split(' '))
-        self.canAt = any(map(lambda x: x.canAt, self.selectors))
+        self.canAt = any(selector.canAt for selector in self.selectors)
 
     def __unicode__(self):
         return u" ".join(map(unicode, self.selectors))
@@ -1147,7 +1186,7 @@ class difficulty(Master):
 
 
 class effect(Master):
-    effects = "<({}".format("|".join(map(lambda x: "{}|{}".format(*x), Globals.effects.items())))
+    effects = "<({}".format("|".join("{}|{}".format(*x) for x in Globals.effects.items()))
 
     def __init__(self, tokens):
         Master.__init__(self)
@@ -1183,7 +1222,7 @@ class effect(Master):
 
 
 class enchant(Master):
-    enchants = "<({}".format("|".join(map(lambda x: "{}|{}".format(*x), Globals.enchants.items())))
+    enchants = "<({}".format("|".join("{}|{}".format(*x) for x in Globals.enchants.items()))
 
     def __init__(self, tokens):
         Master.__init__(self)
@@ -1394,7 +1433,7 @@ class gamerule(Master):
         syntaxes = (("<.rule", "[.value"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.custom = True
-        lowered = map(lambda x: x.lower(), Globals.gamerules)
+        lowered = [rule.lower() for rule in Globals.gamerules]
         if self.data["<.rule"].lower() in lowered:
             self.data["<.rule"] = _list(Globals.gamerules)[lowered.index(self.data["<.rule"].lower())]
             self.custom = False
@@ -1430,7 +1469,7 @@ class give(Master):
 
 
 class help(Master):
-    helps = "<({}".format("|".join(Globals.commands + map(str, xrange(1, 9))))
+    helps = "<({}".format("|".join(Globals.commands + [str(i) for i in xrange(1, 9)]))
 
     def __init__(self, tokens=None):
         Master.__init__(self)
@@ -1571,7 +1610,7 @@ class particle(Master):
                 if len(params) > 2:
                     raise SyntaxError(u"Only up to two params allowed when using the iconcrack particle")
                 try:
-                    params = tuple(map(int, self.data["[*params"].split(" ")))
+                    params = tuple(map(int, params))
                 except ValueError:
                     raise SyntaxError(u"The params '{}' and '{}' must be integers".format(*params))
 
@@ -1595,10 +1634,10 @@ class particle(Master):
 
         if self.data[particle.particles] in ("mobSpell", "mobSpellAmbient") and self.data["<0speed"] != "0" and self.data["[0count"] == "0":
             s = u"particle {} {} {} {} ".format(Globals.particles[particleName], self.data["<~x"], self.data["<~y"], self.data["<~z"])
-            s += u" ".join(_map(self.number, _map(lambda x: float(self.data[x]) * float(self.data["<0speed"]), ("<0xd", "<0yd", "<0zd"))))
+            s += u" ".join(map(self.number, (float(self.data[x]) * float(self.data["<0speed"]) for x in ("<0xd", "<0yd", "<0zd"))))
             return u"{} {}".format(s, u" ".join(unicode(self.data[word]) for word in self.syntax[7:]))
 
-        if self.data[particle.particles] == "reddust" and self.data["<0speed"] != "0" and self.data["[0count"] == "0":
+        if self.data[particle.particles] == "reddust":
             return u"particle dust {} {} {} 1 {}".format(self.data["<0xd"], self.data["<0yd"], self.data["<0zd"], u" ".join(unicode(self.data[word]) for word in self.syntax[1:]))
 
         return u"particle {} {}".format(Globals.particles[particleName], u" ".join(unicode(self.data[word]) for word in self.syntax[1:]))
@@ -1811,7 +1850,7 @@ class scoreboard(Master):
         return u"\n".join(self.toString().format(criteria) for criteria in self.criteria)
 
     def toString(self):
-        if any(map(lambda x: x[2] == '*', self.syntax)):
+        if any(word[2] == '*' for word in self.syntax):
             if self.syntax[1] in ("<(list", "<(test", "<(operation", "<(tag") or "[{dataTag" in self.data:
                 Globals.flags["commentedOut"] = True
                 return u"#~ There is no way to convert \'{}\' because of the \'*\'".format(Master.__unicode__(self))
@@ -1852,7 +1891,12 @@ class scoreboard(Master):
             syntax = self.syntax[:end]
 
         for key in syntax:
-            s += u" {}".format(self.data[key] if key != "<@entity" else selectorCopy)
+            if key == "<@entity":
+                s += u" {}".format(selectorCopy)
+            elif key == "<(option":
+                s += u" modify"
+            else:
+                s += u" {}".format(self.data[key])
         return s
 
 
@@ -1975,7 +2019,7 @@ class summon(Master):
         return result
 
 
-class teleport(Master):  # ToDo https://bugs.mojang.com/browse/MC-124686
+class teleport(Master):
     def __init__(self, tokens):
         Master.__init__(self)
         syntaxes = (("<@target", "<~x", "<~y", "<~z"),
@@ -2307,11 +2351,11 @@ if __name__ == "__main__":
 
             if choice.strip() not in ("1", "2", "3", "4"):
                 try:
-                    result = unicode(decide(choice))
+                    ret = unicode(decide(choice))
                     print(u"\nOutput:\n")
                     if Globals.messages:
                         print(u"Messages:\n{}\n".format(u"\n".join(Globals.messages)))
-                    print(u"{}\n".format(result))
+                    print(u"{}\n".format(ret))
                 except SyntaxError as e:
                     print(u"\n{}\n".format(e))
                 raw_input("Press Enter to exit...")
