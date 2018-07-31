@@ -160,11 +160,8 @@ class Selector(TestBase):
                     (("rym=1", "y_rotation=1.."), ("ry=1", "y_rotation=..1"), ("rym=0,ry=1", "y_rotation=0..1"), ("rym=1,ry=1", "y_rotation=1")),
                     (("c=1", "limit=1,sort=nearest"), ("c=-1", "limit=1,sort=furthest"))]
 
-        for sType in ("e", "a", "r", "s", "p"):
-            if sType == "r":
-                argPairs.pop()
-                c = [("@{}[c=1]", "@{}"), ("@{}[c=-1]", "@{}"), ("@{}[c=2]", "@{}[limit=2]"), ("@{}[c=-2]", "@{}[limit=2]")]
-            elif sType in ("s", "p"):
+        for sType in ("e", "a", "s", "p"):
+            if sType in ("s", "p"):
                 c = [("@{}[c=1]", "@{}"), ("@{}[c=-1]", "@{}"), ("@{}[c=2]", "@{}"), ("@{}[c=-2]", "@{}")]
             else:
                 c = [("@{}[c=1]", "@{}[limit=1,sort=nearest]"), ("@{}[c=-1]", "@{}[limit=1,sort=furthest]"), ("@{}[c=2]", "@{}[limit=2,sort=nearest]"), ("@{}[c=-2]", "@{}[limit=2,sort=furthest]")]
@@ -189,6 +186,14 @@ class Selector(TestBase):
 
             for before, after in tests:
                 self.assertEqual(after, unicode(converter.Selector(before)), "source: \'{}\'".format(before))
+            if sType == "a":
+                argPairs.pop()
+
+        tests = (("@r", "@a[limit=1,sort=random]"), ("@r[c=1]", "@a[limit=1,sort=random]"), ("@r[c=-1]", "@a[limit=1,sort=random]"), ("@r[c=2]", "@a[limit=2,sort=random]"), ("@r[c=-2]", "@a[limit=2,sort=random]"), ("@r[type=cow]", "@e[type=cow,limit=1,sort=random]"), ("@r[type=player]", "@a[limit=1,sort=random]"), ("@r[type=player,c=1]", "@a[limit=1,sort=random]"), ("@r[type=player,c=-1]", "@a[limit=1,sort=random]"), ("@r[type=player,c=2]", "@a[limit=2,sort=random]"), ("@r[type=player,c=-2]", "@a[limit=2,sort=random]"), ("@r[type=cow,c=1]", "@e[type=cow,limit=1,sort=random]"), ("@r[type=cow,c=-1]", "@e[type=cow,limit=1,sort=random]"), ("@r[type=cow,c=2]", "@e[type=cow,limit=2,sort=random]"), ("@r[type=cow,c=-2]", "@e[type=cow,limit=2,sort=random]"))
+
+        for before, after in tests:
+            self.assertEqual(after, unicode(converter.Selector(before)), "source: \'{}\'".format(before))
+
         self.assertStats()
         
     def test_is_single(self):

@@ -41,7 +41,7 @@ if type(u"") is str:
     xrange = range
     raw_input = input
     os.getcwdu = os.getcwd
-    unicode = lambda x: x.__unicode__() if hasattr(x, '__unicode__') else str(x)
+    unicode = lambda x: x.__unicode__() if hasattr(x, "__unicode__") else str(x)
 else:
     import __builtin__
     Globals.python = 2
@@ -82,7 +82,7 @@ def canAt(data, *labels):
 
 
 def getKey(s):
-    colon = s.find(':')
+    colon = s.find(":")
     if colon == -1:
         raise SyntaxError(u"No colon found after key: '{}'".format(s))
     key = s[:colon].strip()
@@ -93,13 +93,13 @@ def getKey(s):
 
 def getData(s):
     s = s.lstrip()
-    if s[0] == '{':
+    if s[0] == "{":
         return getCompound(s[1:])
-    elif s[0] == '[':
+    elif s[0] == "[":
         return getList(s[1:])
-    elif s[0] == '\"':
+    elif s[0] == "\"":
         return getQString(s[1:])
-    elif s[0] in ('}', ']', ',', ':'):
+    elif s[0] in ("}", "]", ",", ":"):
         raise SyntaxError(u"Empty value")
     else:
         return getString(s)
@@ -111,9 +111,9 @@ def getString(s):
     while True:
         if i == len(s):
             raise SyntaxError(u"Unbalanced brackets (more opened than closed)")
-        if s[i] in (',', '}', ']'):
+        if s[i] in (",", "}", "]"):
             return NBTValue(result.rstrip()), s[i:]
-        if s[i] in ('{', '[', '\"', ':'):
+        if s[i] in ("{", "[", "\"", ":"):
             raise SyntaxError(u"Unquoted value can't have '{{' or '[' or '\"' or : in them")
         result += s[i]
         i += 1
@@ -128,15 +128,15 @@ def getQString(s):
             raise SyntaxError(u"No closing quote found: '{}'".format(s))
         if skip:
             skip = False
-        elif s[i] == '\\':
+        elif s[i] == "\\":
             skip = True
-        elif s[i] == '\"':
-            result += '\"'
+        elif s[i] == "\"":
+            result += "\""
             break
         result += s[i]
         i += 1
     s = s[i+1:].lstrip()
-    if s[0] in (',', '}', ']'):
+    if s[0] in (",", "}", "]"):
         return NBTValue(result.rstrip(), quoted=True), s
     raise SyntaxError(u"Expected ',' or '}}' or ']' but got: '{}'".format(s[0]))
 
@@ -145,15 +145,15 @@ def getList(s):
     result = NBTList()
     if s[0] == "]":
         return result, s[1:].lstrip()
-    if s[0] == 'I' and s[1:].lstrip() == ';':
-        s = s[s.find(';')+1:]
+    if s[0] == "I" and s[1:].lstrip() == ";":
+        s = s[s.find(";")+1:]
         result = ["I;"]
     while True:
         data, s = getData(s)
         result.append(data)
-        if s[0] == ']':
+        if s[0] == "]":
             return result, s[1:].lstrip()
-        if s[0] == ',':
+        if s[0] == ",":
             s = s[1:].lstrip()
         else:
             raise SyntaxError(u"Expected ']' or ',' but got: '{}'".format(s[0]))
@@ -163,7 +163,7 @@ def signText(s):
     try:
         s = json.JSONDecoder().decode(unEscape(unEscapeJSON(s[1:-1].strip())))
         walk(s)
-        return u"\"{}\"".format(escape(json.JSONEncoder(separators=(',', ':')).encode(s)))
+        return u"\"{}\"".format(escape(json.JSONEncoder(separators=(",", ":")).encode(s)))
     except ValueError:
         return s
 
@@ -176,7 +176,7 @@ def getCompound(s):
         key, s = getKey(s)
         data, s = getData(s)
         if key == "Command":
-            if data[0] == '"':
+            if data[0] == "\"":
                 result[key] = u"\"{}\"".format(escape(unicode(decide(unEscape(data[1:-1])))))
             else:
                 result[key] = unicode(decide(data))
@@ -186,17 +186,17 @@ def getCompound(s):
             for i, page in enumerate(data.data):
                 tmpJSON = json.JSONDecoder().decode(unEscape(page[1:-1].strip()))
                 walk(tmpJSON)
-                data.data[i] = u"\"{}\"".format(escape(unicode(json.JSONEncoder(separators=(',', ':')).encode(tmpJSON))))
+                data.data[i] = u"\"{}\"".format(escape(unicode(json.JSONEncoder(separators=(",", ":")).encode(tmpJSON))))
             result[key] = data
         else:
             result[key] = data
 
-        if s[0] == '}':
+        if s[0] == "}":
             return result, s[1:].lstrip()
-        if s[0] == ',':
+        if s[0] == ",":
             s = s[1:].lstrip()
         else:
-            raise SyntaxError(u"Expected '}}' or ',' but got: \'{}\'".format(s[0]))
+            raise SyntaxError(u"Expected '}}' or ',' but got: '{}'".format(s[0]))
 
 
 def block(data, blockLabel, stateLabel=None, nbtLabel=None):
@@ -496,13 +496,13 @@ def itemTest(data, nameLabel, damageLabel=None, nbtLabel=None):
 
 
 def isXp(s):
-    s = s[:-1] if s[-1].lower() == 'l' else s
+    s = s[:-1] if s[-1].lower() == "l" else s
     return isNumber(s)
 
 
 def isCoord(s):
-    s = s[1:] if s[0] == '~' else s
-    return s == '' or isNumber(s)
+    s = s[1:] if s[0] == "~" else s
+    return s == "" or isNumber(s)
 
 
 def isNumber(s):
@@ -540,12 +540,12 @@ def walk(node):
                 walk(child)
             else:
                 if key == "action" and child == "run_command" and "value" in node:
-                    if node["value"][0] == '/':
+                    if node["value"][0] == "/":
                         command = decide(node["value"])
                         if not Globals.flags["multiLine"]:
                             node["value"] = u"/{}".format(command)
                         else:
-                            Globals.messages.append(u"Unable to convert this command, NBT key \'{}\' would span multiple lines".format(node["value"]))
+                            Globals.messages.append(u"Unable to convert this command, NBT key '{}' would span multiple lines".format(node["value"]))
     else:
         for child in node:
             if type(child) is dict or type(child) is _list:
@@ -559,7 +559,7 @@ def synt(caller, syntax):
 def syntCount(syntax):
     total = 0
     for word in syntax:
-        if word[0] == '<':
+        if word[0] == "<":
             total += 1
         else:
             return u"{}+".format(total)
@@ -567,7 +567,7 @@ def syntCount(syntax):
 
 
 def array(a):
-    return u"[\'{}\']".format(u"\', \'".join(map(unicode, a)))
+    return u"['{}']".format(u"', '".join(map(unicode, a)))
 
 
 def lex(caller, syntaxes, tokens):
@@ -576,45 +576,45 @@ def lex(caller, syntaxes, tokens):
         try:
             workTokens = tokens[:]
             for i, word in enumerate(syntax):
-                if word[0] == '<':
+                if word[0] == "<":
                     if not len(workTokens) >= i+1:
                         raise SyntaxError(u"Not enough tokens: Syntax({}): '{}' Tokens({}): {}".format(syntCount(syntax), synt(caller, syntax), len(workTokens), array([caller] + workTokens)))
-                elif word[0] == '[':
+                elif word[0] == "[":
                     if not len(workTokens) >= i+1:
                         syntax = syntax[:i]
                         break
                 else:
                     raise AssertionError(u"A Syntax '{}' is defined badly at Word '{}'.\nThis means that I messed up, please send this message to me".format(synt(caller, syntax), word))
 
-                if word[1] == '@':
+                if word[1] == "@":
                     workTokens[i] = Selector(workTokens[i])
-                elif word[1] == '(':
-                    splitted = word[2:].split('|')
+                elif word[1] == "(":
+                    splitted = word[2:].split("|")
                     lowered = [x.lower() for x in splitted]
                     if workTokens[i].lower() not in lowered:
                         raise SyntaxError(u"Token: '{}' is not in the list: {}".format(workTokens[i], splitted))
                     workTokens[i] = splitted[lowered.index(workTokens[i].lower())]
-                elif word[1] == '*':
+                elif word[1] == "*":
                     workTokens = workTokens[:i] + [u" ".join(workTokens[i:])]
                     break
-                elif word[1] == '0':
+                elif word[1] == "0":
                     if not isNumber(workTokens[i]):
                         raise SyntaxError(u"{} is not a number".format(workTokens[i]))
-                elif word[1] == '~':
+                elif word[1] == "~":
                     if not isCoord(workTokens[i]):
                         raise SyntaxError(u"{} is not a coordinate".format(workTokens[i]))
-                elif word[1] == '%':
+                elif word[1] == "%":
                     if not isXp(workTokens[i]):
                         raise SyntaxError(u"{} is not a valid xp format".format(workTokens[i]))
-                elif word[1] == '{':
+                elif word[1] == "{":
                     workTokens = workTokens[:i] + [u" ".join(workTokens[i:])]
-                    if workTokens[i][0] != '{':
+                    if workTokens[i][0] != "{":
                         raise SyntaxError(u"Token '{}' is not valid NBT: Doesn't start with '{{'".format(workTokens[i]))
                     workTokens[i], rest = getCompound(workTokens[i][1:])
                     if len(rest) > 0:
                         raise SyntaxError(u"Token '{0}{1}' is not valid NBT: Trailing data found: {1}".format(workTokens[i], rest))
                     break
-                elif word[1] == ':':
+                elif word[1] == ":":
                     workTokens = workTokens[:i] + [u"".join(workTokens[i:])]
                     try:
                         workTokens[i] = json.JSONDecoder().decode(unEscapeJSON(workTokens[i]))
@@ -622,7 +622,7 @@ def lex(caller, syntaxes, tokens):
                         break
                     except ValueError as ex:
                         raise SyntaxError(u"Token '{}' is not valid JSON: {}".format(workTokens[i], ex))
-                elif word[1] == '.':
+                elif word[1] == ".":
                     pass
                 else:
                     raise AssertionError(u"A Syntax '{}' is defined badly at Word '{}'.\nThis means that I messed up, please send this message to me".format(synt(caller, syntax), word))
@@ -645,15 +645,15 @@ def tokenize(raw):
             skip = False
             token += ch
             continue
-        if ch == '\\':
+        if ch == "\\":
             skip = True
             token += ch
             continue
-        if ch == '\"':
+        if ch == "\"":
             doubleQ = not doubleQ
-        elif ch == '\'':
+        elif ch == "'":
             singleQ = not singleQ
-        elif ch == ' ' and not (singleQ or doubleQ):
+        elif ch == " " and not (singleQ or doubleQ):
             tokens.append(token)
             token = u""
             continue
@@ -664,16 +664,16 @@ def tokenize(raw):
 
 def decide(raw):
     Globals.commandCounter += 1
-    tokens = [x for x in tokenize(raw.strip()) if x != '']
+    tokens = [x for x in tokenize(raw.strip()) if x != ""]
     if not tokens:
         raise SyntaxError(u"An empty string was provided")
 
     command = tokens[0].lower()
     tokens[0] = tokens[0].lower().replace("?", "help").replace("msg", "w")
     if tokens[0] == "tell":
-        tokens[0] = 'w'
+        tokens[0] = "w"
 
-    if tokens[0][0] == '/':
+    if tokens[0][0] == "/":
         tokens[0] = tokens[0][1:]
 
     if tokens[0] not in commandsMap:
@@ -793,15 +793,15 @@ class NBTList(object):
             self.data[i] = stripNBT(self.data[i])
 
 
-class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
+class Selector(object):
     def __init__(self, raw):
         self.raw = raw
         if not Globals.selectorRe.match(raw):
-            raise SyntaxError(u"\'{}\' is not a valid selector".format(raw))
+            raise SyntaxError(u"'{}' is not a valid selector".format(raw))
         self.data = dict()
         self.canAt = False
 
-        if raw[0] != '@':
+        if raw[0] != "@":
             self.target = raw
             self.playerName = True
             return
@@ -809,27 +809,27 @@ class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
         self.target = raw[1]
         self.playerName = False
         if len(raw[3:-1]) > 0:
-            for token in raw[3:-1].split(','):
-                key, val = token.split('=')
+            for token in raw[3:-1].split(","):
+                key, val = token.split("=")
                 if not len(val) and key not in ("team", "tag"):
-                    raise SyntaxError(u"\'{}\' is not a valid selector because {}'s value is empty".format(raw, key))
+                    raise SyntaxError(u"'{}' is not a valid selector because {}'s value is empty".format(raw, key))
                 self.data[key] = val
 
             for key in self.data:
-                if key == 'm':
+                if key == "m":
                     self.data[key] = self.data[key].lower()
                 if key == "type":
                     negated = self.data["type"][0] == "!"
                     self.data[key] = u"{}{}".format(u"!" if negated else u"", noPrefix(self.data[key].lower()[negated:]))
                 if not (Globals.scoreRe.match(key) or key in Globals.selectorArgs):
-                    raise SyntaxError(u"\'{}\' is not a valid selector because: \'{}\' is not valid selector argument".format(raw, key))
+                    raise SyntaxError(u"'{}' is not a valid selector because: '{}' is not valid selector argument".format(raw, key))
 
         for key in self.data:
             if key in ("x", "y", "z", "dx", "dy", "dz", "lm", "l", "rm", "r", "rxm", "rx", "rym", "ry", "c") or Globals.scoreRe.match(key):
                 try:
                     int(self.data[key])
                 except ValueError:
-                    raise SyntaxError(u"Value of \'{}\' in \'{}\' has to be integer".format(key, self.raw))
+                    raise SyntaxError(u"Value of '{}' in '{}' has to be integer".format(key, self.raw))
 
         for low, high in (("rxm", "rx"), ("rym", "ry")):
             if low in self.data and high in self.data:
@@ -838,18 +838,18 @@ class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
                     raise SyntaxError(u"Value of {}: {} ({}) can\'t be greater than value of {}: {} ({})"
                                       u"".format(low, low_value, self.data[low], high, high_value, self.data[high]))
 
-        if 'm' in self.data:
-            mode = self.data['m']
-            if mode[0] == '!':
+        if "m" in self.data:
+            mode = self.data["m"]
+            if mode[0] == "!":
                 mode = mode[1:]
             if mode not in ("0", "s", "1", "c", "2", "a", "3", "sp", "survival", "creative", "adventure", "spectator"):
-                raise SyntaxError(u"m\'s value in \'{}\' has to be in (!|)(0|1|2|3|s|c|a|sp|survival|creative|adventure|spectator)".format(self.raw))
+                raise SyntaxError(u"m's value in '{}' has to be in (!|)(0|1|2|3|s|c|a|sp|survival|creative|adventure|spectator)".format(self.raw))
 
         if "type" in self.data:
             test = self.data["type"][self.data["type"][0] == "!":]
 
             if test not in Globals.summons and test != "player":
-                raise SyntaxError(u"\'{}\' is not valid entity type".format(self.data["type"]))
+                raise SyntaxError(u"'{}' is not valid entity type".format(self.data["type"]))
 
         for posArg in Globals.posArgs:
             if posArg in self.data:
@@ -874,37 +874,47 @@ class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
             if key in self.data:
                 self.data[key] = unicode(((int(self.data[key])+180) % 360) - 180)
 
-        if 'm' in self.data:
-            negation = ''
-            if self.data['m'][0] == '!':
-                negation = '!'
-                self.data['m'] = self.data['m'][1:]
+        if "m" in self.data:
+            negation = ""
+            if self.data["m"][0] == "!":
+                negation = "!"
+                self.data["m"] = self.data["m"][1:]
 
-            if self.data['m'] in ("0", "s"):
-                self.data['m'] = "survival"
-            elif self.data['m'] in ("1", "c"):
-                self.data['m'] = "creative"
-            elif self.data['m'] in ("2", "a"):
-                self.data['m'] = "adventure"
-            elif self.data['m'] in ("3", "sp"):
-                self.data['m'] = "spectator"
-            self.data['m'] = negation + self.data['m']
+            if self.data["m"] in ("0", "s"):
+                self.data["m"] = "survival"
+            elif self.data["m"] in ("1", "c"):
+                self.data["m"] = "creative"
+            elif self.data["m"] in ("2", "a"):
+                self.data["m"] = "adventure"
+            elif self.data["m"] in ("3", "sp"):
+                self.data["m"] = "spectator"
+            self.data["m"] = negation + self.data["m"]
 
         if self.target in ("p", "s"):
-            if 'c' in self.data:
-                del self.data['c']
+            if "c" in self.data:
+                del self.data["c"]
 
-        if 'c' in self.data:
-            tmpCount = int(self.data['c'])
-            if tmpCount == 0 or (self.target == 'r' and tmpCount in (-1, 1)):
-                del self.data['c']
-            elif tmpCount < 0:
-                self.data['c'] = str(-tmpCount)
-                if self.target != 'r':
-                    self.data["sort"] = "furthest"
+        if "c" not in self.data and self.target == "r":
+            self.data["c"] = "1"
+
+        if "c" in self.data:
+            tmpCount = int(self.data["c"])
+            if tmpCount == 0:
+                del self.data["c"]
             else:
-                if self.target != 'r':
+                if tmpCount < 0:
+                    self.data["c"] = str(-tmpCount)
+                    self.data["sort"] = "furthest"
+                else:
                     self.data["sort"] = "nearest"
+
+                if self.target == "r":
+                    self.data["sort"] = "random"
+                    self.target = "e"
+                    if "type" not in self.data or self.data["type"] == "player":
+                        self.target = "a"
+                        self.data.pop("type", None)
+
         elif Globals.flags["strictSelector"] and self.target in ("a", "e"):
             self.data["sort"] = "nearest"
 
@@ -934,7 +944,7 @@ class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
     def sort(self):
         result = []
         for future, low, high in Globals.selectorArgsNew:
-            if future != 'scores':
+            if future != "scores":
                 tmpRange = self.range(self.data, low, high)
                 if tmpRange != "..":
                     result.append(u"{}={}".format(future, tmpRange))
@@ -949,7 +959,7 @@ class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
                             scores.append((res.group(1), "", self.data[key]))
 
                 scores.sort()
-                scores.append(' ')
+                scores.append(" ")
                 i = 0
                 scoreRet = u"scores={"
                 while i < len(scores) - 1:
@@ -963,7 +973,7 @@ class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
                         scoreRet += u"{}={}..,".format(scores[i][0], scores[i][2])
                     i += 1
                 if scoreRet != "scores={":
-                    result.append(scoreRet[:-1] + u'}')
+                    result.append(scoreRet[:-1] + u"}")
         return result
 
     def isSingle(self):
@@ -1002,7 +1012,7 @@ class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
 
 class Selectors(object):
     def __init__(self, raw):
-        self.selectors = map(Selector, raw.split(' '))
+        self.selectors = map(Selector, raw.split(" "))
         self.canAt = any(selector.canAt for selector in self.selectors)
 
     def __unicode__(self):
@@ -1021,7 +1031,7 @@ class Master(object):
     def __unicode__(self):
         s = u"{}".format(self.__class__.__name__.replace("_", "-"))
         for key in self.syntax:
-            s += u" {}".format(self.data[key] if key[1] != ':' else json.JSONEncoder(separators=(',', ':')).encode(self.data[key]))
+            s += u" {}".format(self.data[key] if key[1] != ":" else json.JSONEncoder(separators=(",", ":")).encode(self.data[key]))
         return s
 
     if Globals.python == 3:
@@ -1148,13 +1158,13 @@ class defaultgamemode(Master):
 
     def __unicode__(self):
         s = "<(0|1|2|3|s|c|a|sp|survival|creative|adventure|spectator"
-        if self.data[s] in ('0', 's'):
+        if self.data[s] in ("0", "s"):
             mode = "survival"
-        elif self.data[s] in ('1', 'c'):
+        elif self.data[s] in ("1", "c"):
             mode = "creative"
-        elif self.data[s] in ('2', 'a'):
+        elif self.data[s] in ("2", "a"):
             mode = "adventure"
-        elif self.data[s] in ('3', 'sp'):
+        elif self.data[s] in ("3", "sp"):
             mode = "spectator"
         else:
             mode = self.data[s]
@@ -1178,13 +1188,13 @@ class difficulty(Master):
 
     def __unicode__(self):
         s = "<(0|1|2|3|p|e|n|h|peaceful|easy|normal|hard"
-        if self.data[s] in ('0', 'p'):
+        if self.data[s] in ("0", "p"):
             mode = "peaceful"
-        elif self.data[s] in ('1', 'e'):
+        elif self.data[s] in ("1", "e"):
             mode = "easy"
-        elif self.data[s] in ('2', 'n'):
+        elif self.data[s] in ("2", "n"):
             mode = "normal"
-        elif self.data[s] in ('3', 'h'):
+        elif self.data[s] in ("3", "h"):
             mode = "hard"
         else:
             mode = self.data[s]
@@ -1204,13 +1214,13 @@ class effect(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = self.data["<@player"].canAt, True
 
-        if self.syntax[-1] == "[(true|false" and self.data["[(true|false"] == 'false':
+        if self.syntax[-1] == "[(true|false" and self.data["[(true|false"] == "false":
             self.syntax = self.syntax[:-1]
 
-        if self.syntax[-1] == "[0amplifier" and self.data["[0amplifier"] == '0':
+        if self.syntax[-1] == "[0amplifier" and self.data["[0amplifier"] == "0":
             self.syntax = self.syntax[:-1]
 
-        if self.syntax[-1] == "[0seconds" and self.data["[0seconds"] == '30':
+        if self.syntax[-1] == "[0seconds" and self.data["[0seconds"] == "30":
             self.syntax = self.syntax[:-1]
 
         constraints(self.data, {"[0seconds": (0, 1000000), "[0amplifier": (0, 255)})
@@ -1271,7 +1281,7 @@ class execute(Master):
             syntaxes = (("<@entity", "<~x", "<~y", "<~z", "<*command"), )
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
 
-        self.data["<*command"] = self.data["<*command"][1:] if self.data["<*command"][0] == '/' else self.data["<*command"]
+        self.data["<*command"] = self.data["<*command"][1:] if self.data["<*command"][0] == "/" else self.data["<*command"]
         self.data["<*command"] = decide(self.data["<*command"])
 
         self.canAt = self.data["<*command"].canAt or self.data["<@entity"].canAt
@@ -1295,7 +1305,7 @@ class execute(Master):
 
     def toString(self, command, variant=None):
         position = u""
-        if not '~' == self.data["<~x"] == self.data["<~y"] == self.data["<~z"] and self.canAt:
+        if not "~" == self.data["<~x"] == self.data["<~y"] == self.data["<~z"] and self.canAt:
             position = u" positioned {} {} {}".format(self.data["<~x"], self.data["<~y"], self.data["<~z"])
 
         detect = u""
@@ -1342,7 +1352,7 @@ class execute(Master):
                 if target == "@s":
                     command = u"execute {}".format(rest)
 
-        if command[0] == '#':
+        if command[0] == "#":
             if command[:10] == "#~ execute":
                 s = u"#~ {} {}".format(s, command[11:])
             else:
@@ -1420,13 +1430,13 @@ class gamemode(Master):
 
     def __unicode__(self):
         s = "<(0|1|2|3|s|c|a|sp|survival|creative|adventure|spectator"
-        if self.data[s] in ('0', 's'):
+        if self.data[s] in ("0", "s"):
             mode = "survival"
-        elif self.data[s] in ('1', 'c'):
+        elif self.data[s] in ("1", "c"):
             mode = "creative"
-        elif self.data[s] in ('2', 'a'):
+        elif self.data[s] in ("2", "a"):
             mode = "adventure"
-        elif self.data[s] in ('3', 'sp'):
+        elif self.data[s] in ("3", "sp"):
             mode = "spectator"
         else:
             mode = self.data[s]
@@ -1446,7 +1456,7 @@ class gamerule(Master):
             self.custom = False
 
             if "[.value" in self.data:
-                self.data["[.value"] = Globals.gamerules[self.data['<.rule']](self.data['[.value'])
+                self.data["[.value"] = Globals.gamerules[self.data["<.rule"]](self.data["[.value"])
 
     def __unicode__(self):
         if self.custom:
@@ -1529,7 +1539,7 @@ class locate(Master):
         Globals.flags["multiLine"] = True
         Globals.messages.append(u"The splitting of this command ({}) "
                                 u"can produce different results if used with stats".format(Master.__unicode__(self)))
-        return u"locate {}".format(u"\nlocate ".join(('Desert_Pyramid', 'Igloo', 'Jungle_Pyramid', 'Swamp_Hut')))
+        return u"locate {}".format(u"\nlocate ".join(("Desert_Pyramid", "Igloo", "Jungle_Pyramid", "Swamp_Hut")))
 
 
 class me(Master):
@@ -1668,7 +1678,7 @@ class playsound(Master):
         self.syntax, self.data = lex(self.__class__.__name__, syntaxes, tokens)
         self.canAt, self.canAs = ("<~x" in self.data and canAt(self.data, "<~x", "<~y", "<~z")) or self.data["<@player"].canAt, True
 
-        constraints(self.data, {"[0volume": (0., '*'), "[0pitch": (0., 2.), "[0minimumVolume": (0., 1.)})
+        constraints(self.data, {"[0volume": (0., "*"), "[0pitch": (0., 2.), "[0minimumVolume": (0., 1.)})
 
 
 class publish(Master):
@@ -1840,7 +1850,7 @@ class scoreboard(Master):
             self.data["[*entities"] = Selectors(self.data["[*entities"])
 
         for word in self.syntax:
-            if word[1] == '@' or word == "[*entities":
+            if word[1] == "@" or word == "[*entities":
                 self.canAt, self.canAs = self.canAt or self.data[word].canAt, True
 
     def __unicode__(self):
@@ -1857,10 +1867,10 @@ class scoreboard(Master):
         return u"\n".join(self.toString().format(criteria) for criteria in self.criteria)
 
     def toString(self):
-        if any(word[2] == '*' for word in self.syntax):
+        if any(word[2] == "*" for word in self.syntax):
             if self.syntax[1] in ("<(list", "<(test", "<(operation", "<(tag") or "[{dataTag" in self.data:
                 Globals.flags["commentedOut"] = True
-                return u"#~ There is no way to convert \'{}\' because of the \'*\'".format(Master.__unicode__(self))
+                return u"#~ There is no way to convert '{}' because of the '*'".format(Master.__unicode__(self))
 
         if "<(test" in self.data:
             low = self.data["<.min"] if self.data["<.min"] != "*" else u"" if "[.max" in self.data else u"-2147483648"
@@ -1872,7 +1882,7 @@ class scoreboard(Master):
 
         if "<(list" in self.data and "[@entity" in self.data and not self.data["[@entity"].isSingle():
             Globals.flags["commentedOut"] = True
-            return u"#~ The list option in \'{}\' no longer allows for selectors that can target multiple entities.".format(Master.__unicode__(self))
+            return u"#~ The list option in '{}' no longer allows for selectors that can target multiple entities.".format(Master.__unicode__(self))
 
         end = len(self.syntax)
         if "[{dataTag" in self.data:
@@ -1984,9 +1994,9 @@ class stats(Master):
         if "<(clear" in self.data:
             return u"#~ {} ||| Clearing a stat is no longer needed".format(Master.__unicode__(self))
         if "<@selector2" in self.data:
-            return u"#~ {} ||| Use \'execute as {} at @s store {} score {} {} run COMMAND\' on the commands that you want the stats from".format(
+            return u"#~ {} ||| Use 'execute as {} at @s store {} score {} {} run COMMAND' on the commands that you want the stats from".format(
                 Master.__unicode__(self), self.data["<@selector2"], "success" if self.data[stats.stat] == "SuccessCount" else "result", self.data["<@selector"], self.data["<.objective"])
-        return u"#~ {} ||| Use \'execute store {} score {} {} run COMMAND\' on the commands that you want the stats from".format(
+        return u"#~ {} ||| Use 'execute store {} score {} {} run COMMAND' on the commands that you want the stats from".format(
             Master.__unicode__(self), "success" if self.data[stats.stat] == "SuccessCount" else "result", self.data["<@selector"], self.data["<.objective"])
 
 
@@ -2053,7 +2063,7 @@ class tp(Master):
 
             if "[@destination" in self.data:
                 if not self.data["[@destination"].isSingle():
-                    raise SyntaxError(u"Destination (\'{}\') can only target one entity.".format(self.data["[@destination"]))
+                    raise SyntaxError(u"Destination ('{}') can only target one entity.".format(self.data["[@destination"]))
                 self.canAt = self.canAt or self.data["[@destination"].canAt
 
     def __unicode__(self):
@@ -2109,8 +2119,8 @@ class testfor(Master):
                 selectorCopy = self.data["<@player"]
         else:
             selectorCopy = self.data["<@player"].copy()
-            if "c" not in self.data["<@player"].data and self.data["<@player"].target not in ('s', 'p'):
-                selectorCopy.data['limit'] = "1"
+            if "c" not in self.data["<@player"].data and self.data["<@player"].target not in ("s", "p"):
+                selectorCopy.data["limit"] = "1"
 
         if "[{dataTag" in self.data:
             selectorCopy.data["nbt"] = unicode(self.data["[{dataTag"])
@@ -2183,7 +2193,7 @@ class trigger(Master):
         self.canAs = True
 
     def __unicode__(self):
-        if self.data["<(add|set"] == "add" and self.data["<0value"] == '1':
+        if self.data["<(add|set"] == "add" and self.data["<0value"] == "1":
             return u"trigger {}".format(self.data["<.objective"])
         return Master.__unicode__(self)
 
@@ -2206,7 +2216,7 @@ class weather(Master):
 
     def __unicode__(self):
         if "[0duration" not in self.data:
-            Globals.messages.append(u"\'{}\' no longer has random duration. The duration is now 5 minutes".format(Master.__unicode__(self)))
+            Globals.messages.append(u"'{}' no longer has random duration. The duration is now 5 minutes".format(Master.__unicode__(self)))
         return Master.__unicode__(self)
 
 
@@ -2250,7 +2260,7 @@ class xp(Master):
 
     def __unicode__(self):
         player = self.data["[@player"] if "[@player" in self.data else Selector("@s")
-        if self.data["<%amount"][-1] == 'L':
+        if self.data["<%amount"][-1] == "L":
             return u"experience add {} {} levels".format(player, self.data["<%amount"][:-1])
         return u"experience add {} {}".format(player, self.data["<%amount"])
 
@@ -2269,7 +2279,7 @@ if __name__ == "__main__":
 
     def convertFile(fileName):
         Globals.fileCounter += 1
-        with codecs.open(fileName, 'r', "utf-8") as f:
+        with codecs.open(fileName, "r", "utf-8") as f:
             lines = f.readlines()
 
         lineOffset, lineNumber = 0, 0
@@ -2278,7 +2288,7 @@ if __name__ == "__main__":
                 line = line.rstrip()
                 if len(line):
                     start = len(line) - len(line.lstrip())
-                    if line[start] == '#':
+                    if line[start] == "#":
                         continue
                     Globals.reset()
                     lines[lineNumber] = u"{}{}\n".format(line[:start], unicode(decide(line)))
@@ -2295,7 +2305,7 @@ if __name__ == "__main__":
         except SyntaxError as ex:
             print("File: {}\nLine {}:\n{}".format(fileName, lineNumber + lineOffset + 1, ex))
             return fileName
-        with codecs.open(u"{}.TheAl_T".format(fileName), 'w', "utf-8") as f:
+        with codecs.open(u"{}.TheAl_T".format(fileName), "w", "utf-8") as f:
             f.writelines(lines)
 
     def findWorld():
@@ -2332,7 +2342,7 @@ if __name__ == "__main__":
             startTime = get_time()
             for fileName in args.files:
                 if not os.path.isfile(fileName):
-                    print(u"\'{}\' is not a file".format(fileName))
+                    print(u"'{}' is not a file".format(fileName))
                     failedFiles.append(fileName)
                     continue
 
@@ -2387,7 +2397,7 @@ if __name__ == "__main__":
                     print("Unable to find the world directory. Please provide a path to a folder containing level.dat: ")
                     world = raw_input(u"Current folder: {}\n> ".format(os.getcwdu()))
                     if not os.path.isdir(world):
-                        print(u"\'{}\' is not a folder".format(world))
+                        print(u"'{}' is not a folder".format(world))
                         exit(-1)
                     os.chdir(world)
                     if not args.menu and raw_input(u"{} selected. Press y if you want to abort: ".format(os.getcwdu())).lower() == "y":
@@ -2400,7 +2410,7 @@ if __name__ == "__main__":
                 pack = u"datapacks{0}converted{0}".format(os.sep)
                 if not os.path.isdir(pack):
                     os.makedirs(pack)
-                with open(u"{}pack.mcmeta".format(pack), 'w') as f:
+                with open(u"{}pack.mcmeta".format(pack), "w") as f:
                     f.write("{\n\t\"pack\": {\n\t\t\"pack_format\": 1,\n\t\t\"description\": \"Made using TheAl_T\'s 1.12 to 1.13 converter\"\n\t}\n}\n")
 
                 convertTree(u"data{}functions".format(os.sep))
@@ -2410,7 +2420,7 @@ if __name__ == "__main__":
                 else:
                     for i in xrange(len(tmpFiles)):
                         tmp = tmpFiles[i].split(os.sep)
-                        tmpFiles[i] = os.path.join(*(["datapacks", "converted", "data"] + tmp[2:3] + ['functions'] + tmp[3:]))
+                        tmpFiles[i] = os.path.join(*(["datapacks", "converted", "data"] + tmp[2:3] + ["functions"] + tmp[3:]))
 
                     for what in (u"advancements", u"functions", u"loot_tables"):
                         if os.path.isdir(u"data{}{}".format(os.sep, what)):
