@@ -495,61 +495,6 @@ def itemTest(data, nameLabel, damageLabel=None, nbtLabel=None):
     return [u"{}{}".format(name, results[1] if results[1] else u"") for name in sorted(results[0])]
 
 
-def selectorRange(data, low, high):
-    if low in data and high in data:
-        if data[low] == data[high]:
-            return data[low]
-        try:
-            if int(data[low]) > int(data[high]):
-                raise SyntaxError(u"Value of {} ({}) can\'t be greater than value of {} ({})".format(low, data[low], high, data[high]))
-        except ValueError:
-            pass
-
-    result = u".."
-    if low in data:
-        result = data[low] + result
-    if high in data:
-        result += data[high]
-
-    return result
-
-
-def futurizeSelector(data):
-    result = []
-    for future, low, high in Globals.selectorArgsNew:
-        if future != 'scores':
-            tmpRange = selectorRange(data, low, high)
-            if tmpRange != "..":
-                result.append(u"{}={}".format(future, tmpRange))
-        else:
-            scores = []
-            for key in data.keys():
-                res = Globals.scoreRe.match(key)
-                if res:
-                    if res.group(2):
-                        scores.append((res.group(1), res.group(2), data[key]))
-                    else:
-                        scores.append((res.group(1), "", data[key]))
-
-            scores.sort()
-            scores.append(' ')
-            i = 0
-            scoreRet = u"scores={"
-            while i < len(scores) - 1:
-                if scores[i][0] == scores[i+1][0]:
-                    key1, key2 = u"score_{}".format(scores[i][0]), u"score_{}_min".format(scores[i][0])
-                    scoreRet += u"{}={},".format(scores[i][0], selectorRange({key1: scores[i+1][2], key2: scores[i][2]}, key1, key2))
-                    i += 1
-                elif not scores[i][1]:
-                    scoreRet += u"{}=..{},".format(scores[i][0], scores[i][2])
-                else:
-                    scoreRet += u"{}={}..,".format(scores[i][0], scores[i][2])
-                i += 1
-            if scoreRet != "scores={":
-                result.append(scoreRet[:-1] + u'}')
-    return result
-
-
 def isXp(s):
     s = s[:-1] if s[-1].lower() == 'l' else s
     return isNumber(s)
@@ -859,105 +804,167 @@ class Selector(object):  # ToDo https://bugs.mojang.com/browse/MC-121740
         if raw[0] != '@':
             self.target = raw
             self.playerName = True
-        else:
-            self.target = raw[1]
-            self.playerName = False
-            if len(raw[3:-1]) > 0:
-                for token in raw[3:-1].split(','):
-                    key, val = token.split('=')
-                    if not len(val) and key not in ("team", "tag"):
-                        raise SyntaxError(u"\'{}\' is not a valid selector because {}'s value is empty".format(raw, key))
-                    self.data[key] = val
+            return
 
-                for key in self.data:
-                    if key == 'm':
-                        self.data[key] = self.data[key].lower()
-                    if key == "type":
-                        negated = self.data["type"][0] == "!"
-                        self.data[key] = u"{}{}".format(u"!" if negated else u"", noPrefix(self.data[key].lower()[negated:]))
-                    if not (Globals.scoreRe.match(key) or key in Globals.selectorArgs):
-                        raise SyntaxError(u"\'{}\' is not a valid selector because: \'{}\' is not valid selector argument".format(raw, key))
+        self.target = raw[1]
+        self.playerName = False
+        if len(raw[3:-1]) > 0:
+            for token in raw[3:-1].split(','):
+                key, val = token.split('=')
+                if not len(val) and key not in ("team", "tag"):
+                    raise SyntaxError(u"\'{}\' is not a valid selector because {}'s value is empty".format(raw, key))
+                self.data[key] = val
 
-            for key in ("x", "y", "z", "dx", "dy", "dz", "lm", "l", "rm", "r", "rxm", "rx", "rym", "ry", "c"):
+            for key in self.data:
+                if key == 'm':
+                    self.data[key] = self.data[key].lower()
+                if key == "type":
+                    negated = self.data["type"][0] == "!"
+                    self.data[key] = u"{}{}".format(u"!" if negated else u"", noPrefix(self.data[key].lower()[negated:]))
+                if not (Globals.scoreRe.match(key) or key in Globals.selectorArgs):
+                    raise SyntaxError(u"\'{}\' is not a valid selector because: \'{}\' is not valid selector argument".format(raw, key))
+
+        for key in self.data:
+            if key in ("x", "y", "z", "dx", "dy", "dz", "lm", "l", "rm", "r", "rxm", "rx", "rym", "ry", "c") or Globals.scoreRe.match(key):
                 try:
-                    if key in self.data:
-                        int(self.data[key])
+                    int(self.data[key])
                 except ValueError:
                     raise SyntaxError(u"Value of \'{}\' in \'{}\' has to be integer".format(key, self.raw))
 
-            for key in self.data:
-                if Globals.scoreRe.match(key):
-                    try:
-                        int(self.data[key])
-                    except ValueError:
-                        raise SyntaxError(u"Value of \'{}\' in \'{}\' has to be integer".format(key, self.raw))
+        for low, high in (("rxm", "rx"), ("rym", "ry")):
+            if low in self.data and high in self.data:
+                low_value, high_value = (((int(self.data[key])+180) % 360) - 180 for key in (low, high))
+                if low_value > high_value:
+                    raise SyntaxError(u"Value of {}: {} ({}) can\'t be greater than value of {}: {} ({})"
+                                      u"".format(low, low_value, self.data[low], high, high_value, self.data[high]))
 
-            for key in ("rm", "r"):
-                if key in self.data:
-                    if int(self.data[key]) < 0:
-                        self.data[key] = u"0"
+        if 'm' in self.data:
+            mode = self.data['m']
+            if mode[0] == '!':
+                mode = mode[1:]
+            if mode not in ("0", "s", "1", "c", "2", "a", "3", "sp", "survival", "creative", "adventure", "spectator"):
+                raise SyntaxError(u"m\'s value in \'{}\' has to be in (!|)(0|1|2|3|s|c|a|sp|survival|creative|adventure|spectator)".format(self.raw))
 
-            for key in ("rxm", "rx", "rym", "ry"):
-                if key in self.data:
-                    self.data[key] = unicode(((int(self.data[key])+180) % 360) - 180)
+        if "type" in self.data:
+            test = self.data["type"][self.data["type"][0] == "!":]
 
-            if 'm' in self.data:
-                add = ''
-                if self.data['m'][0] == '!':
-                    add = '!'
-                    self.data['m'] = self.data['m'][1:]
-                if self.data['m'] in ("0", "s"):
-                    self.data['m'] = "survival"
-                elif self.data['m'] in ("1", "c"):
-                    self.data['m'] = "creative"
-                elif self.data['m'] in ("2", "a"):
-                    self.data['m'] = "adventure"
-                elif self.data['m'] in ("3", "sp"):
-                    self.data['m'] = "spectator"
-                elif self.data['m'] in ("survival", "creative", "adventure", "spectator"):
-                    pass
-                else:
-                    raise SyntaxError(u"m\'s value in \'{}\' has to be in (!|)(0|1|2|3|s|c|a|sp|survival|creative|adventure|spectator)".format(self.raw))
-                self.data['m'] = add + self.data['m']
+            if test not in Globals.summons and test != "player":
+                raise SyntaxError(u"\'{}\' is not valid entity type".format(self.data["type"]))
 
-            if self.target in ("p", "s"):
-                if 'c' in self.data:
-                    del self.data['c']
+        for posArg in Globals.posArgs:
+            if posArg in self.data:
+                self.canAt = True
+                break
 
-            if 'c' in self.data:
-                tmpCount = int(self.data['c'])
-                if tmpCount == 0 or (self.target == 'r' and tmpCount in (-1, 1)):
-                    del self.data['c']
-                elif tmpCount < 0:
-                    self.data['c'] = str(-tmpCount)
-                    if self.target != 'r':
-                        self.data["sort"] = "furthest"
-                else:
-                    if self.target != 'r':
-                        self.data["sort"] = "nearest"
-            elif Globals.flags["strictSelector"] and self.target in ("a", "e"):
-                self.data["sort"] = "nearest"
-
-            if "type" in self.data:
-                test = self.data["type"][self.data["type"][0] == "!":]
-
-                if test not in Globals.summons and test != "player":
-                    raise SyntaxError(u"\'{}\' is not valid entity type".format(self.data["type"]))
-
-            for posArg in Globals.posArgs:
-                if posArg in self.data:
-                    self.canAt = True
-                    break
-
-            # validate ranges
-            futurizeSelector(self.data)
+        # validate ranges
+        self.sort()
 
     def __unicode__(self):
         if self.playerName:
             return u"{}".format(self.target)
+
+        self = self.copy()
+
+        for key in ("rm", "r"):
+            if key in self.data:
+                if int(self.data[key]) < 0:
+                    self.data[key] = u"0"
+
+        for key in ("rxm", "rx", "rym", "ry"):
+            if key in self.data:
+                self.data[key] = unicode(((int(self.data[key])+180) % 360) - 180)
+
+        if 'm' in self.data:
+            negation = ''
+            if self.data['m'][0] == '!':
+                negation = '!'
+                self.data['m'] = self.data['m'][1:]
+
+            if self.data['m'] in ("0", "s"):
+                self.data['m'] = "survival"
+            elif self.data['m'] in ("1", "c"):
+                self.data['m'] = "creative"
+            elif self.data['m'] in ("2", "a"):
+                self.data['m'] = "adventure"
+            elif self.data['m'] in ("3", "sp"):
+                self.data['m'] = "spectator"
+            self.data['m'] = negation + self.data['m']
+
+        if self.target in ("p", "s"):
+            if 'c' in self.data:
+                del self.data['c']
+
+        if 'c' in self.data:
+            tmpCount = int(self.data['c'])
+            if tmpCount == 0 or (self.target == 'r' and tmpCount in (-1, 1)):
+                del self.data['c']
+            elif tmpCount < 0:
+                self.data['c'] = str(-tmpCount)
+                if self.target != 'r':
+                    self.data["sort"] = "furthest"
+            else:
+                if self.target != 'r':
+                    self.data["sort"] = "nearest"
+        elif Globals.flags["strictSelector"] and self.target in ("a", "e"):
+            self.data["sort"] = "nearest"
+
         if len(self.data.keys()) == 0:
             return u"@{}".format(self.target)
-        return u"@{}[{}]".format(self.target, u",".join(futurizeSelector(self.data)))
+        return u"@{}[{}]".format(self.target, u",".join(self.sort()))
+
+    @staticmethod
+    def range(data, low, high):
+        if low in data and high in data:
+            if data[low] == data[high]:
+                return data[low]
+            try:
+                if int(data[low]) > int(data[high]):
+                    raise SyntaxError(u"Value of {} ({}) can\'t be greater than value of {} ({})".format(low, data[low], high, data[high]))
+            except ValueError:
+                pass
+
+        result = u".."
+        if low in data:
+            result = data[low] + result
+        if high in data:
+            result += data[high]
+
+        return result
+
+    def sort(self):
+        result = []
+        for future, low, high in Globals.selectorArgsNew:
+            if future != 'scores':
+                tmpRange = self.range(self.data, low, high)
+                if tmpRange != "..":
+                    result.append(u"{}={}".format(future, tmpRange))
+            else:
+                scores = []
+                for key in self.data.keys():
+                    res = Globals.scoreRe.match(key)
+                    if res:
+                        if res.group(2):
+                            scores.append((res.group(1), res.group(2), self.data[key]))
+                        else:
+                            scores.append((res.group(1), "", self.data[key]))
+
+                scores.sort()
+                scores.append(' ')
+                i = 0
+                scoreRet = u"scores={"
+                while i < len(scores) - 1:
+                    if scores[i][0] == scores[i+1][0]:
+                        key1, key2 = u"score_{}".format(scores[i][0]), u"score_{}_min".format(scores[i][0])
+                        scoreRet += u"{}={},".format(scores[i][0], self.range({key1: scores[i + 1][2], key2: scores[i][2]}, key1, key2))
+                        i += 1
+                    elif not scores[i][1]:
+                        scoreRet += u"{}=..{},".format(scores[i][0], scores[i][2])
+                    else:
+                        scoreRet += u"{}={}..,".format(scores[i][0], scores[i][2])
+                    i += 1
+                if scoreRet != "scores={":
+                    result.append(scoreRet[:-1] + u'}')
+        return result
 
     def isSingle(self):
         if self.playerName or self.target in ("s", "p"):
@@ -1249,7 +1256,7 @@ class entitydata(Master):
         self.canAt, self.canAs = self.data["<@entity"].canAt, True
 
     def __unicode__(self):
-        if self.data["<@entity"].isSingle():  # ToDo https://bugs.mojang.com/browse/MC-121807
+        if self.data["<@entity"].isSingle():
             return u"data merge entity {} {}".format(self.data["<@entity"], self.data["<{dataTag"])
         return u"execute as {} run data merge entity @s {}".format(self.data["<@entity"], self.data["<{dataTag"])
 
