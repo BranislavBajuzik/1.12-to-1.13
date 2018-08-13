@@ -1961,7 +1961,8 @@ class Help(TestBase):
         self.assertStats()
 
     def test_syntax2_ok(self):
-        perms = generate_perms([["help", "?"], converter.Globals.commands+map(str, xrange(1, 9))])
+        perms = generate_perms([["help", "?"], converter.Globals.commands +
+                                [str(i) for i in xrange(1, 9)]])
         for perm in perms:
             self.decide(perm)
         self.assertStats()
@@ -1974,7 +1975,8 @@ class Help(TestBase):
         self.assertStats()
 
     def test_syntax2_convert(self):
-        tests = [("{} {}".format(command, arg), "help {}".format(arg)) for arg in converter.Globals.commands+map(str, xrange(1, 9)) for command in ("help", "?")]
+        tests = [("{} {}".format(command, arg), "help {}".format(arg)) for arg in converter.Globals.commands +
+                 [str(i) for i in xrange(1, 9)] for command in ("help", "?")]
         for before, after in tests:
             self.assertEqual(after, unicode(converter.decide(before)), "source: \'{}\'".format(before))
         self.assertStats()

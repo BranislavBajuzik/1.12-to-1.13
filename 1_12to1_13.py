@@ -184,9 +184,9 @@ def getCompound(s):
             result[key] = signText(data)
         elif key == "pages":
             for i, page in enumerate(data.data):
-                tmpJSON = json.JSONDecoder().decode(unEscape(page[1:-1].strip()))
+                tmpJSON = json.JSONDecoder().decode(page.value.strip())
                 walk(tmpJSON)
-                data.data[i] = u"\"{}\"".format(escape(unicode(json.JSONEncoder(separators=(",", ":")).encode(tmpJSON))))
+                data.data[i] = u"\"{}\"".format(unicode(json.JSONEncoder(separators=(",", ":")).encode(tmpJSON)))
             result[key] = data
         else:
             result[key] = data
@@ -1012,7 +1012,7 @@ class Selector(object):
 
 class Selectors(object):
     def __init__(self, raw):
-        self.selectors = map(Selector, raw.split(" "))
+        self.selectors = [Selector(token) for token in raw.split(" ")]
         self.canAt = any(selector.canAt for selector in self.selectors)
 
     def __unicode__(self):
