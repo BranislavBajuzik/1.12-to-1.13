@@ -1836,7 +1836,6 @@ class scoreboard(Master):
                 self.criteria = [u"minecraft.custom:minecraft.{}".format(Globals.miscCriteria[criteria[5:]])]
             else:
                 self.criteria = [self.data["<.criteria"]]
-            self.data["<.criteria"] = u"{}"
 
         if "<.min" in self.data:
             rules = {}
@@ -1912,6 +1911,8 @@ class scoreboard(Master):
                 s += u" {}".format(selectorCopy)
             elif key == "<(option":
                 s += u" modify"
+            elif key == "<.criteria":
+                s += u" {}"
             else:
                 s += u" {}".format(self.data[key])
         return s
