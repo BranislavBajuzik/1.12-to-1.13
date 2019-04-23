@@ -4368,8 +4368,8 @@ Globals.blockStates = {
         "default{": "bricks["},
     "tnt": {
         "default{": "tnt[",
-        "explode=false{": "tnt[",
-        "explode=true{": "tnt["},
+        "explode=false{": "tnt[unstable=false",
+        "explode=true{": "tnt[unstable=true"},
     "bookshelf": {
         "default{": "bookshelf["},
     "mossy_cobblestone": {
